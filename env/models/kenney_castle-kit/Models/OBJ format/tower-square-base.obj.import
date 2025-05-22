@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://8olbcsov213a"
+path="res://.godot/imported/tower-square-base.obj-5329b6dc3b100aa49e85aefabe84681d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/tower-square-base.obj-5329b6dc3b100aa49e85aefabe84681d.mesh"]
+
+source_file="res://models/kenney_castle-kit/Models/OBJ format/tower-square-base.obj"
+dest_files=["res://.godot/imported/tower-square-base.obj-5329b6dc3b100aa49e85aefabe84681d.mesh", "res://.godot/imported/tower-square-base.obj-5329b6dc3b100aa49e85aefabe84681d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

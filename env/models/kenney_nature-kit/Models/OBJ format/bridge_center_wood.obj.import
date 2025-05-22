@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bd0gw25qqwd0v"
+path="res://.godot/imported/bridge_center_wood.obj-9037a6adf006f5b7e23738832cda936a.mesh"
+
+[deps]
+
+files=["res://.godot/imported/bridge_center_wood.obj-9037a6adf006f5b7e23738832cda936a.mesh"]
+
+source_file="res://models/kenney_nature-kit/Models/OBJ format/bridge_center_wood.obj"
+dest_files=["res://.godot/imported/bridge_center_wood.obj-9037a6adf006f5b7e23738832cda936a.mesh", "res://.godot/imported/bridge_center_wood.obj-9037a6adf006f5b7e23738832cda936a.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
