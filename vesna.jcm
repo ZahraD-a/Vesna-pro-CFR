@@ -90,4 +90,13 @@ mas vesna {
         ag-class:   vesna.VesnaAgent
     }
 
+    // agent alice:alice.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9090 )
+    //                 propensions( [ prop1(20), prop2( 30) ] )
+    //                 opt_choice( most_similar )
+    //     ag-class:   vesna.VesnaAgentTemper
+    //     goals:      start
+    // }
+
 }

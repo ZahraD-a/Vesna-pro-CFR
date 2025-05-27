@@ -1,4 +1,3 @@
-@ -1,306 +0,0 @@
 package vesna;
 
 import jason.JasonException;
