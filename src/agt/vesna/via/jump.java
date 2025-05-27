@@ -3,6 +3,7 @@ package vesna;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Set;
 
@@ -16,12 +17,15 @@ public class jump extends DefaultInternalAction {
     public Object execute( TransitionSystem ts, Unifier un, Term[] args ) throws Exception {
 
         JSONObject data = new JSONObject();
-        JSONObject propensions = new JSONObject();
+        JSONArray propensions = new JSONArray();
 
         VesnaAgent ag = ( VesnaAgent ) ts.getAg();
         Unifier u = new Unifier();
         if ( ag.believes( createLiteral( "propensions" , new VarTerm( "Ps" ) ), u ) ) {
             ListTerm props = ( ListTerm ) u.get( "Ps" );
+            for ( Term prop : props ) {
+                propensions.put( prop.toString() );
+            }
         }
 
         JSONObject action = new JSONObject();
@@ -29,6 +33,9 @@ public class jump extends DefaultInternalAction {
         action.put( "receiver", "body" );
         action.put( "type", "jump" );
         action.put( "data", data );
+        action.put( "propensions", propensions );
+
+        ag.perform( action.toString() );
 
         return true;
     }

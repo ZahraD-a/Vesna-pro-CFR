@@ -5,6 +5,7 @@ import jason.asSyntax.*;
 
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class walk extends DefaultInternalAction {
@@ -33,6 +34,17 @@ public class walk extends DefaultInternalAction {
             return false;
 
         JSONObject data = new JSONObject();
+        JSONArray propensions = new JSONArray();
+
+        VesnaAgent ag = ( VesnaAgent ) ts.getAg();
+        Unifier u = new Unifier();
+        if ( ag.believes( createLiteral( "propensions" , new VarTerm( "Ps" ) ), u ) ) {
+            ListTerm props = ( ListTerm ) u.get( "Ps" );
+            for ( Term prop : props ) {
+                propensions.put( prop.toString() );
+            }
+        }
+
         data.put( "type", type );
         if ( type.equals( "step" ) ){
             if ( args.length == 2 ){
@@ -49,8 +61,8 @@ public class walk extends DefaultInternalAction {
         action.put( "receiver", "body" );
         action.put( "type", "walk" );
         action.put( "data", data );
+        action.put( "propensions", propensions );
 
-        VesnaAgent ag = ( VesnaAgent ) ts.getAg();
         ag.perform( action.toString() );
 
         return true;

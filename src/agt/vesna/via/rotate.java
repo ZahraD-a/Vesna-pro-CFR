@@ -4,6 +4,7 @@ import jason.asSemantics.*;
 import jason.asSyntax.*;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.util.Set;
 
 public class rotate extends DefaultInternalAction {
@@ -18,6 +19,17 @@ public class rotate extends DefaultInternalAction {
     public Object execute( TransitionSystem ts, Unifier un, Term[] args ) throws Exception {
 
         JSONObject data = new JSONObject();
+        JSONArray propensions = new JSONArray();
+
+        VesnaAgent ag = ( VesnaAgent ) ts.getAg();
+        Unifier u = new Unifier();
+        if ( ag.believes( createLiteral( "propensions" , new VarTerm( "Ps" ) ), u ) ) {
+            ListTerm props = ( ListTerm ) u.get( "Ps" );
+            for ( Term prop : props ) {
+                propensions.put( prop.toString() );
+            }
+        }
+
         if ( args.length == 0 )
             return false;
         
@@ -37,6 +49,9 @@ public class rotate extends DefaultInternalAction {
         action.put( "receiver", "body" );
         action.put( "type", "rotate" );
         action.put( "data", data );
+        action.put( "propensions", propensions );
+
+        ag.perform( action.toString() );
 
         return true;
     }
