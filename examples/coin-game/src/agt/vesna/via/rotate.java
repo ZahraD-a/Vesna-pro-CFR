@@ -7,8 +7,6 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 import java.util.Set;
 
-import static jason.asSyntax.ASSyntax.*;
-
 public class rotate extends DefaultInternalAction {
    
     // rotate( left )       rotate in a direction

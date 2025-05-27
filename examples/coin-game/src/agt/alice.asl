@@ -5,10 +5,7 @@
         .wait( 1000 );
         !p;
         .wait( 1000 );
-        !p;
-        vesna.walk;
-        vesna.rotate( left );
-        vesna.jump.
+        !p.
 
 
 @p1[propensions( [ prop1( 20 ), prop2( 30 ) ] )]

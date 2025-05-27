@@ -8,8 +8,6 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import static jason.asSyntax.ASSyntax.*;
-
 public class walk extends DefaultInternalAction {
 
     // walk()               performs a step
