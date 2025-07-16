@@ -14,6 +14,10 @@ var current_region = ""
 var end_communication = true
 
 var target_movement : String = "empty"
+var global_target_node : Node3D
+var global_target_pos : Vector3
+
+var gained_coin : bool = false
 
 @onready var navigator : NavigationAgent3D = $NavigationAgent3D
 @onready var jump_anim = $Body/Jump
@@ -50,38 +54,44 @@ func _process(delta: float) -> void:
 			print( "Received msg ", msg )
 			var intention : Dictionary = JSON.parse_string( msg )
 			manage( intention )
-
-func _physics_process(delta: float) -> void:
-	# Add the gravity.
-	if not is_on_floor():
-		velocity += get_gravity() * delta
-		
-	#var target_direction: Vector3 = (navigator.get_next_path_position() - global_transform.origin).normalized()
-	
+			
+func navigate( delta: float ) -> void:
 	if navigator.is_target_reached() or navigator.is_navigation_finished():
 		play_idle()
 		velocity.x = 0
 		velocity.z = 0
 		if not end_communication:
-			signal_end_movement()
-
+			signal_end_movement( 'completed', 'destination_reached' )
 			
 	elif not navigator.is_navigation_finished():
 		play_run()
 		var final_direction = ( navigator.get_next_path_position() - global_position ).normalized()
-		#var avoidance_force = get_avoidance_force()
-		#var final_direction = ( direction + avoidance_force ).normalized()
-		#rotation.y = atan2( -final_direction.z, final_direction.x )
 		rotation.y = atan2( final_direction.x, final_direction.z)
 		
 		velocity = velocity.lerp( final_direction * SPEED, ACCELERATION * delta )
 	
 	move_and_slide()
+	
+func signal_mind( type: String, data: Dictionary ):
+	var log : Dictionary = {}
+	log[ 'sender' ] = 'body'
+	log[ 'receiver' ] = 'vesna'
+	log[ 'type' ] = type
+	log[ 'data' ] = data
+	ws.send_text( JSON.stringify( log ) )
+
+func _physics_process(delta: float) -> void:
+	# Add the gravity.
+	if not is_on_floor():
+		velocity += get_gravity() * delta
+	
+	navigate( delta )
+	
 	var changed : bool = false
-	if position.x < 0 and my_pos != "blue":
+	if global_position.z < 0 and my_pos != "blue":
 		my_pos = "blue"
 		changed = true
-	elif position.x > 0 and my_pos != "red":
+	elif global_position.z > 0 and my_pos != "red":
 		my_pos = "red"
 		changed = true
 	if changed:
@@ -100,6 +110,7 @@ func _physics_process(delta: float) -> void:
 		var collision = get_slide_collision(i)
 		var collider = collision.get_collider()
 		if ( collider.name.begins_with( "coin" ) ):
+			gained_coin = true
 			collider.queue_free()
 			var log : Dictionary = {}
 			log[ 'sender' ] = 'body'
@@ -111,7 +122,7 @@ func _physics_process(delta: float) -> void:
 			log[ 'data' ] = data
 			ws.send_text( JSON.stringify( log ) )
 		elif collider.is_in_group( "Agents" ):
-			if name.begins_with( "red" ) and collider.is_in_group( "blue_team" ) and position.x < 0:
+			if self.is_in_group( "red_team" ) and collider.is_in_group( "blue_team" ) and global_position.z < 0:
 				var log : Dictionary = {}
 				log[ 'sender' ] = 'body'
 				log[ 'receiver' ] = 'vesna'
@@ -121,8 +132,9 @@ func _physics_process(delta: float) -> void:
 				data[ 'amount' ] = 1
 				log[ 'data' ] = data
 				ws.send_text( JSON.stringify( log ) )
-				collider.position = Vector3( 0, 0, -4.5 )
-			elif name.begins_with( "blue" ) and collider.is_in_group( "red_team" ) and position.x > 0:
+				position = Vector3( 0, 0.5, 4.5 )
+				navigator.target_position = global_position
+			elif self.is_in_group( "blue_team" ) and collider.is_in_group( "red_team" ) and global_position.z > 0:
 				var log : Dictionary = {}
 				log[ 'sender' ] = 'body'
 				log[ 'receiver' ] = 'vesna'
@@ -132,14 +144,15 @@ func _physics_process(delta: float) -> void:
 				data[ 'amount' ] = 1
 				log[ 'data' ] = data
 				ws.send_text( JSON.stringify( log ) )
-				collider.position = Vector3( 0, 0, 4.5 )
+				position = Vector3( 0, 0.5, -4.5 )
+				navigator.target_position = global_position
 	
-func _on_area_body_entered( region_name, body ):
-	if ( body.name == self.name ):
-		print( "Agent ", self.name, " entered region ", region_name )
-		if ( region_name == target_movement ):
-			signal_end_movement()
-			navigator.set_target_position( global_position )
+#func _on_area_body_entered( region_name, body ):
+	#if ( body.name == self.name ):
+		#print( "Agent ", self.name, " entered region ", region_name )
+		#if ( region_name == target_movement ):
+			#signal_end_movement( 'completed', 'destination_reached' )
+			#navigator.set_target_position( global_position )
 	
 func _exit_tree() -> void:
 	ws.close()
@@ -186,18 +199,15 @@ func manage( intention : Dictionary ) -> void:
 			release( art_name )
 
 func walk( target, id ):
-	#var target_region = get_node_or_null("/root/Root/NavigationRegion3D/Markers/" + target )
-	#if target_region == null:
-		#target_region = get_node_or_null("/root/Root/NavigationRegion3D/Regions/" + target )
-	#if target_region == null:
-		#target_region = get_node_or_null("/root/Root/NavigationRegion3D/Doors/" + target )
 	var target_node = get_node_or_null( "/root/Node3D/NavigationRegion3D/" + target)
 	if not target_node:
 		target_node = get_node_or_null( "/root/Node3D/" + target )
 	if not target_node:
 		return
 	navigator.set_target_position( target_node.global_position )
+	target_node.connect( "tree_exited", Callable( self, "_on_target_destroyed" ) )
 	target_movement = target
+	global_target_node = target_node
 	play_run()
 	end_communication = false
 
@@ -244,7 +254,7 @@ func release( art_name : String ):
 	art.transform.origin = Vector3.ZERO
 	print( "I release " + art_name )
 	
-func signal_end_movement( ) -> void:
+func signal_end_movement( status : String, reason : String ) -> void:
 	target_movement = "empty"
 	var log : Dictionary = {}
 	log[ 'sender' ] = 'body'
@@ -252,8 +262,8 @@ func signal_end_movement( ) -> void:
 	log[ 'type' ] = 'signal'
 	var msg : Dictionary = {}
 	msg[ 'type' ] = 'movement'
-	msg[ 'status' ] = 'completed'
-	msg[ 'reason' ] = 'destination_reached'
+	msg[ 'status' ] = status
+	msg[ 'reason' ] = reason
 	log[ 'data' ] = msg
 	ws.send_text( JSON.stringify( log ) )
 	end_communication = true
@@ -280,7 +290,7 @@ func on_object_spawned( new_object ):
 	log[ 'type' ] = 'coin'
 	var msg : Dictionary = {}
 	msg[ 'type' ] = 'spawn'
-	msg[ 'name' ] = new_object.name
+	msg[ 'name' ] = 'coin( ' + new_object.name + ')'
 	if new_object.global_transform.origin.z < 0:
 		msg[ 'midfield' ] = 'blue'
 	else:
@@ -288,3 +298,8 @@ func on_object_spawned( new_object ):
 	log[ 'data' ] = msg
 	
 	ws.send_text( JSON.stringify( log ) )
+	
+func _on_target_destroyed():
+	if not gained_coin:
+		signal_end_movement( 'stopped', 'target_destroyed' )
+	gained_coin = false

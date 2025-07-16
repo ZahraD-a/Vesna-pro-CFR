@@ -20,11 +20,16 @@ import java.util.Random;
 
 // VesnaAgent class extends the Agent class making the agent embodied;
 // It connects to the body using a WebSocket connection;
-// It needs two beliefs: address( ADDRESS ) and port( PORT ) that describe the address and port of the WebSocket server;
+// It needs four beliefs:
+// - address( ADDRESS ) and port( PORT ) that describe the address and port of the WebSocket server;
+// - propensions( [ LIST OF PROPENSIONS ] ) and opt_choice( most_similar | random ) for the plan temper choice.
+//
 // In order to use it you should add to your .jcm:
 // > agent alice:alice.asl {
-// >      beliefs: address( localhost )
-// >               port( 8080 )
+// >      beliefs: 	address( localhost )
+// >				port( 8080 )
+// >				propensions([ ... ])
+// >				opt_choice( random )
 // >      ag-class: vesna.VesnaAgent    
 // > }
 
@@ -77,8 +82,10 @@ public class VesnaAgent extends Agent{
 			}
 		}  );
 
+		// TODO: Aggiungere ancora un livello di customizzazione:
+		// TODO: - agenti monolitici: le propensioni vengono caricate all'inizio e poi basta
+		// TODO: - agenti dinamici: le propensioni vengono aggiornate se l'agente le cambia -> l'agente può cambiare durante l'esecuzione. 
 		Unifier propension_unifier = new Unifier();
-
 		if ( believes( createLiteral( "propensions", new VarTerm( "X" ) ), propension_unifier ) ){
 			propensions = new HashMap<>();
 			ListTerm propension_list = ( ListTerm) propension_unifier.get( "X" );

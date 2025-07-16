@@ -3,6 +3,8 @@ package vesna;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
+import static jason.asSyntax.ASSyntax.*;
+
 import org.json.JSONObject;
 import org.json.JSONArray;
 import java.util.Set;

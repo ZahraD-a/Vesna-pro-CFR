@@ -9,41 +9,41 @@ mas vesna {
         ag-class:   vesna.VesnaAgent
     }
 
-    agent blue2:player.asl {
-        beliefs:    address( localhost )
-                    port( 9081 )
-                    team( blue )
-                    propension( defensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
+    // agent blue2:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9081 )
+    //                 team( blue )
+    //                 propension( defensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
 
-    agent blue3:player.asl {
-        beliefs:    address( localhost )
-                    port( 9082 )
-                    team( blue )
-                    propension( offensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
+    // agent blue3:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9082 )
+    //                 team( blue )
+    //                 propension( offensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
 
-    agent blue4:player.asl {
-        beliefs:    address( localhost )
-                    port( 9083 )
-                    team( blue )
-                    propension( defensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
+    // agent blue4:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9083 )
+    //                 team( blue )
+    //                 propension( defensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
 
-    agent blue5:player.asl {
-        beliefs:    address( localhost )
-                    port( 9084 )
-                    team( blue )
-                    propension( defensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
+    // agent blue5:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9084 )
+    //                 team( blue )
+    //                 propension( defensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
 
     agent red1:player.asl {
         beliefs:    address( localhost )
@@ -54,49 +54,40 @@ mas vesna {
         ag-class:   vesna.VesnaAgent
     }
 
-    agent red2:player.asl {
-        beliefs:    address( localhost )
-                    port( 9086 )
-                    team( red )
-                    propension( offensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
-
-    agent red3:player.asl {
-        beliefs:    address( localhost )
-                    port( 9087 )
-                    team( red )
-                    propension( offensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
-
-    agent red4:player.asl {
-        beliefs:    address( localhost )
-                    port( 9088 )
-                    team( red )
-                    propension( defensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
-
-    agent red5:player.asl {
-        beliefs:    address( localhost )
-                    port( 9089 )
-                    team( red )
-                    propension( defensive )
-        goals:      start
-        ag-class:   vesna.VesnaAgent
-    }
-
-    // agent alice:alice.asl {
+    // agent red2:player.asl {
     //     beliefs:    address( localhost )
-    //                 port( 9090 )
-    //                 propensions( [ prop1(20), prop2( 30) ] )
-    //                 opt_choice( most_similar )
-    //     ag-class:   vesna.VesnaAgentTemper
+    //                 port( 9086 )
+    //                 team( red )
+    //                 propension( offensive )
     //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
+
+    // agent red3:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9087 )
+    //                 team( red )
+    //                 propension( offensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
+
+    // agent red4:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9088 )
+    //                 team( red )
+    //                 propension( defensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
+    // }
+
+    // agent red5:player.asl {
+    //     beliefs:    address( localhost )
+    //                 port( 9089 )
+    //                 team( red )
+    //                 propension( defensive )
+    //     goals:      start
+    //     ag-class:   vesna.VesnaAgent
     // }
 
 }
