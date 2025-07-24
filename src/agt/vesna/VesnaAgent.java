@@ -1,9 +1,14 @@
 package vesna;
 
 import jason.JasonException;
+import jason.architecture.AgArch;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 import jason.runtime.RuntimeServicesFactory;
+import jason.mas2j.ClassParameters;
+import jason.bb.BeliefBase;
+import jason.bb.DefaultBeliefBase;
+import jason.runtime.Settings;
 
 import static jason.asSyntax.ASSyntax.*;
 
@@ -30,7 +35,7 @@ import java.util.Random;
 // >				port( 8080 )
 // >				propensions([ ... ])
 // >				opt_choice( random )
-// >      ag-class: vesna.VesnaAgent    
+// >      ag-class: vesna.VesnaAgent
 // > }
 
 public class VesnaAgent extends Agent{
@@ -38,6 +43,9 @@ public class VesnaAgent extends Agent{
 	private WsClient client;
 	private String my_name;
 	private Map<String, Integer> propensions;
+	private Map<String, Integer> dyn_propensions;
+	private enum OptChoice { MOST_SIMILAR, RANDOM };
+	private OptChoice optChoice;
 
 	// Override loadInitialAS method to connect to the WebSocket server (body)
 	@Override
@@ -45,24 +53,11 @@ public class VesnaAgent extends Agent{
 
 		super.loadInitialAS( asSrc );
 		my_name = getTS().getAgArch().getAgName();
-
-		// Get the address from beliefs
-		Unifier address_unifier = new Unifier();
-		believes( parseLiteral( "address( Address )" ), address_unifier );
-
-		// Get the port from beliefs
-		Unifier port_unifier = new Unifier();
-		believes( parseLiteral( "port( Port )" ), port_unifier );
-
-		// Check if the address and port beliefs are defined
-		if ( address_unifier.get( "Address" ) == null || port_unifier.get( "Port" ) == null ) {
-				stop( "address and port beliefs are not defined!" );
-				return;
-		}
-
-		// Store address and port in variables and initialize the WebSocket client
-		String address = address_unifier.get( "Address" ).toString();
-		int port = ( int ) ( ( NumberTerm ) port_unifier.get( "Port" ) ).solve();
+		Settings stts = getTS().getSettings();
+		String prop_string = stts.getUserParameter( "propensions" );
+		String opt_choice = stts.getUserParameter( "opt_choice" );
+		String address = stts.getUserParameter( "address" );
+		int port = Integer.parseInt( stts.getUserParameter( "port" ) );
 
 		System.out.printf( "[%s] Body is at %s:%d%n", my_name, address, port );
 
@@ -82,18 +77,17 @@ public class VesnaAgent extends Agent{
 			}
 		}  );
 
-		// TODO: Aggiungere ancora un livello di customizzazione:
-		// TODO: - agenti monolitici: le propensioni vengono caricate all'inizio e poi basta
-		// TODO: - agenti dinamici: le propensioni vengono aggiornate se l'agente le cambia -> l'agente può cambiare durante l'esecuzione. 
-		Unifier propension_unifier = new Unifier();
-		if ( believes( createLiteral( "propensions", new VarTerm( "X" ) ), propension_unifier ) ){
-			propensions = new HashMap<>();
-			ListTerm propension_list = ( ListTerm) propension_unifier.get( "X" );
-			for ( Term t : propension_list ) {
-				Atom t_atom = ( Atom ) t;
-				propensions.put( t_atom.getFunctor(), (int) ( ( NumberTerm )( t_atom.getTerm( 0 ) ) ).solve() );
+		if ( prop_string != null ) {
+		    propensions = new HashMap<>();
+		    Literal prop_lit = Literal.parseLiteral( prop_string );
+			List<Term> terms = prop_lit.getTerms();
+			for ( Term t : terms ) {
+			    Literal lit = ( Literal ) t;
+				int value = ( int ) ( ( NumberTerm ) lit.getTerm( 0 ) ).solve();
+			    propensions.put( lit.getFunctor().toString(), value );
 			}
 		}
+		dyn_propensions = new HashMap<>(propensions);
 
 		// Connect the body
 		client.connect();
@@ -186,22 +180,19 @@ public class VesnaAgent extends Agent{
 			e.printStackTrace();
 		}
 	}
-	
+
 	public Option selectOption( List<Option> options ) {
-		if ( options.size() == 1 || !areOptionsWithPropension( options ) ) 
+		if ( options.size() == 1 || !areOptionsWithPropension( options ) )
 			return super.selectOption( options );
-		Unifier u = new Unifier();
-		if ( believes( createLiteral( "opt_choice", new VarTerm( "Choice" ) ), u ) ) {
-            Literal temper = ( Literal ) u.get( "Choice" );
-		    return select_option_with_temper( temper, options );
-		}
+		if ( optChoice != null )
+		    return select_option_with_temper( options );
         return super.selectOption( options );
 	}
 
-	private Option select_option_with_temper( Literal opt_choice, List<Option> options ) {
+	private Option select_option_with_temper( List<Option> options ) {
 		double total_weight = 0.0;
 		List<Integer> weights = new ArrayList<>();
-        System.out.println( "Selecting option with modality: " + opt_choice.toString() );
+        System.out.println( "Selecting option with modality: " + optChoice.toString() );
 
 		for ( Option opt : options ) {
 			int opt_weight = 0;
@@ -214,14 +205,14 @@ public class VesnaAgent extends Agent{
 			ListTerm opt_props = ( ListTerm) prop_annotation.getTerm( 0 );
 			for ( Term p : opt_props ) {
 				Atom a = ( Atom ) p;
-				if ( ! propensions.keySet().contains( a.getFunctor() ) ) 
+				if ( ! propensions.keySet().contains( a.getFunctor() ) )
 					continue;
                 try {
                     int my_p = propensions.get( a.getFunctor() );
                     int plan_p = ( int ) ( ( NumberTerm ) a.getTerm( 0 ) ).solve();
-                    if ( opt_choice.equals( createLiteral( "random") ) )
+                    if ( optChoice == OptChoice.RANDOM )
                         opt_weight += my_p * plan_p;
-                    else if ( opt_choice.equals( createLiteral ( "most_similar" ) ) )
+                    else if ( optChoice == OptChoice.MOST_SIMILAR )
                         opt_weight += Math.abs( my_p - plan_p );
                 } catch ( Exception e ) {
                     e.printStackTrace();
@@ -229,11 +220,11 @@ public class VesnaAgent extends Agent{
 			}
 			weights.add( opt_weight );
 		}
-        if ( opt_choice.equals( createLiteral( "random" ) ) )
+        if ( optChoice == OptChoice.RANDOM )
 		    return options.get( get_weigthed_random_idx( weights ) );
-        if ( opt_choice.equals( createLiteral( "most_similar" ) ) )
+        if ( optChoice == OptChoice.MOST_SIMILAR )
             return options.get( get_most_similar_idx( weights ) );
-        return options.get( 0 );        
+        return options.get( 0 );
 	}
 
 	private boolean areOptionsWithPropension( List<Option> options ) {

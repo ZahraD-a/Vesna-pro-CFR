@@ -11,12 +11,12 @@
         vesna.jump.
 
 
-@p1[propensions( [ prop1( 20 ), prop2( 30 ) ] )]
+@p1[propensions( [ prop1( 20 ), prop2( 30 ) ] ), post( prop1( 10 ), prop2( -5 ) ]
 +!p
     :   true
     <-  .print( "ciao" ).
 
-@p2[propensions( [ prop1( 10 ), prop2( 30 ) ] )]
+@p2[propensions( [ prop1( 10 ), prop2( 30 ) ] ), post( prop1( -10 ), prop2( 20 ) ) ]
 +!p
     :   true
     <-  .print( "ciao ciao" ).

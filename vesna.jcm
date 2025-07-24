@@ -1,11 +1,10 @@
 mas vesna {
-    
     agent alice:alice.asl {
-        beliefs:    address( localhost )
-                    port( 9080 )
-                    propensions( [ prop1(20), prop2( 30) ] )
-                    opt_choice( most_similar )
         ag-class:   vesna.VesnaAgent
+        propensions: propensions( prop1(20), prop2(30) )
+        address: localhost
+        port: 9080
+        opt_choice: most_similar
         goals:      start
     }
 
