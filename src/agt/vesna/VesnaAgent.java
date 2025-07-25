@@ -249,7 +249,8 @@ public class VesnaAgent extends Agent{
         if ( optChoice == OptChoice.MOST_SIMILAR )
             chosen = options.get( get_most_similar_idx( weights ) );
         Literal effectList = chosen.getPlan().getLabel().getAnnot( "effects" );
-        update_dyn_propensions(effectList);
+        if ( effectList != null )
+        	update_dyn_propensions(effectList);
         return chosen;
 	}
 
