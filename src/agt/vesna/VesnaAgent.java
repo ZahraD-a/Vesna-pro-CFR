@@ -23,19 +23,21 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 
+import javax.validation.OverridesAttribute;
+
 // VesnaAgent class extends the Agent class making the agent embodied;
 // It connects to the body using a WebSocket connection;
-// It needs four beliefs:
+// It can use four parameters:
 // - address( ADDRESS ) and port( PORT ) that describe the address and port of the WebSocket server;
 // - propensions( [ LIST OF PROPENSIONS ] ) and opt_choice( most_similar | random ) for the plan temper choice.
 //
 // In order to use it you should add to your .jcm:
 // > agent alice:alice.asl {
-// >      beliefs: 	address( localhost )
-// >				port( 8080 )
-// >				propensions([ ... ])
-// >				opt_choice( random )
-// >      ag-class: vesna.VesnaAgent
+// >	ag-class: 		vesna.VesnaAgent
+// >	address: 		localhost
+// >	port: 			8080
+// >	propensions:	propensions([ ... ])
+// >	opt_choice: 	random
 // > }
 
 public class VesnaAgent extends Agent{
@@ -48,10 +50,12 @@ public class VesnaAgent extends Agent{
 	private OptChoice optChoice;
 
 	// Override loadInitialAS method to connect to the WebSocket server (body)
-	@Override
-	public void loadInitialAS( String asSrc ) throws Exception {
+	// @Override
+	// public void loadInitialAS( String asSrc ) throws Exception {
+	public void initAg() {
 
-		super.loadInitialAS( asSrc );
+		super.initAg();
+
 		my_name = getTS().getAgArch().getAgName();
 		Settings stts = getTS().getSettings();
 		String prop_string = stts.getUserParameter( "propensions" );
@@ -61,8 +65,12 @@ public class VesnaAgent extends Agent{
 
 		System.out.printf( "[%s] Body is at %s:%d%n", my_name, address, port );
 
-		URI body_address = new URI( "ws://" + address + ":" + port );
-		client = new WsClient( body_address );
+		try {
+			URI body_address = new URI( "ws://" + address + ":" + port );
+			client = new WsClient( body_address );
+		} catch( Exception e ){
+			stop( e.getMessage() );
+		}
 
 		// Connect the two handle functions to the client object
 		client.setMsgHandler( new WsClientMsgHandler() {
@@ -83,14 +91,29 @@ public class VesnaAgent extends Agent{
 			List<Term> terms = prop_lit.getTerms();
 			for ( Term t : terms ) {
 			    Literal lit = ( Literal ) t;
-				int value = ( int ) ( ( NumberTerm ) lit.getTerm( 0 ) ).solve();
-			    propensions.put( lit.getFunctor().toString(), value );
+				try {
+					int value = ( int ) ( ( NumberTerm ) lit.getTerm( 0 ) ).solve();
+				    propensions.put( lit.getFunctor().toString(), value );
+				} catch( Exception e ) {
+					stop( e.getMessage() );
+				}
 			}
 		}
 		dyn_propensions = new HashMap<>(propensions);
 
+		if ( opt_choice.equals( "most_similar" ) )
+			optChoice = OptChoice.MOST_SIMILAR;
+		else if ( opt_choice.equals( "random" ) )
+			optChoice = OptChoice.RANDOM;
+		else
+			stop( "The option choice is not valid" );
+
 		// Connect the body
-		client.connect();
+		try {
+			client.connect();
+		} catch( Exception e ){
+			stop( e.getMessage() );
+		}
 	}
 
 	// perform sends an action to the body
@@ -182,8 +205,9 @@ public class VesnaAgent extends Agent{
 	}
 
 	public Option selectOption( List<Option> options ) {
-		if ( options.size() == 1 || !areOptionsWithPropension( options ) )
+		if ( options.size() == 1 || !areOptionsWithPropension( options ) ) {
 			return super.selectOption( options );
+		}
 		if ( optChoice != null )
 		    return select_option_with_temper( options );
         return super.selectOption( options );
@@ -192,12 +216,11 @@ public class VesnaAgent extends Agent{
 	private Option select_option_with_temper( List<Option> options ) {
 		double total_weight = 0.0;
 		List<Integer> weights = new ArrayList<>();
-        System.out.println( "Selecting option with modality: " + optChoice.toString() );
+		System.out.println( "Dynamic temper: " + dyn_propensions );
 
 		for ( Option opt : options ) {
 			int opt_weight = 0;
 			Pred l = opt.getPlan().getLabel();
-			Literal prop_lit = createLiteral( "propensions", new VarTerm( "X" ) );
 
 			Literal prop_annotation = l.getAnnot( "propensions" );
 			if ( prop_annotation == null )
@@ -220,11 +243,30 @@ public class VesnaAgent extends Agent{
 			}
 			weights.add( opt_weight );
 		}
+		Option chosen = options.get( 0 );
         if ( optChoice == OptChoice.RANDOM )
-		    return options.get( get_weigthed_random_idx( weights ) );
+		    chosen = options.get( get_weigthed_random_idx( weights ) );
         if ( optChoice == OptChoice.MOST_SIMILAR )
-            return options.get( get_most_similar_idx( weights ) );
-        return options.get( 0 );
+            chosen = options.get( get_most_similar_idx( weights ) );
+        Literal effectList = chosen.getPlan().getLabel().getAnnot( "effects" );
+        update_dyn_propensions(effectList);
+        return chosen;
+	}
+
+	private void update_dyn_propensions( Literal effectList ) {
+		ListTerm effects = (ListTerm) effectList.getTerm( 0 );
+		for ( Term t : effects ) {
+			Literal l = ( Literal ) t;
+			if ( dyn_propensions.get( l.getFunctor().toString() ) != null ) {
+				try{
+					int curr_value = dyn_propensions.get( l.getFunctor().toString() );
+					int effect = ( int ) ( (NumberTerm) l.getTerm( 0 ) ).solve();
+					dyn_propensions.put( l.getFunctor().toString(), curr_value + effect );
+				} catch ( Exception e ) {
+					System.err.println("Error updating dynamic propensions: " + e.getMessage());
+				}
+			}
+		}
 	}
 
 	private boolean areOptionsWithPropension( List<Option> options ) {
