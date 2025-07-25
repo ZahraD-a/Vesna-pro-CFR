@@ -228,10 +228,10 @@ public class VesnaAgent extends Agent{
 			ListTerm opt_props = ( ListTerm) prop_annotation.getTerm( 0 );
 			for ( Term p : opt_props ) {
 				Atom a = ( Atom ) p;
-				if ( ! propensions.keySet().contains( a.getFunctor() ) )
+				if ( ! dyn_propensions.keySet().contains( a.getFunctor() ) )
 					continue;
                 try {
-                    int my_p = propensions.get( a.getFunctor() );
+                    int my_p = dyn_propensions.get( a.getFunctor() );
                     int plan_p = ( int ) ( ( NumberTerm ) a.getTerm( 0 ) ).solve();
                     if ( optChoice == OptChoice.RANDOM )
                         opt_weight += my_p * plan_p;
