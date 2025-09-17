@@ -3,7 +3,8 @@
         .wait( 1000 );
         !p;
         .wait( 1000 );
-        !p;
+        !!p;
+        !!p;
         .wait( 1000 );
         !p;
         vesna.walk;

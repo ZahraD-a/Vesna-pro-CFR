@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
+import java.util.Queue;
+import java.util.Set;
+import java.util.HashSet;
 
 import javax.validation.OverridesAttribute;
 
@@ -213,10 +216,22 @@ public class VesnaAgent extends Agent{
         return super.selectOption( options );
 	}
 
+	public Intention selectIntention( Queue<Intention> intentions ) {
+		IntendedMeans im = intentions.peek().peek();
+		System.out.println( im );
+		System.out.println( "[PLAN] " + im.getPlan() );
+		System.out.println( "[PROPENSION] " + areIntentionsWithPropensions( intentions ) );
+		if ( intentions.size() == 1 || !areIntentionsWithPropensions(intentions ) )
+			return super.selectIntention( intentions );
+		if ( optChoice != null )
+			return select_intention_with_temper( intentions );
+		return super.selectIntention( intentions );
+	}
+
 	private Option select_option_with_temper( List<Option> options ) {
 		double total_weight = 0.0;
 		List<Integer> weights = new ArrayList<>();
-		System.out.println( "Dynamic temper: " + dyn_propensions );
+		System.out.println( "Dynamic temper for options: " + dyn_propensions );
 
 		for ( Option opt : options ) {
 			int opt_weight = 0;
@@ -254,6 +269,48 @@ public class VesnaAgent extends Agent{
         return chosen;
 	}
 
+	private Intention select_intention_with_temper( Queue<Intention> intention_queue ) { 
+		List<Intention> intentions = new ArrayList<Intention>( intention_queue );
+		double total_weight = 0.0;
+		List<Integer> weights = new ArrayList<>();
+		System.out.println( "Dynamic temper for intentions: " + dyn_propensions );
+
+		for ( Intention i : intentions ) {
+			int int_weight = 0;
+			Pred l = i.peek().getPlan().getLabel();
+
+			Literal prop_annotation = l.getAnnot( "propensions" );
+			if ( prop_annotation == null )
+				continue;
+			ListTerm int_props = ( ListTerm ) prop_annotation.getTerm( 0 ); 
+			for ( Term p : int_props ) {
+				Atom a = ( Atom ) p;
+				if ( ! dyn_propensions.keySet().contains( a.getFunctor() ) )
+					continue;
+				try {
+					int my_p = dyn_propensions.get( a.getFunctor() );
+					int plan_p = ( int ) ( ( NumberTerm ) a.getTerm( 0 ) ).solve();
+					if ( optChoice == OptChoice.RANDOM )
+						int_weight += my_p * plan_p;
+					else if ( optChoice == OptChoice.MOST_SIMILAR )
+						int_weight += Math.abs( my_p - plan_p );
+				} catch( Exception e ) {
+					e.printStackTrace();
+				}
+			}
+			weights.add( int_weight );
+		}
+		Intention chosen = intentions.get( 0 );
+        if ( optChoice == OptChoice.RANDOM )
+		    chosen = intentions.get( get_weigthed_random_idx( weights ) );
+        if ( optChoice == OptChoice.MOST_SIMILAR )
+            chosen = intentions.get( get_most_similar_idx( weights ) );
+        Literal effectList = chosen.peek().getPlan().getLabel().getAnnot( "effects" );
+        if ( effectList != null )
+        	update_dyn_propensions(effectList);
+		return chosen;
+	}
+
 	private void update_dyn_propensions( Literal effectList ) {
 		ListTerm effects = (ListTerm) effectList.getTerm( 0 );
 		for ( Term t : effects ) {
@@ -274,6 +331,20 @@ public class VesnaAgent extends Agent{
 		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );
 		for ( Option option : options ) {
 			Plan p = option.getPlan();
+			Pred l = p.getLabel();
+			if ( l.hasAnnot() ) {
+				for ( Term t : l.getAnnots() )
+					if ( new Unifier().unifies( propension, t ) )
+						return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean areIntentionsWithPropensions( Queue<Intention> intentions ) {
+		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );	
+		for ( Intention intention : intentions ) {
+			Plan p = intention.peek().getPlan();
 			Pred l = p.getLabel();
 			if ( l.hasAnnot() ) {
 				for ( Term t : l.getAnnots() )
