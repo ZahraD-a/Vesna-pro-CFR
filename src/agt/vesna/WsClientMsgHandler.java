@@ -2,6 +2,6 @@ package vesna;
 
 public interface WsClientMsgHandler {
     
-    public void handle_msg( String msg );
-    public void handle_error( Exception ex );
+    public void handleMsg( String msg );
+    public void handleError( Exception ex );
 }

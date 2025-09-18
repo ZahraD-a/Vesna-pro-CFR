@@ -21,12 +21,12 @@ public class CoffeeMachine extends SituatedArtifact {
             client = new WsClient( new URI( "ws://localhost:8090") );
             client.setMsgHandler( new WsClientMsgHandler() {
                 @Override
-                public void handle_msg( String msg ) {
+                public void handleMsg( String msg ) {
                     manage_msg( msg );
                 }
 
                 @Override
-                public void handle_error( Exception ex ) {
+                public void handleError( Exception ex ) {
                     manage_error( ex );
                 }
             });

@@ -38,7 +38,7 @@ public class WsClient extends WebSocketClient {
 	@Override
 	public void onMessage(String message) {
 		if (msgHandler != null){
-			msgHandler.handle_msg(message);
+			msgHandler.handleMsg(message);
 		}
 	}
 
@@ -50,6 +50,6 @@ public class WsClient extends WebSocketClient {
 	@Override
 	public void onError(Exception ex) {
 		if ( msgHandler != null )
-			msgHandler.handle_error( ex );
+			msgHandler.handleError( ex );
 	}
 }

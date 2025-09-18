@@ -2,7 +2,7 @@ mas vesna {
 
     agent alice:alice.asl {
         ag-class:   vesna.VesnaAgent
-        propensions: propensions( prop1(20), prop2(30) )
+        temper: temper( prop1(20), prop2(30) )
         address: localhost
         port: 9080
         opt_choice: random
