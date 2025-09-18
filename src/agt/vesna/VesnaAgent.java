@@ -37,15 +37,15 @@ import javax.validation.OverridesAttribute;
 // It connects to the body using a WebSocket connection;
 // It can use four parameters:
 // - address( ADDRESS ) and port( PORT ) that describe the address and port of the WebSocket server;
-// - propensions( [ LIST OF PROPENSIONS ] ) and opt_choice( most_similar | random ) for the plan temper choice.
+// - temper( [ LIST OF PROPENSIONS ] ) and strategy( most_similar | random ) for the plan temper choice.
 //
 // In order to use it you should add to your .jcm:
 // > agent alice:alice.asl {
 // >	ag-class: 		vesna.VesnaAgent
 // >	address: 		localhost
 // >	port: 			8080
-// >	propensions:	propensions([ ... ])
-// >	opt_choice: 	random
+// >	temper:			propensions([ ... ])
+// >	strategy: 		random
 // > }
 
 public class VesnaAgent extends Agent{
@@ -53,10 +53,6 @@ public class VesnaAgent extends Agent{
 	// GLOBAL VARIABLES
 	private WsClient client;
 	private String myName;
-	// private Map<String, Integer> temper;
-	// private Map<String, Integer> dynamicTemper;
-	// private enum OptChoice { MOST_SIMILAR, RANDOM };
-	// private OptChoice optChoice;
 	private Temper temper;
 	private Random dice = new Random();
 	protected transient Logger logger;
@@ -70,15 +66,21 @@ public class VesnaAgent extends Agent{
 		myName = getTS().getAgArch().getAgName();
 		Settings stts = getTS().getSettings();
 		String temperStr 	= stts.getUserParameter( "temper" );
-		String optChoiceStr = stts.getUserParameter( "opt_choice" );
+		String strategy 	= stts.getUserParameter( "strategy" );
 		String address 		= stts.getUserParameter( "address" );
 		int port 			= Integer.parseInt( stts.getUserParameter( "port" ) );
 		logger = getTS().getLogger();
 
-		temper = new Temper( temperStr, optChoiceStr );
+		// Initialize the agent temper and strategy
+		temper = new Temper( temperStr, strategy );
 
 		logger.info( "Body is at " + address + " : " + port );
 
+		initBody( address, port );
+
+	}
+
+	private void initBody( String address, int port ) {
 		// Connect to the Body
 		try {
 			URI bodyAddress = new URI( "ws://" + address + ":" + port );
@@ -100,46 +102,21 @@ public class VesnaAgent extends Agent{
 			}
 		}  );
 
-
 		// Connect the body
 		try {
 			client.connect();
 		} catch( Exception e ){
 			stop( e.getMessage() );
 		}
+
 	}
-
-	// // private void initTemper() {
-	// // 	if ( prop_string != null ) {
-	// // 		propensions = new HashMap<>();
-	// // 		Literal prop_lit = Literal.parseLiteral( prop_string );
-	// // 		List<Term> terms = prop_lit.getTerms();
-	// // 		for ( Term t : terms ) {
-	// // 			Literal lit = ( Literal ) t;
-	// // 			try {
-	// // 				int value = ( int ) ( ( NumberTerm ) lit.getTerm( 0 ) ).solve();
-	// // 				propensions.put( lit.getFunctor().toString(), value );
-	// // 			} catch( Exception e ) {
-	// // 				stop( e.getMessage() );
-	// // 			}
-	// // 		}
-	// // 	}
-	// // 	dynamicTemper = new HashMap<>(propensions);
-
-	// // 	if ( opt_choice.equals( "most_similar" ) )
-	// // 		optChoice = OptChoice.MOST_SIMILAR;
-	// // 	else if ( opt_choice.equals( "random" ) )
-	// // 		optChoice = OptChoice.RANDOM;
-	// // 	else
-	// // 		stop( "The option choice is not valid" );
-	// // }
 
 	// perform sends an action to the body
 	public void perform( String action ) {
 		client.send( action );
 	}
 
-	// sense signals the mind about a perception
+	// this method signals the mind about a perception
 	private void sense( Literal perception ) {
 		try {
 			Message signal = new Message( "signal", myName, myName , perception );
@@ -222,38 +199,39 @@ public class VesnaAgent extends Agent{
 		}
 	}
 
+	// Override the selectOption in order to consider Temper if needed
 	public Option selectOption( List<Option> options ) {
-		if ( options.size() == 1 || !areOptionsWithPropension( options ) ) {
+
+		// If there is only one options or the options are without temper go with the default
+		if ( options.size() == 1 || !areOptionsWithTemper( options ) )
 			return super.selectOption( options );
-		}
-		// // if ( optChoice != null ) {
+
+		// Wrap the options inside an object Temper Selectable
 		List<OptionWrapper> wrappedOptions = options.stream()
 			.map( OptionWrapper::new )
 			.collect( Collectors.toList() );
 
+		// Select with temper
 		try {
 			return temper.select( wrappedOptions ).getOption();
 		} catch ( NoValueException nve ) {
 			stop( nve.getMessage() );
 		}
 		return null;
-			// // return select_option_with_temper( options );
-		// // }
-		// // return super.selectOption( options );
 	}
 
+	// Override the selectIntention in order to consider Temper if added
 	public Intention selectIntention( Queue<Intention> intentions ) {
-		IntendedMeans im = intentions.peek().peek();
-		System.out.println( "I have " + intentions.size() + " intentions" );
+
+		logger.info( "I have " + intentions.size() + " intentions" );
+
 		if ( intentions.size() == 1 || !areIntentionsWithPropensions(intentions ) )
 			return super.selectIntention( intentions );
-		// // if ( optChoice != null ) {
 		List<IntentionWrapper> wrappedIntentions = new ArrayList<>( intentions ).stream()
 			.map( IntentionWrapper::new )
 			.collect( Collectors.toList() );
 		try {
 			Intention selected = temper.select( wrappedIntentions ).getIntention();
-			// // Intention selected = select_intention_with_temper( intentions );
 			Iterator<Intention> it = intentions.iterator();
 			while( it.hasNext() ) {
 				if ( it.next() == selected ) {
@@ -266,113 +244,10 @@ public class VesnaAgent extends Agent{
 			stop( nve.getMessage() );
 		}
 		return null;
-		// // }
-		// // return super.selectIntention( intentions );
 	}
 
-	// // private Option select_option_with_temper( List<Option> options ) {
-	// // 	double total_weight = 0.0;
-	// // 	List<Integer> weights = new ArrayList<>();
-	// // 	System.out.println( "Dynamic temper for options: " + dynamicTemper );
-
-	// // 	for ( Option opt : options ) {
-	// // 		int opt_weight = 0;
-	// // 		Pred l = opt.getPlan().getLabel();
-
-	// // 		Literal prop_annotation = l.getAnnot( "propensions" );
-	// // 		if ( prop_annotation == null )
-	// // 			continue;
-	// // 		ListTerm opt_props = ( ListTerm) prop_annotation.getTerm( 0 );
-	// // 		for ( Term p : opt_props ) {
-	// // 			Atom a = ( Atom ) p;
-	// // 			if ( ! dynamicTemper.keySet().contains( a.getFunctor() ) )
-	// // 				continue;
-	// // 			try {
-	// // 				int my_p = dynamicTemper.get( a.getFunctor() );
-	// // 				int plan_p = ( int ) ( ( NumberTerm ) a.getTerm( 0 ) ).solve();
-	// // 				if ( optChoice == OptChoice.RANDOM )
-	// // 					opt_weight += my_p * plan_p;
-	// // 				else if ( optChoice == OptChoice.MOST_SIMILAR )
-	// // 					opt_weight += Math.abs( my_p - plan_p );
-	// // 			} catch ( Exception e ) {
-	// // 				e.printStackTrace();
-	// // 			}
-	// // 		}
-	// // 		weights.add( opt_weight );
-	// // 	}
-	// // 	Option chosen = options.get( 0 );
-	// // 	if ( optChoice == OptChoice.RANDOM )
-	// // 		chosen = options.get( get_weigthed_random_idx( weights ) );
-	// // 	if ( optChoice == OptChoice.MOST_SIMILAR )
-	// // 		chosen = options.get( get_most_similar_idx( weights ) );
-	// // 	Literal effectList = chosen.getPlan().getLabel().getAnnot( "effects" );
-	// // 	if ( effectList != null )
-	// // 		update_dynamicTemper(effectList);
-	// // 	return chosen;
-	// // }
-
-	// // private Intention select_intention_with_temper( Queue<Intention> intention_queue ) { 
-	// // 	List<Intention> intentions = new ArrayList<Intention>( intention_queue );
-	// // 	double total_weight = 0.0;
-	// // 	List<Integer> weights = new ArrayList<>();
-	// // 	System.out.println( "Dynamic temper for intentions: " + dynamicTemper );
-
-	// // 	for ( Intention i : intentions ) {
-	// // 		if ( i.peek() == null )
-	// // 			continue;
-	// // 		int int_weight = 0;
-	// // 		Pred l = i.peek().getPlan().getLabel();
-
-	// // 		Literal prop_annotation = l.getAnnot( "propensions" );
-	// // 		if ( prop_annotation == null )
-	// // 			continue;
-	// // 		ListTerm int_props = ( ListTerm ) prop_annotation.getTerm( 0 ); 
-	// // 		for ( Term p : int_props ) {
-	// // 			Atom a = ( Atom ) p;
-	// // 			if ( ! dynamicTemper.keySet().contains( a.getFunctor() ) )
-	// // 				continue;
-	// // 			try {
-	// // 				int my_p = dynamicTemper.get( a.getFunctor() );
-	// // 				int plan_p = ( int ) ( ( NumberTerm ) a.getTerm( 0 ) ).solve();
-	// // 				if ( optChoice == OptChoice.RANDOM )
-	// // 					int_weight += my_p * plan_p;
-	// // 				else if ( optChoice == OptChoice.MOST_SIMILAR )
-	// // 					int_weight += Math.abs( my_p - plan_p );
-	// // 			} catch( Exception e ) {
-	// // 				e.printStackTrace();
-	// // 			}
-	// // 		}
-	// // 		weights.add( int_weight );
-	// // 	}
-	// // 	Intention chosen = intentions.get( 0 );
-	// // 	if ( optChoice == OptChoice.RANDOM )
-	// // 		chosen = intentions.get( get_weigthed_random_idx( weights ) );
-	// // 	if ( optChoice == OptChoice.MOST_SIMILAR )
-	// // 		chosen = intentions.get( get_most_similar_idx( weights ) );
-	// // 	Literal effectList = chosen.peek().getPlan().getLabel().getAnnot( "effects" );
-	// // 	if ( effectList != null )
-	// // 		update_dynamicTemper(effectList);
-	// // 	return chosen;
-	// // }
-
-	// // private void update_dynamicTemper( Literal effectList ) {
-	// // 	ListTerm effects = (ListTerm) effectList.getTerm( 0 );
-	// // 	for ( Term t : effects ) {
-	// // 		Literal l = ( Literal ) t;
-	// // 		if ( dynamicTemper.get( l.getFunctor().toString() ) != null ) {
-	// // 			try{
-	// // 				int curr_value = dynamicTemper.get( l.getFunctor().toString() );
-	// // 				int effect = ( int ) ( (NumberTerm) l.getTerm( 0 ) ).solve();
-	// // 				dynamicTemper.put( l.getFunctor().toString(), curr_value + effect );
-	// // 			} catch ( Exception e ) {
-	// // 				System.err.println("Error updating dynamic propensions: " + e.getMessage());
-	// // 			}
-	// // 		}
-	// // 	}
-	// // }
-
-	private boolean areOptionsWithPropension( List<Option> options ) {
-		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );
+	private boolean areOptionsWithTemper( List<Option> options ) {
+		Literal propension = createLiteral( "temper", new VarTerm( "X" ) );
 		for ( Option option : options ) {
 			Plan p = option.getPlan();
 			Pred l = p.getLabel();
@@ -398,29 +273,5 @@ public class VesnaAgent extends Agent{
 		}
 		return false;
 	}
-
-	// // private int get_weigthed_random_idx( List<Integer> weights ) {
-	// // 	int sum = weights.stream().reduce( 0, Integer::sum );
-	// // 	int roll = dice.nextInt( sum );
-	// // 	int cur_min = 0;
-	// // 	for ( int i = 0; i < weights.size(); i++ ) {
-	// // 		if ( roll > cur_min && roll < weights.get( i ) + cur_min )
-	// // 			return i;
-	// // 		cur_min += weights.get( i );
-	// // 	}
-	// // 	return 0;
-	// // }
-
-	// // private int get_most_similar_idx( List<Integer> weights ) {
-	// // 	int min = Integer.MAX_VALUE;
-	// // 	int min_idx = -1;
-	// // 	for ( int i = 0; i < weights.size(); i++ ) {
-	// // 		if ( weights.get( i ) < min ) {
-	// // 			min = weights.get( i );
-	// // 			min_idx = i;
-	// // 		}
-	// // 	}
-	// // 	return min_idx;
-	// // }
 
 }

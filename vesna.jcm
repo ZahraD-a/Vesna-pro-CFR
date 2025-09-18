@@ -5,7 +5,7 @@ mas vesna {
         temper: temper( prop1(20), prop2(30) )
         address: localhost
         port: 9080
-        opt_choice: random
+        strategy: random
         goals:      start
     }
 
