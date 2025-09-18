@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.Queue;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Iterator;
 
 import javax.validation.OverridesAttribute;
 
@@ -218,13 +219,20 @@ public class VesnaAgent extends Agent{
 
 	public Intention selectIntention( Queue<Intention> intentions ) {
 		IntendedMeans im = intentions.peek().peek();
-		System.out.println( im );
-		System.out.println( "[PLAN] " + im.getPlan() );
-		System.out.println( "[PROPENSION] " + areIntentionsWithPropensions( intentions ) );
+		System.out.println( "I have " + intentions.size() + " intentions" );
 		if ( intentions.size() == 1 || !areIntentionsWithPropensions(intentions ) )
 			return super.selectIntention( intentions );
-		if ( optChoice != null )
-			return select_intention_with_temper( intentions );
+		if ( optChoice != null ) {
+			Intention selected = select_intention_with_temper( intentions );
+			Iterator<Intention> it = intentions.iterator();
+			while( it.hasNext() ) {
+				if ( it.next() == selected ) {
+					it.remove();
+					break;
+				}
+			}
+			return selected;
+		}
 		return super.selectIntention( intentions );
 	}
 
@@ -276,6 +284,8 @@ public class VesnaAgent extends Agent{
 		System.out.println( "Dynamic temper for intentions: " + dyn_propensions );
 
 		for ( Intention i : intentions ) {
+			if ( i.peek() == null )
+				continue;
 			int int_weight = 0;
 			Pred l = i.peek().getPlan().getLabel();
 
