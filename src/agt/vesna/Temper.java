@@ -21,7 +21,7 @@ public class Temper {
     private DecisionStrategy strategy;
     private Random dice = new Random();
 
-    public Temper( String temper, String strategy ) {
+    public Temper( String temper, String strategy ) throws IllegalArgumentException {
 
         // The temper should always be set at this point
         if ( temper == null )
@@ -36,6 +36,8 @@ public class Temper {
             for ( Term term : listLit.getTerms() ) {
                 Literal trait = ( Literal ) term;
                 int value = ( int ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
+                if ( value < 0 || value > 100 )
+                    throw new IllegalArgumentException( "Trait value must be between 0 and 100, found:" + trait );
                 personality.put( trait.getFunctor().toString(), value );
             }
         } catch ( ParseException pe ) {
@@ -80,6 +82,8 @@ public class Temper {
                 int traitMood = mood.get( trait.getFunctor() );
                 try {
                     int traitValue = ( int ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
+                    if ( traitValue < 0 || traitValue > 100 )
+                        throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 100].");
                     if ( strategy == DecisionStrategy.RANDOM )
                         choiceWeight += traitMood * traitValue;
                     else if ( strategy == DecisionStrategy.MOST_SIMILAR )
@@ -96,7 +100,7 @@ public class Temper {
             chosen = choices.get( getWeightedRandomIdx( weights ) );
         else if ( strategy == DecisionStrategy.MOST_SIMILAR )
             chosen = choices.get( getMostSimilarIdx( weights ) );
-        
+
         Literal effectList = chosen.getLabel().getAnnot( "effects" );
         if ( effectList != null )
             updateDynTemper( effectList );
@@ -136,7 +140,14 @@ public class Temper {
                 int moodValue = mood.get( effect.getFunctor().toString() );
                 try {
                     int effectValue = ( int ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
-                    mood.put( effect.getFunctor().toString(), moodValue + effectValue );
+                    if ( effectValue < - 100 || effectValue > 100 )
+                    	throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-100,100].");
+                    if ( moodValue + effectValue > 100 )
+                        mood.put( effect.getFunctor().toString(), 100 );
+                    else if ( moodValue + effectValue < 0 )
+                        mood.put( effect.getFunctor().toString(), 0 );
+                    else
+                        mood.put( effect.getFunctor().toString(), moodValue + effectValue );
                 } catch ( NoValueException nve ) {
                     throw new NoValueException( "One of the plans has a mispelled annotation" );
                 }

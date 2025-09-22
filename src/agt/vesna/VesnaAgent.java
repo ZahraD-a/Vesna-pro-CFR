@@ -33,21 +33,32 @@ import java.util.logging.Logger;
 
 import javax.validation.OverridesAttribute;
 
-// VesnaAgent class extends the Agent class making the agent embodied;
-// It connects to the body using a WebSocket connection;
-// It can use four parameters:
-// - address( ADDRESS ) and port( PORT ) that describe the address and port of the WebSocket server;
-// - temper( [ LIST OF PROPENSIONS ] ) and strategy( most_similar | random ) for the plan temper choice.
-//
-// In order to use it you should add to your .jcm:
-// > agent alice:alice.asl {
-// >	ag-class: 		vesna.VesnaAgent
-// >	address: 		localhost
-// >	port: 			8080
-// >	temper:			propensions([ ... ])
-// >	strategy: 		random
-// > }
-
+/**
+ * <p>
+ * 	VesnaAgent class extends the Agent class making the agent embodied;
+ * 	It connects to the body using a WebSocket connection;
+ * </p>
+ * <p>
+ * 	It can use four parameters:
+ * 	<ul>
+ * 		<li> {@code address( ADDRESS )} and {@code port( PORT )} that describe the address and port of the WebSocket server;</li>
+ * 		<li> {@code temper( [ LIST OF PROPENSIONS ] )} and {@code strategy( most_similar | random )} for the plan temper choice.</li>
+ * 		<li> {@code strategy( most_similar | random )} for the plan temper choice.</li>
+ * 	</ul>
+ * </p>
+ * <p>
+ * In order to use it you should add to your .jcm:
+ * <pre>
+ * agent alice:alice.asl {
+ * 	ag-class: 		vesna.VesnaAgent
+ * 	address: 		localhost
+ * 	port: 			8080
+ * 	temper:			propensions([ ... ])
+ * 	strategy: 		random
+ * }
+ * </pre>
+ * @author Andrea Gatti
+ */
 public class VesnaAgent extends Agent{
 
 	// GLOBAL VARIABLES
@@ -57,7 +68,14 @@ public class VesnaAgent extends Agent{
 	private Random dice = new Random();
 	protected transient Logger logger;
 
-	// Override initAg method to connect to the WebSocket server (body)
+	/** <p>
+	 * Override initAg method in order to:
+	 * <ul>
+	 *	<li> connect to the body if needed; </li>
+	 *	<li> initialize the temper if needed. </li>
+	 * </ul>
+	 * </p>
+	 */
 	public void initAg() {
 
 		super.initAg();
@@ -80,8 +98,16 @@ public class VesnaAgent extends Agent{
 
 	}
 
+	/**
+	 * <p>
+		* Initialize the Body connection through WebSocket.
+		* @param	address	the address where the body is located
+		* @param	port	the port where the body is listening
+	* </p>
+	 */
 	private void initBody( String address, int port ) {
-		// Connect to the Body
+
+		// Initialize the WebSocket client
 		try {
 			URI bodyAddress = new URI( "ws://" + address + ":" + port );
 			client = new WsClient( bodyAddress );
@@ -111,12 +137,16 @@ public class VesnaAgent extends Agent{
 
 	}
 
-	// perform sends an action to the body
+	/** Performs a body action in the environment
+	 * @param action The action to perform formatted into a JSON string
+	*/
 	public void perform( String action ) {
 		client.send( action );
 	}
 
-	// this method signals the mind about a perception
+	/** Signals the mind about a perception
+	 * @param perception The perception to signal formatted as Jason Literal
+	*/
 	private void sense( Literal perception ) {
 		try {
 			Message signal = new Message( "signal", myName, myName , perception );
@@ -126,8 +156,18 @@ public class VesnaAgent extends Agent{
 		}
 	}
 
-	// handle_event takes all the data from an event and senses a perception
-	private void handle_event( JSONObject event ) {
+	/** Takes all the data from an event and senses a perception
+	 * @param event The event to handle formatted as JSON object:
+		* <pre>
+		 * {
+		 *   "type": "event_type",
+		 *   "status": "event_status",
+		 *   "reason": "event_reason"
+		 * }
+		* </pre>
+	* It will <i>sense</i> a literal formatted as {@code event_type( event_status, event_reason )}.
+	*/
+	private void handleEvent( JSONObject event ) {
 		String event_type = event.getString( "type" );
 		String event_status = event.getString( "status" );
 		String event_reason = event.getString( "reason" );
@@ -135,8 +175,18 @@ public class VesnaAgent extends Agent{
 		sense(perception);
 	}
 
-	// handle_sight takes all the data from a sight and adds a belief
-	private void handle_sight( JSONObject sight ) {
+	/**
+	* Takes all the data from a sight and adds a belief
+	* @param sight The sight to handle formatted as JSON object:
+		* <pre>
+		 * {
+		 *   "sight": "object",
+		 *   "id": 1234567890
+		 * }
+		* </pre>
+		* It will <i>add a belief</i> formatted as {@code sight( object, id )}.
+	*/
+	private void handleSight( JSONObject sight ) {
 		String object = sight.getString( "sight" );
 		long id = sight.getLong( "id" );
 		Literal sight_belief = createLiteral( "sight", createLiteral( object ), createNumber( id ) );
@@ -158,10 +208,10 @@ public class VesnaAgent extends Agent{
 		JSONObject data = log.getJSONObject( "data" );
 		switch( type ){
 			case "signal":
-				handle_event( data );
+				handleEvent( data );
 				break;
 			case "sight":
-				handle_sight( data );
+				handleSight( data );
 				break;
 			default:
 				System.out.println( "Unknown message type: " + type );
@@ -223,13 +273,18 @@ public class VesnaAgent extends Agent{
 	// Override the selectIntention in order to consider Temper if added
 	public Intention selectIntention( Queue<Intention> intentions ) {
 
-		logger.info( "I have " + intentions.size() + " intentions" );
+		// logger.info( "I have " + intentions.size() + " intentions" );
 
-		if ( intentions.size() == 1 || !areIntentionsWithPropensions(intentions ) )
+		// If there is only one intention or the intentions are without temper go with the default
+		if ( intentions.size() == 1 || !areIntentionsWithTemper(intentions ) )
 			return super.selectIntention( intentions );
+
+		// Wrap the intentions inside an object Temper Selectable
 		List<IntentionWrapper> wrappedIntentions = new ArrayList<>( intentions ).stream()
 			.map( IntentionWrapper::new )
 			.collect( Collectors.toList() );
+
+		// Select with temper and remove the Intention from the queue
 		try {
 			Intention selected = temper.select( wrappedIntentions ).getIntention();
 			Iterator<Intention> it = intentions.iterator();
@@ -246,6 +301,7 @@ public class VesnaAgent extends Agent{
 		return null;
 	}
 
+	// Check if there is at least one option with temper annotation
 	private boolean areOptionsWithTemper( List<Option> options ) {
 		Literal propension = createLiteral( "temper", new VarTerm( "X" ) );
 		for ( Option option : options ) {
@@ -260,8 +316,9 @@ public class VesnaAgent extends Agent{
 		return false;
 	}
 
-	private boolean areIntentionsWithPropensions( Queue<Intention> intentions ) {
-		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );	
+	// Check if there is at least one intention with temper annotation
+	private boolean areIntentionsWithTemper( Queue<Intention> intentions ) {
+		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );
 		for ( Intention intention : intentions ) {
 			Plan p = intention.peek().getPlan();
 			Pred l = p.getLabel();
