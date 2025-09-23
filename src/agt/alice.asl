@@ -12,12 +12,12 @@
         vesna.jump.
 
 
-@p1[temper( [ prop1( 0 ), prop2( 30 ) ] ), effects( [ prop1( 10 ), prop2( -5 ) ] ) ]
+@p1[temper( [ prop1( 0.0 ), prop2( 0.3 ) ] ), effects( [ prop1( 0.1 ), prop2( -0.05 ) ] ) ]
 +!p
     :   true
     <-  .print( "ciao" ).
 
-@p2[temper( [ prop1( 20 ), prop2( 30 ) ] ), effects( [ prop1( -10 ), prop2( 20 ) ] ) ]
+@p2[temper( [ prop1( 0.2 ), prop2( 0.3 ) ] ), effects( [ prop1( -0.1 ), prop2( 0.2 ) ] ) ]
 +!p
     :   true
     <-  .print( "ciao ciao" ).

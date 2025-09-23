@@ -12,13 +12,31 @@ import jason.asSemantics.*;
 import jason.asSyntax.parser.ParseException;
 import jason.NoValueException;
 
+/** This class implements the temper of the agent
+ * <p>
+ * The temper of an agent is subdivided into:
+ * <ul>
+ * <li> <b>personality:</b> for the moment it does never change. <i>In the future</i>, it could change based on mood but very slowly;
+ * <li> <b>mood:</b> it changes applying plan post-actions if provided.
+ * </ul>
+ * The agent can apply two decision strategies:
+ * <ul>
+ * <li> <b>Most similar:</b> deterministic, it chooses always the plan with personality and mood more similar to the current ones;
+ * <li> <b>Random:</b> undeterministic, it chooses with a weighted random based on the similarity between the plan annotations and the current temper.
+ * </ul>
+ */
 public class Temper {
 
+    /** Decision Strategy is an enumerable between most similar and random */
     private enum DecisionStrategy { MOST_SIMILAR, RANDOM };
 
-    private Map<String, Integer> personality;
-    private Map<String, Integer> mood;
+    /** Personality is the persistent part of the agent temper */
+    private Map<String, Double> personality;
+    /** Mood is the mutable part of the agent temper */
+    private Map<String, Double> mood;
+    /** The agent decision strategy */
     private DecisionStrategy strategy;
+    /** A dice necessary to generate random numbers */
     private Random dice = new Random();
 
     public Temper( String temper, String strategy ) throws IllegalArgumentException {
@@ -35,9 +53,9 @@ public class Temper {
             Literal listLit = parseLiteral( temper );
             for ( Term term : listLit.getTerms() ) {
                 Literal trait = ( Literal ) term;
-                int value = ( int ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
-                if ( value < 0 || value > 100 )
-                    throw new IllegalArgumentException( "Trait value must be between 0 and 100, found:" + trait );
+                double value = ( double ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
+                if ( value < 0.0 || value > 1.0 )
+                    throw new IllegalArgumentException( "Trait value must be between 0 and 1, found:" + trait );
                 personality.put( trait.getFunctor().toString(), value );
             }
         } catch ( ParseException pe ) {
@@ -63,11 +81,11 @@ public class Temper {
     }
 
     public <T extends TemperSelectable> T select( List<T> choices ) throws NoValueException {
-        List<Integer> weights = new ArrayList<>();
+        List<Double> weights = new ArrayList<>();
 
         for ( T choice : choices ) {
 
-            int choiceWeight = 0;
+            double choiceWeight = 0;
             Pred label = choice.getLabel();
 
             Literal temperAnnot = label.getAnnot( "temper" );
@@ -79,9 +97,9 @@ public class Temper {
                 Atom trait = ( Atom ) traitTerm;
                 if ( ! mood.keySet().contains( trait.getFunctor() ) )
                     continue;
-                int traitMood = mood.get( trait.getFunctor() );
+                double traitMood = mood.get( trait.getFunctor() );
                 try {
-                    int traitValue = ( int ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
+                    double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
                     if ( traitValue < 0 || traitValue > 100 )
                         throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 100].");
                     if ( strategy == DecisionStrategy.RANDOM )
@@ -108,9 +126,9 @@ public class Temper {
         return chosen;
     }
 
-    private int getWeightedRandomIdx( List<Integer> weights ) {
-        int sum = weights.stream().reduce( 0, Integer::sum );
-        int roll = dice.nextInt( sum );
+    private int getWeightedRandomIdx( List<Double> weights ) {
+        double sum = weights.stream().reduce( 0.0, Double::sum );
+        double roll = dice.nextDouble( sum );
         int currentMin = 0;
         for ( int i = 0; i < weights.size(); i++ ) {
             if ( roll > currentMin && roll < weights.get( i ) + currentMin )
@@ -120,8 +138,8 @@ public class Temper {
         return 0;
     }
 
-    private int getMostSimilarIdx( List<Integer> weights ) {
-        int min = Integer.MAX_VALUE;
+    private int getMostSimilarIdx( List<Double> weights ) {
+        double min = Double.MAX_VALUE;
         int minIdx = -1;
         for ( int i = 0; i < weights.size(); i++ ) {
             if ( weights.get( i ) < min ) {
@@ -137,15 +155,15 @@ public class Temper {
         for ( Term effectTerm : effects ) {
             Literal effect = ( Literal ) effectTerm;
             if ( mood.get( effect.getFunctor().toString() ) != null ) {
-                int moodValue = mood.get( effect.getFunctor().toString() );
+                double moodValue = mood.get( effect.getFunctor().toString() );
                 try {
-                    int effectValue = ( int ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
-                    if ( effectValue < - 100 || effectValue > 100 )
+                    double effectValue = ( double ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
+                    if ( effectValue < - 1.0 || effectValue > 1.0 )
                     	throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-100,100].");
-                    if ( moodValue + effectValue > 100 )
-                        mood.put( effect.getFunctor().toString(), 100 );
+                    if ( moodValue + effectValue > 1.0 )
+                        mood.put( effect.getFunctor().toString(), 1.0 );
                     else if ( moodValue + effectValue < 0 )
-                        mood.put( effect.getFunctor().toString(), 0 );
+                        mood.put( effect.getFunctor().toString(), 0.0 );
                     else
                         mood.put( effect.getFunctor().toString(), moodValue + effectValue );
                 } catch ( NoValueException nve ) {

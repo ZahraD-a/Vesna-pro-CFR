@@ -1,0 +1,93 @@
+/* Import dei font */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono&display=swap');
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+html, body {
+    background-color: #fafafa;
+    color: #222;
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    color: #111;
+}
+
+a {
+    color: #5a67d8;
+    text-decoration: none;
+}
+a:hover {
+    color: #434190;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2em 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+}
+
+th, td {
+    border: 1px solid #e5e7eb;
+    padding: 0.6em 0.8em;
+    text-align: left;
+}
+
+th {
+    background-color: #f9fafb;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Code
+   ========================================================================== */
+
+pre {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Iosevka', 'Space Mono', monospace;
+    font-size: 0.9em;
+}
+
+code, tt {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    padding: 0.15em 0.3em;
+    font-family: 'Iosevka', 'Space Mono', monospace;
+}
+
+/* ==========================================================================
+   Nav / Header / Footer
+   ========================================================================== */
+
+.navbar, .header, .footer {
+    background-color: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.footer {
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 0.85em;
+}

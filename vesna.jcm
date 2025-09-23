@@ -2,7 +2,7 @@ mas vesna {
 
     agent alice:alice.asl {
         ag-class:   vesna.VesnaAgent
-        temper: temper( prop1(20), prop2(30) )
+        temper: temper( prop1(0.2), prop2(0.3) )
         address: localhost
         port: 9080
         strategy: most_similar
