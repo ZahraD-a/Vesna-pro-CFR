@@ -47,6 +47,7 @@ public class Temper {
 
         // Initialize the new personality
         personality = new HashMap<>();
+        mood = new HashMap<>();
 
         try {
             // Load the personality into the Map
@@ -56,6 +57,10 @@ public class Temper {
                 double value = ( double ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
                 if ( value < 0.0 || value > 1.0 )
                     throw new IllegalArgumentException( "Trait value must be between 0 and 1, found:" + trait );
+                if ( trait.hasAnnot( createLiteral( "mood" ) ) ) {
+                    mood.put( trait.getFunctor().toString(), value );
+                    continue;
+                }
                 personality.put( trait.getFunctor().toString(), value );
             }
         } catch ( ParseException pe ) {
@@ -63,11 +68,6 @@ public class Temper {
         } catch ( NoValueException nve ) {
             throw new IllegalArgumentException( nve.getMessage() + " Maybe one of the terms is mispelled and does not contain a number" );
         }
-
-        // Create the mood Map as a copy of the personality
-        // The personality will stay fixed (or in the future change very slowly)
-        // The mood instead can change in a very rapid way
-        mood = new HashMap<>( personality );
 
         // Load the strategy
         if ( strategy == null )
@@ -95,17 +95,21 @@ public class Temper {
             ListTerm choiceTemper = ( ListTerm ) temperAnnot.getTerm( 0 );
             for ( Term traitTerm : choiceTemper ) {
                 Atom trait = ( Atom ) traitTerm;
-                if ( ! mood.keySet().contains( trait.getFunctor() ) )
+                if ( ! mood.keySet().contains( trait.getFunctor() ) || ! personality.keySet().contains( trait.getFunctor() ) )
                     continue;
-                double traitMood = mood.get( trait.getFunctor() );
+                double traitTemper;
+                if ( mood.keySet().contains( trait.getFunctor() ) )
+                    traitTemper = mood.get( trait.getFunctor() );
+                else
+                    traitTemper = personality.get( trait.getFunctor() );
                 try {
                     double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
                     if ( traitValue < 0 || traitValue > 100 )
                         throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 100].");
                     if ( strategy == DecisionStrategy.RANDOM )
-                        choiceWeight += traitMood * traitValue;
+                        choiceWeight += traitTemper * traitValue;
                     else if ( strategy == DecisionStrategy.MOST_SIMILAR )
-                        choiceWeight += Math.abs( traitMood - traitValue );
+                        choiceWeight += Math.abs( traitTemper - traitValue );
                 } catch ( NoValueException nve ) {
                     throw new NoValueException( "One of the plans has a mispelled annotation" );
                 }
@@ -154,21 +158,23 @@ public class Temper {
         ListTerm effects = ( ListTerm ) effectList.getTerm( 0 );
         for ( Term effectTerm : effects ) {
             Literal effect = ( Literal ) effectTerm;
-            if ( mood.get( effect.getFunctor().toString() ) != null ) {
-                double moodValue = mood.get( effect.getFunctor().toString() );
-                try {
-                    double effectValue = ( double ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
-                    if ( effectValue < - 1.0 || effectValue > 1.0 )
-                    	throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-100,100].");
-                    if ( moodValue + effectValue > 1.0 )
-                        mood.put( effect.getFunctor().toString(), 1.0 );
-                    else if ( moodValue + effectValue < 0 )
-                        mood.put( effect.getFunctor().toString(), 0.0 );
-                    else
-                        mood.put( effect.getFunctor().toString(), moodValue + effectValue );
-                } catch ( NoValueException nve ) {
-                    throw new NoValueException( "One of the plans has a mispelled annotation" );
-                }
+            if ( personality.keySet().contains( effect.getFunctor().toString() ) && !effect.hasAnnot( createLiteral( "mood" ) ) )
+                throw new IllegalArgumentException( "You used a Personality trait in the post-effects! Use only mood traits. In case of ambigous name use the annotation [mood]." );
+            if ( mood.get( effect.getFunctor().toString() ) == null )
+                continue;
+            double moodValue = mood.get( effect.getFunctor().toString() );
+            try {
+                double effectValue = ( double ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
+                if ( effectValue < - 1.0 || effectValue > 1.0 )
+                    throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-100,100].");
+                if ( moodValue + effectValue > 1.0 )
+                    mood.put( effect.getFunctor().toString(), 1.0 );
+                else if ( moodValue + effectValue < 0 )
+                    mood.put( effect.getFunctor().toString(), 0.0 );
+                else
+                    mood.put( effect.getFunctor().toString(), moodValue + effectValue );
+            } catch ( NoValueException nve ) {
+                throw new NoValueException( "One of the plans has a mispelled annotation" );
             }
         }
     }
