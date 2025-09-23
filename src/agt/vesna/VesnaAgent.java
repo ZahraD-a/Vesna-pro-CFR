@@ -45,7 +45,6 @@ import javax.validation.OverridesAttribute;
  * 		<li> {@code temper( [ LIST OF PROPENSIONS ] )} and {@code strategy( most_similar | random )} for the plan temper choice.</li>
  * 		<li> {@code strategy( most_similar | random )} for the plan temper choice.</li>
  * 	</ul>
- * </p>
  * <p>
  * In order to use it you should add to your .jcm:
  * <pre>
@@ -62,26 +61,29 @@ import javax.validation.OverridesAttribute;
 public class VesnaAgent extends Agent{
 
 	// GLOBAL VARIABLES
+	/** WebSocket Client that connects with the body */
 	private WsClient client;
-	private String myName;
+	// // private String myName;
+	/** The temper of the agent */
 	private Temper temper;
-	private Random dice = new Random();
+	// // private Random dice = new Random();
+	/** The logger necessary to print on the JaCaMo log */
 	protected transient Logger logger;
 
-	/** <p>
+	/** Initialize the agent with body and temper
+	 * <p>
 	 * Override initAg method in order to:
 	 * <ul>
 	 *	<li> connect to the body if needed; </li>
 	 *	<li> initialize the temper if needed. </li>
 	 * </ul>
-	 * </p>
 	 */
 	public void initAg() {
 
 		super.initAg();
 
 		// Initialize the global variables
-		myName = getTS().getAgArch().getAgName();
+		// // myName = getTS().getAgArch().getAgName();
 		Settings stts = getTS().getSettings();
 		String temperStr 	= stts.getUserParameter( "temper" );
 		String strategy 	= stts.getUserParameter( "strategy" );
@@ -103,7 +105,6 @@ public class VesnaAgent extends Agent{
 		* Initialize the Body connection through WebSocket.
 		* @param	address	the address where the body is located
 		* @param	port	the port where the body is listening
-	* </p>
 	 */
 	private void initBody( String address, int port ) {
 
@@ -149,7 +150,7 @@ public class VesnaAgent extends Agent{
 	*/
 	private void sense( Literal perception ) {
 		try {
-			Message signal = new Message( "signal", myName, myName , perception );
+			Message signal = new Message( "signal", getTS().getAgArch().getAgName(), getTS().getAgArch().getAgName() , perception );
 			getTS().getAgArch().sendMsg( signal );
 		} catch ( Exception e ) {
 			e.printStackTrace();
@@ -197,8 +198,18 @@ public class VesnaAgent extends Agent{
 		}
 	}
 
-	// this function handles incoming messages from the body
-	// available types are: signal, sight
+	/** Handles incoming messages from the body.
+	* Available types are: signal, sight.
+	* @param msg The message received formatted as JSON string:
+	* <pre>
+	 * {
+	 *   "sender": "body",
+	 *   "receiver": "agent_name",
+	 *   "type": "signal | sight",
+	 *   "data": { ... }
+	 * }
+	 * </pre>
+	*/
 	public void vesnaHandleMsg( String msg ) {
 		System.out.println( "Received message: " + msg );
 		JSONObject log = new JSONObject( msg );
@@ -214,26 +225,34 @@ public class VesnaAgent extends Agent{
 				handleSight( data );
 				break;
 			default:
-				System.out.println( "Unknown message type: " + type );
+				logger.warning( "Unknown message type: " + type );
 		}
 	}
 
-	// Stops the agent: prints a message and kills the agent
+	/** Stops the agent: prints a message and kills the agent
+	 * @param reason The reason why the agent is stopping
+	 */
 	private void stop( String reason ) {
-		System.out.println( "[" + myName + " ERROR] " + reason );
+		logger.severe( reason );
 		kill_agent();
 	}
 
-	// Handles a connection error: prints a message and kills the agent
+	/** Handles a connection error: prints a message and kills the agent
+	 * @param ex The exception raised
+	 */
 	public void vesnaHandleError( Exception ex ){
-		System.out.println( "[" + myName + " ERROR] " + ex.getMessage() );
+		logger.severe( ex.getMessage() );
 		kill_agent();
 	}
 
-	// Kills the agent calling the internal actions to drop all desires, intentions and events and then kill the agent;
-	// This is necessary to avoid the agent to keep running after the kill_agent call ( that otherwise is simply enqueued ).
+	/** Kills the agent
+	 * <p>
+	 * It calls the internal actions to drop all desires, intentions and events and then kill the agent;
+	 * This is necessary to avoid the agent to keep running after the kill_agent call ( that otherwise is simply enqueued ).
+	 * </p>
+	 */
 	private void kill_agent() {
-		System.out.println( "[" + myName + " ERROR] Killing agent" );
+		logger.severe( "Killing agent" );
 		try {
 			InternalAction drop_all_desires = getIA( ".drop_all_desires" );
 			InternalAction drop_all_intentions = getIA( ".drop_all_intentions" );
@@ -243,13 +262,21 @@ public class VesnaAgent extends Agent{
 			drop_all_desires.execute( getTS(), new Unifier(), new Term[] {} );
 			drop_all_intentions.execute( getTS(), new Unifier(), new Term[] {} );
 			drop_all_events.execute( getTS(), new Unifier(), new Term[] {} );
-			action.execute( getTS(), new Unifier(), new Term[] { createString( myName ) } );
+			action.execute( getTS(), new Unifier(), new Term[] { createString( getTS().getAgArch().getAgName() ) } );
 		} catch ( Exception e ) {
 			e.printStackTrace();
 		}
 	}
 
-	// Override the selectOption in order to consider Temper if needed
+	/** Overrides the selectOption in order to consider Temper if needed
+	 * <p>
+	 * If there is only one option or the options are without temper it goes with the default selection;
+	 * Otherwise it calls the temper select method.
+	 * </p>
+	 * @param options The list of options to choose from
+	 * @return The selected option
+	 * @see vesna.Temper#select(List) Temper.select(List)
+	 */
 	public Option selectOption( List<Option> options ) {
 
 		// If there is only one options or the options are without temper go with the default
@@ -270,7 +297,15 @@ public class VesnaAgent extends Agent{
 		return null;
 	}
 
-	// Override the selectIntention in order to consider Temper if added
+	/** Overrides the selectIntention in order to consider Temper if added
+	 * <p>
+	 * If there is only one intention or the intentions are without temper it goes with the default selection;
+	 * Otherwise it calls the temper select method.
+	 * </p>
+	 * @param intentions The queue of intentions to choose from
+	 * @return The selected intention
+	 * @see vesna.Temper#select(List) Temper.select(List)
+	 */
 	public Intention selectIntention( Queue<Intention> intentions ) {
 
 		// logger.info( "I have " + intentions.size() + " intentions" );
@@ -301,7 +336,10 @@ public class VesnaAgent extends Agent{
 		return null;
 	}
 
-	// Check if there is at least one option with temper annotation
+	/** Check if there is at least one option with temper annotation
+	 * @param options The list of options to check
+	 * @return true if at least one option has temper annotation, false otherwise
+	 */
 	private boolean areOptionsWithTemper( List<Option> options ) {
 		Literal propension = createLiteral( "temper", new VarTerm( "X" ) );
 		for ( Option option : options ) {
@@ -316,7 +354,10 @@ public class VesnaAgent extends Agent{
 		return false;
 	}
 
-	// Check if there is at least one intention with temper annotation
+	/** Check if there is at least one intention with temper annotation
+	 * @param intentions The queue of intentions to check
+	 * @return true if at least one intention has temper annotation, false otherwise
+	 */
 	private boolean areIntentionsWithTemper( Queue<Intention> intentions ) {
 		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );
 		for ( Intention intention : intentions ) {
