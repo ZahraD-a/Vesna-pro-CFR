@@ -95,17 +95,19 @@ public class Temper {
             ListTerm choiceTemper = ( ListTerm ) temperAnnot.getTerm( 0 );
             for ( Term traitTerm : choiceTemper ) {
                 Atom trait = ( Atom ) traitTerm;
-                if ( ! mood.keySet().contains( trait.getFunctor() ) || ! personality.keySet().contains( trait.getFunctor() ) )
+                if ( ! mood.keySet().contains( trait.getFunctor().toString() ) && ! personality.keySet().contains( trait.getFunctor().toString() ) )
                     continue;
                 double traitTemper;
-                if ( mood.keySet().contains( trait.getFunctor() ) )
-                    traitTemper = mood.get( trait.getFunctor() );
+                if ( mood.keySet().contains( trait.getFunctor().toString() ) )
+                    traitTemper = mood.get( trait.getFunctor().toString() );
                 else
-                    traitTemper = personality.get( trait.getFunctor() );
+                    traitTemper = personality.get( trait.getFunctor().toString() );
+                System.out.println( "traitTemper: " + traitTemper );
                 try {
                     double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
-                    if ( traitValue < 0 || traitValue > 100 )
-                        throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 100].");
+                    if ( traitValue < -1.0 || traitValue > 1.0 )
+                        throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 1].");
+                    System.out.println( "I got " + traitTemper + " and " + traitValue );
                     if ( strategy == DecisionStrategy.RANDOM )
                         choiceWeight += traitTemper * traitValue;
                     else if ( strategy == DecisionStrategy.MOST_SIMILAR )
@@ -113,15 +115,18 @@ public class Temper {
                 } catch ( NoValueException nve ) {
                     throw new NoValueException( "One of the plans has a mispelled annotation" );
                 }
+                weights.add( choiceWeight );
             }
-            weights.add( choiceWeight );
         }
 
-        T chosen = choices.get( 0 );
+        T chosen = null;
+        // TODO: It gives out of bound error
         if ( strategy == DecisionStrategy.RANDOM )
             chosen = choices.get( getWeightedRandomIdx( weights ) );
         else if ( strategy == DecisionStrategy.MOST_SIMILAR )
             chosen = choices.get( getMostSimilarIdx( weights ) );
+        if ( chosen == null )
+            chosen = choices.get( 0 );
 
         Literal effectList = chosen.getLabel().getAnnot( "effects" );
         if ( effectList != null )
@@ -132,6 +137,7 @@ public class Temper {
 
     private int getWeightedRandomIdx( List<Double> weights ) {
         double sum = weights.stream().reduce( 0.0, Double::sum );
+        System.out.println( weights );
         double roll = dice.nextDouble( sum );
         int currentMin = 0;
         for ( int i = 0; i < weights.size(); i++ ) {
@@ -169,7 +175,7 @@ public class Temper {
                     throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-100,100].");
                 if ( moodValue + effectValue > 1.0 )
                     mood.put( effect.getFunctor().toString(), 1.0 );
-                else if ( moodValue + effectValue < 0 )
+                else if ( moodValue + effectValue < -1.0 )
                     mood.put( effect.getFunctor().toString(), 0.0 );
                 else
                     mood.put( effect.getFunctor().toString(), moodValue + effectValue );
