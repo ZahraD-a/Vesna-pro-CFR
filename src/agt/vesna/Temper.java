@@ -55,13 +55,16 @@ public class Temper {
             for ( Term term : listLit.getTerms() ) {
                 Literal trait = ( Literal ) term;
                 double value = ( double ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
-                if ( value < 0.0 || value > 1.0 )
-                    throw new IllegalArgumentException( "Trait value must be between 0 and 1, found:" + trait );
                 if ( trait.hasAnnot( createLiteral( "mood" ) ) ) {
+                    if ( value < -1.0 || value > 1.0 )
+                        throw new IllegalArgumentException( "Trait value for mood must be between -1 and 1, found:" + trait );
                     mood.put( trait.getFunctor().toString(), value );
                     continue;
+                } else {
+                    if ( value < 0.0 || value > 1.0 )
+                        throw new IllegalArgumentException( "Trait value for personality must be between 0 and 1, found:" + trait );
+                    personality.put( trait.getFunctor().toString(), value );
                 }
-                personality.put( trait.getFunctor().toString(), value );
             }
         } catch ( ParseException pe ) {
             throw new IllegalArgumentException( pe.getMessage() + " Maybe one of the terms of personality is mispelled" );
@@ -102,12 +105,10 @@ public class Temper {
                     traitTemper = mood.get( trait.getFunctor().toString() );
                 else
                     traitTemper = personality.get( trait.getFunctor().toString() );
-                System.out.println( "traitTemper: " + traitTemper );
                 try {
                     double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
                     if ( traitValue < -1.0 || traitValue > 1.0 )
                         throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 1].");
-                    System.out.println( "I got " + traitTemper + " and " + traitValue );
                     if ( strategy == DecisionStrategy.RANDOM )
                         choiceWeight += traitTemper * traitValue;
                     else if ( strategy == DecisionStrategy.MOST_SIMILAR )
@@ -115,12 +116,11 @@ public class Temper {
                 } catch ( NoValueException nve ) {
                     throw new NoValueException( "One of the plans has a mispelled annotation" );
                 }
-                weights.add( choiceWeight );
             }
+            weights.add( choiceWeight );
         }
 
         T chosen = null;
-        // TODO: It gives out of bound error
         if ( strategy == DecisionStrategy.RANDOM )
             chosen = choices.get( getWeightedRandomIdx( weights ) );
         else if ( strategy == DecisionStrategy.MOST_SIMILAR )
@@ -136,9 +136,16 @@ public class Temper {
     }
 
     private int getWeightedRandomIdx( List<Double> weights ) {
-        double sum = weights.stream().reduce( 0.0, Double::sum );
-        System.out.println( weights );
-        double roll = dice.nextDouble( sum );
+        // double sum = weights.stream().reduce( 0.0, Double::sum );
+        double min_bound = 0.0;
+        double max_bound = 0.0;
+        for ( double weight : weights ) {
+            if ( weight < 0.0 )
+                min_bound += weight;
+            else
+                max_bound += weight;
+        }
+        double roll = dice.nextDouble( min_bound, max_bound );
         int currentMin = 0;
         for ( int i = 0; i < weights.size(); i++ ) {
             if ( roll > currentMin && roll < weights.get( i ) + currentMin )

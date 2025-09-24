@@ -2,10 +2,10 @@ mas vesna {
 
     agent alice:alice.asl {
         ag-class:   vesna.VesnaAgent
-        temper: temper( prop1(0.2), prop2(0.3), prop3(0.5)[mood], prop4(0.3)[mood] )
+        temper: temper( prop1(0.2), prop2(0.3), prop3(-0.5)[mood], prop4(0.3)[mood] )
         address: localhost
         port: 9080
-        strategy: random
+        strategy: most_similar
         goals:      start
     }
 
