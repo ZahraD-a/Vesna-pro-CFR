@@ -1,0 +1,9 @@
+TestName,Agent,Openness,Carefulness,Extraversion,Amicability,Neuroticism
+1,alice,80,100,-70,100,-100
+1,bob,80,-50,100,0,100
+2,alice,-80,-80,70,-100,-100
+2,bob,80,-50,100,0,100
+3,alice,80,-50,100,100,-100
+3,bob,80,-50,100,50,100
+4,alice,60,100,-100,70,100
+4,bob,80,-100,100,-100,-70
