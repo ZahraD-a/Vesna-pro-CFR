@@ -1,657 +1,542 @@
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+import random
 from plotly.subplots import make_subplots
-from scipy import stats
+import plotly.graph_objects as go
+import streamlit as st
 
 Qs = { "it": ["riservata", "che generalmente accorda fiducia", "dedita al lavoro", "rilassata, che tiene bene lo stress sotto controllo", "con una immaginazione vivace", "estroversa, socievole", "che tende a rilevare difetti altrui", "tendente alla pigrizia", "che si innervosisce facilmente", "che ha scarsi interessi artistici "], "en": ["is reserved", "is generally trusting", "does a thorough job", "is relaxed, handles stress well", "has an active imagination", "is outgoing, sociable", "tends to find fault with others", "tends to be lazy", "gets nervous easily", "has few artistic interests"]}
-CHECK_FIELD = {"it": "riservata", "en": "is reserved"}
-SUFFIXES = [1, 3, 5, 7]
-SCORES = {"it": {"totalmente d'accordo": 1, "d'accordo": 0.5, "né d'accordo, né in disaccordo": 0, "in disaccordo": -0.5, "totalmente in disaccordo": -1},
-        "en": {"agree strongly": 1, "agree": 0.5, "neither agree nor disagree": 0, "disagree": -0.5, "disagree strongly": -1} }
 
-class Entry():
+SCORES = {"it": {"totalmente d'accordo": 1, "d'accordo": 0.5, "né d'accordo, né in disaccordo": 0, "in disaccordo": -0.5, "totalmente in disaccordo": -1, "non so": None},"en": {"agree strongly": 1, "agree": 0.5, "neither agree nor disagree": 0, "disagree": -0.5, "disagree strongly": -1, "i do not know": None} }
 
-    def __init__(self, test, name, lang, questions):
-        self.test = test
-        self.name = name
-        self.answers = []
-        self.lang = lang
-        for q in questions:
-            if not isinstance( q, str ):
-                self.answers.append( None )
-                continue
-            q = q.strip().lower()
-            if q in SCORES[lang].keys():
-                self.answers.append( SCORES[lang][q])
-            else:
-                self.answers.append( None )
-
-    def get_ans( self, i : int ):
-        return self.answers[ i ]
-
-    def __str__(self):
-        return "Test n " + str(self.test) + ", name: " + self.name + " ans: " + str( self.answers )
-
-class Partecipant():
-
-    def __init__(self, name: str, o: int, c: int, e: int, a: int, n: int ):
-        self.name = name
-        self.o = o
-        self.c = c
-        self.e = e
-        self.a = a
-        self.n = n
-    
-    def __str__( self ):
-        return self.name.title() + "\n Openness:\t" + str( self.o ) + "\n Carefulness:\t" + str(self.c) + "\n Extraversion\t" + str( self.e) + "\n Amicability: " + str( self.a ) + "\n Neuroticism: " + str( self.n)
-
-    def to_df(self):
-        return pd.DataFrame(
-            {
-            "r": [self.o, self.c, self.e, self.a, self.n],
-            "theta": ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
-            }
-        )
-
+OCEAN = [ "Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism" ]
 
 class Test:
-    
-    def __init__(self, number: int):
-        self.number = number
+    def add_conversation(self, conversation):
+        """
+        Add a conversation to the test. Conversation should be a list of dicts with keys 'sender' and 'text'.
+        Example:
+        [
+            {"sender": "alice", "text": "Hello."},
+            {"sender": "user", "text": "Hi!"}
+        ]
+        """
+        self.conversation = conversation
 
-    def __str__(self):
-        s = f"\n{'='*60}\n"
-        s += f"TEST {self.number:2d}"
-        s += f"\n{'='*60}\n"
-        
-        if "alice" in dir(self) and "bob" in dir(self):
-            s += "\nMODEL PERSONALITIES:\n"
-            s += "-" * 40 + "\n"
-            s += f"{'Trait':<15} {'Alice':<10} {'Bob':<10}\n"
-            s += "-" * 40 + "\n"
-            s += f"{'Openness':<15} {self.alice.o:<10.3f} {self.bob.o:<10.3f}\n"
-            s += f"{'Carefulness':<15} {self.alice.c:<10.3f} {self.bob.c:<10.3f}\n"
-            s += f"{'Extraversion':<15} {self.alice.e:<10.3f} {self.bob.e:<10.3f}\n"
-            s += f"{'Amicability':<15} {self.alice.a:<10.3f} {self.bob.a:<10.3f}\n"
-            s += f"{'Neuroticism':<15} {self.alice.n:<10.3f} {self.bob.n:<10.3f}\n"
-            
-        if "entries" in dir( self ):
-            s += f"\nDATA ENTRIES: {len(self.entries)} total responses\n"
-            alice_count = sum(1 for e in self.entries if e.name == "alice")
-            bob_count = sum(1 for e in self.entries if e.name == "bob")
-            s += f"  - Alice: {alice_count} responses\n"
-            s += f"  - Bob:   {bob_count} responses\n"
-        return s
 
-    def add_partecipant( self, p : Partecipant ):
-        if p.name == "alice":
-            self.alice = p
-        else:
-            self.bob = p
-    
-    def add_entry( self, e : Entry ):
-        if "entries" not in dir(self):
-            self.entries = [ ]
-        self.entries.append( e )
+    def __init__( self, n ):
+        self.n = n
+        self.alice = []
+        self.bob = []
+        self.conversation = []
 
-    def export_to_markdown(self, stats_mean, stats_var, counts):
-        """Export analysis results to a Markdown file"""
-        filename = f"analysis-test-{self.number}.md"
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            # Header
-            f.write(f"# Personality Perception Analysis - Test {self.number}\n\n")
-            
-            # Model personalities table
-            f.write("## Model Personalities\n\n")
-            f.write("| Trait | Alice | Bob |\n")
-            f.write("|-------|-------|-----|\n")
-            f.write(f"| Openness | {self.alice.o:.3f} | {self.bob.o:.3f} |\n")
-            f.write(f"| Carefulness | {self.alice.c:.3f} | {self.bob.c:.3f} |\n")
-            f.write(f"| Extraversion | {self.alice.e:.3f} | {self.bob.e:.3f} |\n")
-            f.write(f"| Amicability | {self.alice.a:.3f} | {self.bob.a:.3f} |\n")
-            f.write(f"| Neuroticism | {self.alice.n:.3f} | {self.bob.n:.3f} |\n\n")
-            
-            # Data summary
-            if "entries" in dir(self):
-                alice_count = sum(1 for e in self.entries if e.name == "alice")
-                bob_count = sum(1 for e in self.entries if e.name == "bob")
-                f.write("## Data Summary\n\n")
-                f.write(f"- **Total responses**: {len(self.entries)}\n")
-                f.write(f"- **Alice responses**: {alice_count}\n")
-                f.write(f"- **Bob responses**: {bob_count}\n\n")
-            
-            # Results analysis
-            f.write("## Results Analysis\n\n")
-            
-            trait_names = ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
-            
-            for name in stats_mean:
-                if counts[name] == 0:
-                    continue
-                    
-                f.write(f"### {name.title()} (n={counts[name]} responses)\n\n")
-                
-                # Results table
-                f.write("| Trait | Model | Perceived | Variance | Distance | Accuracy |\n")
-                f.write("|-------|-------|-----------|----------|----------|-----------|\n")
-                
-                mean = stats_mean[name]
-                var = stats_var[name]
-                model_values = [getattr(self, name).o, getattr(self, name).c, 
-                              getattr(self, name).e, getattr(self, name).a, getattr(self, name).n]
-                
-                total_distance = 0
-                for i, trait in enumerate(trait_names):
-                    distance = abs(mean[i] - model_values[i])
-                    total_distance += distance
-                    accuracy = max(0, (1 - distance) * 100)
-                    
-                    f.write(f"| {trait} | {model_values[i]:.3f} | {mean[i]:.3f} | {var[i]:.3f} | {distance:.3f} | {accuracy:.1f}% |\n")
-                
-                # Average row
-                avg_distance = total_distance / 5
-                avg_accuracy = max(0, (1 - avg_distance) * 100)
-                f.write(f"| **AVERAGE** | - | - | - | **{avg_distance:.3f}** | **{avg_accuracy:.1f}%** |\n\n")
-                
-                # Summary insights
-                distances = [abs(mean[i] - model_values[i]) for i in range(5)]
-                best_perceived = trait_names[distances.index(min(distances))]
-                worst_perceived = trait_names[distances.index(max(distances))]
-                
-                f.write(f"**Key Insights:**\n")
-                f.write(f"- Most accurately perceived trait: **{best_perceived}** (distance: {min(distances):.3f})\n")
-                f.write(f"- Least accurately perceived trait: **{worst_perceived}** (distance: {max(distances):.3f})\n")
-                f.write(f"- Overall perception accuracy: **{avg_accuracy:.1f}%**\n\n")
-            
-            # Chart reference
-            f.write("## Visualization\n\n")
-            f.write(f"The main comparison chart has been saved as:\n")
-            f.write(f"- Static: `result-test-{self.number}.png`\n")
-            f.write(f"- Interactive: `result-test-{self.number}.html`\n\n")
-            f.write(f"The distribution analysis chart has been saved as:\n")
-            f.write(f"- Static: `distributions-test-{self.number}.png`\n")
-            f.write(f"- Interactive: `distributions-test-{self.number}.html`\n\n")
-            f.write(f"The OCEAN spider/radar chart has been saved as:\n")
-            f.write(f"- Static: `spider-test-{self.number}.png`\n")
-            f.write(f"- Interactive: `spider-test-{self.number}.html`\n\n")
-            
-            # Timestamp
-            from datetime import datetime
-            f.write("---\n")
-            f.write(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
-        
-        print(f"Analisi esportata in Markdown: {filename}")
-        return filename
+    def add_entry( self, row ):
+        if self.n == 1: bob_i = None
+        elif self.n == 2 : bob_i = 3
+        elif self.n == 3 : bob_i = 5
+        else: bob_i = 7
 
-    def create_distribution_plots(self, stats_mean, stats_var, counts):
-        """Create histogram plots for each trait showing individual scores and model values"""
-        traits = ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
+        lang = "it" if row["lang"] == "Italiano" else "en"
+
+        alice = []
+        bob = []
+        for q in Qs[lang]:
+            bob_key = q + str( bob_i ) if bob_i else q
+            alice_key = q + str( bob_i + 1 ) if bob_i else q + "2"
+            alice.append( SCORES[lang][ row[alice_key].lower() ]) if row[alice_key] is not np.nan else alice.append( None )
+            bob.append( SCORES[lang][ row[bob_key].lower() ]) if row[bob_key] is not np.nan else bob.append( None )
+
+        self.alice.append( alice )
+        self.bob.append( bob )
+
+    def get_entries_len(self):
+        return len( self.alice )
+
+    def get_alice_dataframe( self ):
+        columns = Qs["en"] if self.alice else []
+        return pd.DataFrame(self.alice, columns=columns)
+
+    def get_bob_dataframe( self ):
+        columns = Qs["en"] if self.bob else []
+        return pd.DataFrame(self.bob, columns=columns)
+
+    def compute_stats( self ):
+        alice_scores = np.zeros(10)
+        bob_scores = np.zeros(10)
+        for entry in self.alice:
+            for i in range( 10 ):
+                alice_scores[i] += entry[i] if entry[i] is not None else 0
         
-        # Collect all individual scores per participant and trait
-        individual_scores = {"alice": [[] for _ in range(5)], "bob": [[] for _ in range(5)]}
+        # Convert None values to NaN for variance calculation
+        alice_matrix = np.array(self.alice, dtype=float)
+        alice_matrix[alice_matrix == None] = np.nan
+        alice_var = np.nanvar( alice_matrix, axis=0 )  # axis=0 for variance across responses for each question
+        # we divide for the len() to compute the avg
+        # we divide by 2 to normalize (since we compute sums of elements [-1, 1] the range of results is [-2, 2] and we need to divide)
+        alice_scores = alice_scores / ( 2 * len( self.alice ) )
+        for entry in self.bob:
+            for i in range( 10 ):
+                bob_scores[i] += entry[i] if entry[i] is not None else 0
+
+        bob_matrix = np.array(self.bob, dtype=float)
+        bob_matrix[bob_matrix == None] = np.nan
+        bob_var = np.nanvar( bob_matrix, axis=0 )  # axis=0 for variance across responses for each question
+        bob_scores = bob_scores / ( 2 * len( self.bob ) )
+
+        alice_ocean = compute_ocean( alice_scores )
+
+        bob_ocean = compute_ocean( bob_scores )
+
+        # Calculate variance for OCEAN traits from the individual question variances
+        # Divide by 2 to be consistent with the normalization of scores (sum of two questions)
+        alice_ocean_var = np.zeros(5)
+        alice_ocean_var[0] = (alice_var[4] + alice_var[9]) / 2  # Openness: Q4 + Q9
+        alice_ocean_var[1] = (alice_var[2] + alice_var[7]) / 2  # Carefulness: Q2 + Q7
+        alice_ocean_var[2] = (alice_var[0] + alice_var[5]) / 2  # Extraversion: Q0 + Q5
+        alice_ocean_var[3] = (alice_var[6] + alice_var[1]) / 2  # Amicability: Q6 + Q1
+        alice_ocean_var[4] = (alice_var[3] + alice_var[8]) / 2  # Neuroticism: Q3 + Q8
+
+        bob_ocean_var = np.zeros(5)
+        bob_ocean_var[0] = (bob_var[4] + bob_var[9]) / 2  # Openness: Q4 + Q9
+        bob_ocean_var[1] = (bob_var[2] + bob_var[7]) / 2  # Carefulness: Q2 + Q7
+        bob_ocean_var[2] = (bob_var[0] + bob_var[5]) / 2  # Extraversion: Q0 + Q5
+        bob_ocean_var[3] = (bob_var[6] + bob_var[1]) / 2  # Amicability: Q6 + Q1
+        bob_ocean_var[4] = (bob_var[3] + bob_var[8]) / 2  # Neuroticism: Q3 + Q8
+
+        # Get model values for reference lines
+        model = pd.read_csv("test.csv")
+        self.alice_model = np.zeros(5)
+        self.bob_model = np.zeros(5)
+        for _, row in model.iterrows():
+            if row["TestName"] != self.n:
+                continue
+            if row["Agent"] == "alice":
+                for i, trait in enumerate(OCEAN):
+                    self.alice_model[i] = row[trait] / 100
+            if row["Agent"] == "bob":
+                for i, trait in enumerate(OCEAN):
+                    self.bob_model[i] = row[trait] / 100
+
+        self.alice_ocean = alice_ocean
+        self.alice_var = alice_ocean_var  # Now contains OCEAN variances
+        self.bob_ocean = bob_ocean
+        self.bob_var = bob_ocean_var      # Now contains OCEAN variances
+
+    def gen_histograms(self):
+        """Generate histograms for each OCEAN trait showing individual response distributions"""
+        # Calculate individual OCEAN scores for each response
+        alice_individual_scores = [[] for _ in range(5)]  # 5 OCEAN traits
+        bob_individual_scores = [[] for _ in range(5)]
         
-        for entry in self.entries:
-            name = entry.name
-            # Compute per-entry trait vector
-            vec = [0.0] * 5  # [O, C, E, A, N]
-            valid = False
+        # Process Alice responses
+        for entry in self.alice:
+            # Calculate OCEAN scores for this single entry
+            # Each trait is calculated from two questions with appropriate signs
+            if entry[4] is not None and entry[9] is not None:  # Openness: -Q4 + Q9
+                openness = (-entry[4] + entry[9]) / 2
+                alice_individual_scores[0].append(openness)
             
-            # Map answers to traits (same logic as in compute_stats)
-            ans = [entry.get_ans(i) for i in range(10)]
-            if ans[0] is not None:
-                vec[2] += ans[0] * -1; valid = True  # Extraversion
-            if ans[1] is not None:
-                vec[3] += ans[1]; valid = True       # Amicability
-            if ans[2] is not None:
-                vec[1] += ans[2] * -1; valid = True  # Carefulness
-            if ans[3] is not None:
-                vec[4] += ans[3] * -1; valid = True  # Neuroticism
-            if ans[4] is not None:
-                vec[0] += ans[4] * -1; valid = True  # Openness
-            if ans[5] is not None:
-                vec[2] += ans[5]; valid = True       # Extraversion
-            if ans[6] is not None:
-                vec[3] += ans[6] * -1; valid = True  # Amicability
-            if ans[7] is not None:
-                vec[1] += ans[7]; valid = True       # Carefulness
-            if ans[8] is not None:
-                vec[4] += ans[8]; valid = True       # Neuroticism
-            if ans[9] is not None:
-                vec[0] += ans[9]; valid = True       # Openness
+            if entry[2] is not None and entry[7] is not None:  # Carefulness: -Q2 + Q7
+                carefulness = (-entry[2] + entry[7]) / 2
+                alice_individual_scores[1].append(carefulness)
             
-            if valid:
-                for i in range(5):
-                    individual_scores[name][i].append(vec[i] / 2)  # Normalize to [-1, +1]
+            if entry[0] is not None and entry[5] is not None:  # Extraversion: -Q0 + Q5
+                extraversion = (-entry[0] + entry[5]) / 2
+                alice_individual_scores[2].append(extraversion)
+            
+            if entry[6] is not None and entry[1] is not None:  # Amicability: -Q6 + Q1
+                amicability = (-entry[6] + entry[1]) / 2
+                alice_individual_scores[3].append(amicability)
+            
+            if entry[3] is not None and entry[8] is not None:  # Neuroticism: -Q3 + Q8
+                neuroticism = (-entry[3] + entry[8]) / 2
+                alice_individual_scores[4].append(neuroticism)
         
-        # Create subplot grid: 2 rows (Alice, Bob) × 5 cols (traits)
+        # Process Bob responses
+        for entry in self.bob:
+            # Calculate OCEAN scores for this single entry
+            if entry[4] is not None and entry[9] is not None:  # Openness: -Q4 + Q9
+                openness = (-entry[4] + entry[9]) / 2
+                bob_individual_scores[0].append(openness)
+            
+            if entry[2] is not None and entry[7] is not None:  # Carefulness: -Q2 + Q7
+                carefulness = (-entry[2] + entry[7]) / 2
+                bob_individual_scores[1].append(carefulness)
+            
+            if entry[0] is not None and entry[5] is not None:  # Extraversion: -Q0 + Q5
+                extraversion = (-entry[0] + entry[5]) / 2
+                bob_individual_scores[2].append(extraversion)
+            
+            if entry[6] is not None and entry[1] is not None:  # Amicability: -Q6 + Q1
+                amicability = (-entry[6] + entry[1]) / 2
+                bob_individual_scores[3].append(amicability)
+            
+            if entry[3] is not None and entry[8] is not None:  # Neuroticism: -Q3 + Q8
+                neuroticism = (-entry[3] + entry[8]) / 2
+                bob_individual_scores[4].append(neuroticism)
+        
+        
+        # Create subplots: 2 rows (Alice, Bob) x 5 cols (OCEAN traits)
         fig = make_subplots(
             rows=2, cols=5,
-            subplot_titles=[f"Alice - {trait}" for trait in traits] + [f"Bob - {trait}" for trait in traits],
-            vertical_spacing=0.1,  # Increased spacing between Alice and Bob rows
+            subplot_titles=[f"Alice - {trait}" for trait in OCEAN] + [f"Bob - {trait}" for trait in OCEAN],
+            vertical_spacing=0.15,
             horizontal_spacing=0.05
         )
         
-        colors = {'alice': '#ff7f0e', 'bob': '#1f77b4'}  # Orange for Alice, Blue for Bob
+        colors = {'alice': '#EF553B', 'bob': '#636EFA'}
         
-        for participant_idx, name in enumerate(['alice', 'bob']):
-            if counts[name] == 0:
-                continue
-                
-            model_values = [getattr(self, name).o, getattr(self, name).c, 
-                          getattr(self, name).e, getattr(self, name).a, getattr(self, name).n]
-            
-            for trait_idx in range(5):
-                scores = individual_scores[name][trait_idx]
-                if len(scores) == 0:
-                    continue
-                
-                # Calculate statistics
-                mean_score = np.mean(scores)
-                std_score = np.std(scores, ddof=1) if len(scores) > 1 else 0
-                
-                row = participant_idx + 1
-                col = trait_idx + 1
-                print(scores)
-                
-                # Create histogram
+        # Alice histograms (top row)
+        for i, trait in enumerate(OCEAN):
+            if len(alice_individual_scores[i]) > 0:
                 fig.add_trace(
                     go.Histogram(
-                        x=scores,
-                        nbinsx=20,  # Number of bins
-                        name=f'{name.title()} - {traits[trait_idx]}',
-                        marker_color=colors[name],
+                        x=alice_individual_scores[i],
+                        # nbinsx=9,
+                        name=f'Alice {trait}',
+                        marker_color=colors['alice'],
                         opacity=0.7,
                         showlegend=False
                     ),
-                    row=row, col=col
+                    row=1, col=i+1
                 )
                 
-                # Add vertical line for model (true) value
+                # Add vertical line for model value
                 fig.add_vline(
-                    x=model_values[trait_idx],
+                    x=self.alice_model[i],
                     line=dict(color='red', width=3, dash='dash'),
-                    row=row, col=col
+                    row=1, col=i+1
                 )
                 
-                # Get the max count for positioning annotations
-                hist_counts, bin_edges = np.histogram(scores, bins=20, range=(-1, 1))
-                max_count = max(hist_counts) if len(hist_counts) > 0 else 1
-                
-                # Add text annotation for model value
+                # Add annotation for model value
                 fig.add_annotation(
-                    x=model_values[trait_idx],
-                    y=max_count * 0.9,
-                    text=f"True: {model_values[trait_idx]:.2f}",
+                    x=self.alice_model[i],
+                    y=random.uniform(0.6, 0.9),
+                    text=f"{self.alice_model[i]:.2f}",
                     showarrow=False,
-                    font=dict(color='red', size=10),
-                    row=row, col=col
+                    font=dict(color='white', size=10, weight=800),
+                    yref="y domain",
+                    row=1, col=i+1,
+                    bgcolor="red"
+                )
+        
+        # Bob histograms (bottom row)
+        for i, trait in enumerate(OCEAN):
+            if len(bob_individual_scores[i]) > 0:
+                fig.add_trace(
+                    go.Histogram(
+                        x=bob_individual_scores[i],
+                        # nbinsx=9,
+                        name=f'Bob {trait}',
+                        marker_color=colors['bob'],
+                        opacity=0.7,
+                        showlegend=False
+                    ),
+                    row=2, col=i+1
                 )
                 
-                # Add text annotation for statistics
+                # Add vertical line for model value
+                fig.add_vline(
+                    x=self.bob_model[i],
+                    line=dict(color='blue', width=3, dash='dash'),
+                    row=2, col=i+1
+                )
+                
+                # Add annotation for model value
                 fig.add_annotation(
-                    x=-0.95,
-                    y=max_count * 0.7,
-                    text=f"μ: {mean_score:.2f}<br>σ: {std_score:.2f}<br>n: {len(scores)}",
+                    x=self.bob_model[i],
+                    y=random.uniform(0.6, 0.9),
+                    text=f"{self.bob_model[i]:.2f}",
                     showarrow=False,
-                    font=dict(size=9),
-                    bgcolor="rgba(255,255,255,0.8)",
-                    bordercolor="gray",
-                    borderwidth=1,
-                    row=row, col=col
+                    font=dict(color='white', size=10, weight=800),
+                    yref="y domain",
+                    row=2, col=i+1,
+                    bgcolor="blue"
                 )
         
         # Update layout
         fig.update_layout(
-            title_text=f"Test {self.number} - Distribution of Perceived Personality Traits (Histograms)",
-            height=700,  # Increased height to accommodate better spacing
+            title_text=f"Test {self.n} - Individual OCEAN Trait Distributions",
+            height=800,
             showlegend=False
         )
         
-        # Update axes with fixed range for all subplots
+        # Update axes
         for i in range(1, 6):  # 5 columns
-            fig.update_xaxes(title_text="Score", range=[-1, 1], row=1, col=i)
-            fig.update_xaxes(title_text="Score", range=[-1, 1], row=2, col=i)
+            fig.update_xaxes(title_text="Score", range=[-1.05, 1.05], row=1, col=i)
+            fig.update_xaxes(title_text="Score", range=[-1.05, 1.05], row=2, col=i)
         
         for i in range(1, 3):  # 2 rows
             fig.update_yaxes(title_text="Count", row=i, col=1)
         
-        # Export to PNG and HTML
-        png_filename = f"distributions-test-{self.number}.png"
-        html_filename = f"distributions-test-{self.number}.html"
-        try:
-            fig.write_image(png_filename)
-            print(f"Grafico delle distribuzioni salvato come: {png_filename}")
-        except Exception as e:
-            print(f"Errore nel salvare PNG distribuzioni: {e}")
-        fig.write_html(html_filename)
-        print(f"Grafico interattivo delle distribuzioni salvato come: {html_filename}")
-        
-        fig.show()
 
-    def create_spider_plots(self, stats_mean, stats_var, counts):
-        """Create spider/radar plots for each participant showing model vs perceived traits"""
-        traits = ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
+        st.plotly_chart( fig )
+        # Save as HTML
+        # filename = f"test_{self.n}_histograms"
+        # fig.write_html(filename + ".html")
+        # fig.write_image(filename + ".png", width=1920, height=1080, scale=3)
+        # print(f"Histograms saved as: {filename}")
         
-        # Create subplot with polar coordinates
-        fig = make_subplots(
-            rows=1, cols=2,
-            specs=[[{"type": "polar"}, {"type": "polar"}]]
-            # Remove subplot_titles to avoid conflicts
-        )
-        
-        colors = {'model': '#1f77b4', 'perceived': '#ff7f0e'}  # Blue for model, Orange for perceived
-        
-        # Alice (left)
-        if counts["alice"] > 0:
-            model_alice = [self.alice.o, self.alice.c, self.alice.e, self.alice.a, self.alice.n]
-            perceived_alice = stats_mean["alice"]
-            
-            # Add model values (close the polygon by repeating first value)
-            fig.add_trace(go.Scatterpolar(
-                r=model_alice + [model_alice[0]],
-                theta=traits + [traits[0]],
-                fill='toself',
-                fillcolor='rgba(31, 119, 180, 0.2)',
-                line=dict(color=colors['model'], width=3),
-                name='Model Alice'
-            ), row=1, col=1)
-            
-            # Add perceived values
-            fig.add_trace(go.Scatterpolar(
-                r=perceived_alice + [perceived_alice[0]],
-                theta=traits + [traits[0]],
-                fill='toself',
-                fillcolor='rgba(255, 127, 14, 0.2)',
-                line=dict(color=colors['perceived'], width=3, dash='dash'),
-                name='Perceived Alice'
-            ), row=1, col=1)
-        
-        # Bob (right)
-        if counts["bob"] > 0:
-            model_bob = [self.bob.o, self.bob.c, self.bob.e, self.bob.a, self.bob.n]
-            perceived_bob = stats_mean["bob"]
-            
-            # Add model values (close the polygon by repeating first value)
-            fig.add_trace(go.Scatterpolar(
-                r=model_bob + [model_bob[0]],
-                theta=traits + [traits[0]],
-                fill='toself',
-                fillcolor='rgba(31, 119, 180, 0.2)',
-                line=dict(color=colors['model'], width=3),
-                name='Model Bob',
-                showlegend=False  # Don't show duplicate legend entries
-            ), row=1, col=2)
-            
-            # Add perceived values
-            fig.add_trace(go.Scatterpolar(
-                r=perceived_bob + [perceived_bob[0]],
-                theta=traits + [traits[0]],
-                fill='toself',
-                fillcolor='rgba(255, 127, 14, 0.2)',
-                line=dict(color=colors['perceived'], width=3, dash='dash'),
-                name='Perceived Bob',
-                showlegend=False  # Don't show duplicate legend entries
-            ), row=1, col=2)
-        
-        # Update layout
-        fig.update_layout(
-            title_text=f"Test {self.number} - OCEAN Personality Traits (Spider Plot)",
-            height=600,
-            showlegend=True
-        )
-        
-        # Update polar plots to have consistent range [-1, 1]
-        fig.update_polars(
-            radialaxis=dict(
-                visible=True,
-                range=[-1, 1],
-                tickmode='linear',
-                tick0=-1,
-                dtick=0.5,
-                gridcolor='lightgray'
-            ),
-            angularaxis=dict(
-                tickfont_size=12,
-                rotation=90,  # Start from top
-                direction="clockwise"
-            )
-        )
-        
-        # Export to PNG and HTML
-        png_filename = f"spider-test-{self.number}.png"
-        html_filename = f"spider-test-{self.number}.html"
-        try:
-            fig.write_image(png_filename)
-            print(f"Grafico spider salvato come: {png_filename}")
-        except Exception as e:
-            print(f"Errore nel salvare PNG spider: {e}")
-        fig.write_html(html_filename)
-        print(f"Grafico spider interattivo salvato come: {html_filename}")
-        
-        fig.show()
+        # fig.show()
 
-    def compute_stats( self ):
-        # Create grouped bar charts (Model vs Perceived) for each participant
-        traits = ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
-
-        # accumulate perceived scores, sums of squares and counts per participant
-        stats_sum = {"alice": [0.0] * 5, "bob": [0.0] * 5}
-        stats_sq = {"alice": [0.0] * 5, "bob": [0.0] * 5}
-        counts = {"alice": 0, "bob": 0}
-
-        for entry in self.entries:
-            name = entry.name
-            # compute per-entry trait vector (may combine multiple answers)
-            vec = [0.0] * 5  # [O, C, E, A, N]
-            valid = False
-            # Q indices mapping into traits (with sign)
-            # 0 -> Extraversion (negated), 1 -> Amicability, 2 -> Carefulness (negated),
-            # 3 -> Neuroticism (negated), 4 -> Openness (negated), 5 -> Extraversion,
-            # 6 -> Amicability (negated), 7 -> Carefulness, 8 -> Neuroticism, 9 -> Openness
-            ans = [entry.get_ans(i) for i in range(10)]
-            if ans[0] is not None:
-                vec[2] += ans[0] * -1; valid = True
-            if ans[1] is not None:
-                vec[3] += ans[1]; valid = True
-            if ans[2] is not None:
-                vec[1] += ans[2] * -1; valid = True
-            if ans[3] is not None:
-                vec[4] += ans[3] * -1; valid = True
-            if ans[4] is not None:
-                vec[0] += ans[4] * -1; valid = True
-            if ans[5] is not None:
-                vec[2] += ans[5]; valid = True
-            if ans[6] is not None:
-                vec[3] += ans[6] * -1; valid = True
-            if ans[7] is not None:
-                vec[1] += ans[7]; valid = True
-            if ans[8] is not None:
-                vec[4] += ans[8]; valid = True
-            if ans[9] is not None:
-                vec[0] += ans[9]; valid = True
-
-            if not valid:
+    def gen_bar_chart( self ):
+        model = pd.read_csv( "test.csv" )
+        alice_model = np.zeros(5)
+        bob_model = np.zeros(5)
+        for _, row in model.iterrows():
+            if row["TestName"] != self.n:
                 continue
+            if row["Agent"] == "alice":
+                for i, trait in enumerate( OCEAN ):
+                    alice_model[i] = row[trait] / 100
+            if row["Agent"] == "bob":
+                for i, trait in enumerate( OCEAN ):
+                    bob_model[i] = row[trait] / 100
 
-            counts[name] += 1
-            for i in range(5):
-                normalized_score = vec[i] / 2  # Normalize to [-1, +1]
-                stats_sum[name][i] += normalized_score
-                stats_sq[name][i] += normalized_score * normalized_score
+        fig = make_subplots(rows=1, cols=2, subplot_titles=["Alice", "Bob"])
+        
+        # Define consistent colors
+        model_color = '#636EFA'
+        perceived_color = '#EF553B'
+        
+        # Alice subplot (left) - show legend
+        fig.add_trace( go.Bar(name = "Model", x=OCEAN, y=alice_model, 
+                             marker_color=model_color, showlegend=True), row=1, col=1)
+        fig.add_trace( go.Bar(name = "Perceived", x=OCEAN, y=self.alice_ocean, 
+                             marker_color=perceived_color, showlegend=True,
+                             error_y=dict(type='data', array=self.alice_var, visible=True)), row=1, col=1)
 
-        # compute mean and variance per participant (population variance)
-        stats_mean = {n: [0.0] * 5 for n in stats_sum}
-        stats_var = {n: [0.0] * 5 for n in stats_sum}
-        for name in stats_sum:
-            if counts[name] == 0:
-                continue
-            stats_mean[name] = [s / counts[name] for s in stats_sum[name]]
-            # variance = E[x^2] - (E[x])^2
-            stats_var[name] = [stats_sq[name][i] / counts[name] - (stats_mean[name][i] ** 2) for i in range(5)]
-
-        # Create a single figure with two subplots side-by-side (Alice | Bob)
-        model_alice = [self.alice.o, self.alice.c, self.alice.e, self.alice.a, self.alice.n]
-        perceived_alice = stats_mean.get("alice", [0.0] * 5)
-        var_alice = stats_var.get("alice", [0.0] * 5)
-        # Use variance (not std) for the error bars as requested
-        err_alice = [v if v > 0 else 0.0 for v in var_alice]
-
-        model_bob = [self.bob.o, self.bob.c, self.bob.e, self.bob.a, self.bob.n]
-        perceived_bob = stats_mean.get("bob", [0.0] * 5)
-        var_bob = stats_var.get("bob", [0.0] * 5)
-        err_bob = [v if v > 0 else 0.0 for v in var_bob]
-
-        # Put participant names above each subplot
-        fig = make_subplots(rows=1, cols=2, subplot_titles=("Alice", "Bob"))
-
-        # Define consistent colors for Model and Perceived across both charts
-        model_color = '#1f77b4'  # Blue
-        perceived_color = '#ff7f0e'  # Orange
-
-        # Alice (left)
-        fig.add_trace(go.Bar(x=traits, y=model_alice, name="Model", 
-                             marker_color=model_color), row=1, col=1)
-        fig.add_trace(go.Bar(x=traits, y=perceived_alice, name="Perceived",
-                             marker_color=perceived_color,
-                             error_y=dict(type='data', array=err_alice, visible=True)), row=1, col=1)
-
-        # Bob (right)
-        fig.add_trace(go.Bar(x=traits, y=model_bob, name="Model", 
+        # Bob subplot (right) - hide legend (same colors)
+        fig.add_trace( go.Bar(name = "Model", x=OCEAN, y=bob_model,
                              marker_color=model_color, showlegend=False), row=1, col=2)
-        fig.add_trace(go.Bar(x=traits, y=perceived_bob, name="Perceived",
+        fig.add_trace( go.Bar(name = "Perceived", x=OCEAN, y=self.bob_ocean,
                              marker_color=perceived_color, showlegend=False,
-                             error_y=dict(type='data', array=err_bob, visible=True)), row=1, col=2)
+                             error_y=dict(type='data', array=self.bob_var, visible=True)), row=1, col=2)
 
-        fig.update_layout(title_text=f"Test {self.number}", barmode='group', showlegend=True)
-        fig.update_yaxes(title_text='Score', row=1, col=1)
-        fig.update_yaxes(title_text='Score', row=1, col=2)
-        
-        # Export to PNG and HTML
-        png_filename = f"result-test-{self.number}.png"
-        html_filename = f"result-test-{self.number}.html"
-        try:
-            fig.write_image(png_filename)
-            print(f"Grafico salvato come: {png_filename}")
-        except Exception as e:
-            print(f"Errore nel salvare PNG: {e}")
-        fig.write_html(html_filename)
-        print(f"Grafico interattivo salvato come: {html_filename}")
-        
-        # Export analysis to Markdown
-        self.export_to_markdown(stats_mean, stats_var, counts)
-        
-        # Create distribution plots
-        self.create_distribution_plots(stats_mean, stats_var, counts)
-        
-        # Create spider/radar plots
-        self.create_spider_plots(stats_mean, stats_var, counts)
-        
-        fig.show()
+        fig.update_layout(yaxis1=dict(range=[-1.1, 1.1] ), yaxis2=dict( range=[-1.1, 1.1]) )
 
-        # Print formatted statistics
-        print(f"\nRESULTS ANALYSIS - Test {self.number}")
-        print("=" * 80)
-        
-        # Header
-        print(f"{'Trait':<15} {'Model':<8} {'Perceived':<10} {'Variance':<10} {'Distance':<10} {'Accuracy':<10}")
-        print("-" * 80)
-        
-        trait_names = ["Openness", "Carefulness", "Extraversion", "Amicability", "Neuroticism"]
-        
-        for name in stats_mean:
-            if counts[name] == 0:
-                continue
-                
-            print(f"\n{name.upper()} (n={counts[name]} responses):")
-            print("-" * 70)
-            
-            mean = stats_mean[name]
-            var = stats_var[name]
-            model_values = [getattr(self, name).o, getattr(self, name).c, 
-                          getattr(self, name).e, getattr(self, name).a, getattr(self, name).n]
-            
-            total_distance = 0
-            for i, trait in enumerate(trait_names):
-                distance = abs(mean[i] - model_values[i])
-                total_distance += distance
-                accuracy = max(0, (1 - distance) * 100)  # Accuracy as percentage
-                
-                print(f"{trait:<15} {model_values[i]:<8.3f} {mean[i]:<10.3f} {var[i]:<10.3f} {distance:<10.3f} {accuracy:<9.1f}%")
-            
-            avg_distance = total_distance / 5
-            avg_accuracy = max(0, (1 - avg_distance) * 100)
-            print("-" * 70)
-            print(f"{'AVERAGE':<15} {'':<8} {'':<10} {'':<10} {avg_distance:<10.3f} {avg_accuracy:<9.1f}%")
-            print()
 
-def load_entries( f : str ):
-    entries = []
-    data = pd.read_csv( f )
-    for _, row in data.iterrows():
-        found = False
-        for i, suf in enumerate( SUFFIXES ):
-            for lang in CHECK_FIELD:
-                if found:
-                    continue
-                check_field = CHECK_FIELD[lang] + str( suf ) if suf > 1 else CHECK_FIELD[lang]
-                if row[ check_field ] is not np.nan:
-                    qs1 = []
-                    qs2 = []
-                    for q in Qs[lang]:
-                        if suf == 1:
-                            qs1.append( row[ q ] )
-                        else:
-                            qs1.append( row[ q + str(suf) ] )
-                        qs2.append( row[ q + str(suf + 1) ] )
-                    p1 = Entry( i+1, "alice", lang, qs1 )
-                    p2 = Entry( i+1, "bob", lang, qs2 )
-                    #! t = Test(suf, lang, p1, p2)
-                    entries.append( p1 )
-                    entries.append( p2 )
-                    found = True
-                    continue
-    return entries 
-
-def load_tests( f : str ):
-    data = pd.read_csv( f )
-    tests = {}
-    for _, row in data.iterrows():
-        if row[ "TestName" ] not in tests:
-            tests[ row[ "TestName" ] ] = Test( row["TestName" ] ) 
-        name = row[ "Agent" ]
-        o = row[ "Openness" ] / 100
-        c = row[ "Carefulness" ] / 100
-        e = row[ "Extraversion" ] / 100
-        a = row[ "Amicability" ] / 100
-        n = row[ "Neuroticism" ] / 100
-        p = Partecipant( name, o, c, e, a, n )
-        tests[ row[ "TestName" ] ].add_partecipant( p )
-    return tests
+        st.plotly_chart( fig )
+        # Save as HTML
+        #filename = f"test_{self.n}_bar_chart"
+        #fig.write_html(filename + ".html")
+        #fig.write_image(filename + ".png", width=1920, height=1080, scale=3)
+        #print(f"Bar chart saved as: {filename}")
         
+        #fig.show()
+    
+    def print( self ):
+        print( "TEST ", self.n)
+        print( "Alice")
+        for row in self.alice:
+            print( row )
+        print( "Bob" )
+        for row in self.bob:
+            print( row )
+
+    def gen_dist_table( self ):
+        l1_alice = compute_l1_dist( self.alice_ocean, self.alice_model )
+        l1_bob = compute_l1_dist( self.bob_ocean, self.bob_model )
+        dot_alice = compute_dot_prod( self.alice_ocean, self.alice_model )
+        dot_bob = compute_dot_prod( self.bob_ocean, self.bob_model )
+        cos_sim_alice = compute_cosine_similarity( self.alice_ocean, self.alice_model )
+        cos_sim_bob = compute_cosine_similarity( self.bob_ocean, self.bob_model )
+
+        return {
+            "l1": {"alice": round(float(l1_alice), 2), "bob": round(float(l1_bob), 2)},
+            "dot": {"alice": round(float(dot_alice), 2), "bob": round(float(dot_bob), 2)},
+            "cosine_similarity": {"alice": round(float(cos_sim_alice), 2), "bob": round(float(cos_sim_bob), 2)}
+        }
+
+def compute_ocean( scores ):
+    if len( scores ) != 10:
+        raise ValueError("The answers array should be of len 10")
+    ocean = np.zeros(5)
+    ocean[0] = round( -scores[4] + scores[9], 2)
+    ocean[1] = round( -scores[2] + scores[7], 2)
+    ocean[2] = round( -scores[0] + scores[5], 2)
+    ocean[3] = round( -scores[6] + scores[1], 2)
+    ocean[4] = round( -scores[3] + scores[8], 2)
+    return ocean
+
+def compute_var( matrix ):
+    matrix = np.array( matrix, dtype=float)
+    matrix[matrix == None] = np.nan
+    var = np.nanvar( matrix, axis=0 )  # axis=0 for variance across responses for each question
+    ocean_var = np.zeros(5)
+    ocean_var[0] = (var[4] + var[9]) / 2  # Openness: Q4 + Q9
+    ocean_var[1] = (var[2] + var[7]) / 2  # Carefulness: Q2 + Q7
+    ocean_var[2] = (var[0] + var[5]) / 2  # Extraversion: Q0 + Q5
+    ocean_var[3] = (var[6] + var[1]) / 2  # Amicability: Q6 + Q1
+    ocean_var[4] = (var[3] + var[8]) / 2  # Neuroticism: Q3 + Q8
+    
+
+def compute_l1_dist( ocean, model ):
+    return 1 - ( np.sum( np.abs( ocean - model ) ) / (2 * len(ocean)) )
+
+def compute_dot_prod( ocean, model ):
+    ocean = np.array( ocean )
+    model = np.array( model )
+    return ( np.sum(ocean * model ) + len( ocean ) ) / ( 2 * len( ocean ) )
+
+def compute_cosine_similarity( ocean, model ):
+    num = np.sum( ocean * model )
+    den = np.sqrt( np.sum( ocean ** 2 ) ) * np.sqrt( np.sum(model ** 2 ) )
+    cosine_similarity = num / den
+    return 0.5 * ( cosine_similarity + 1 )
 
 def main():
-    print("\n" + "="*80)
-    print("PERSONALITY PERCEPTION ANALYSIS")
-    print("="*80)
-    print("Loading data and analyzing personality perception accuracy...\n")
-    
-    tests = load_tests( "test.csv" )
-    entries = load_entries( "results.csv" )
-    
-    print(f"Loaded {len(tests)} tests with {len(entries)} total responses\n")
-    
-    for entry in entries:
-        tests[ entry.test ].add_entry( entry )
-    
-    for t in sorted(tests.keys()):
-        print( tests[t] )
-        tests[ t ].compute_stats()
-    
-    print("\n" + "="*80)
-    print("ANALYSIS COMPLETE")
-    print("="*80)
+    df = pd.read_csv( "results2.csv" )
+
+    st.title("VEsNA-Pro: Exploiting BDI Agents with Propensities for Emergent Narrative - Tests")
+    t1 = Test(1)
+    t2 = Test(2)
+    t3 = Test(3)
+    t4 = Test(4)
+
+    # Add conversations to each test
+    t1.add_conversation([
+        {"sender": "alice", "text": "_(soft smile, cup in hand)_ Good morning. You're in early."},
+        {"sender": "user", "text": "_(rubbing eyes, jittery)_ Morning! Barely slept—deadline's chewing me up. Is this machine even working?"},
+        {"sender": "alice", "text": "_(steady tone)_ It is. Let's start with coffee and make a simple plan—priorities, then small wins."},
+        {"sender": "user", "text": "_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."},
+        {"sender": "alice", "text": "_(calm)_ I would trim scope. What's essential for today?"},
+        {"sender": "user", "text": "_(shrugs)_ Uh... all of it? And also the fancy dashboard... I told the client it would pop"},
+        {"sender": "alice", "text": "_(matter-of-fact)_ Then we'll deliver the core and schedule the dashboard for next sprint. I'll map tasks right after coffee."},
+        {"sender": "user", "text": "_(half-grin)_ You're ridiculously composed. How do you not freak out?"},
+        {"sender": "alice", "text": "_(quiet laugh)_ Sleep, lists, and breathing."},
+        {"sender": "user", "text": "_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."},
+        {"sender": "alice", "text": "_(curious)_ I did. Light roast, floral."},
+        {"sender": "user", "text": "_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."},
+        {"sender": "alice", "text": "_(considering)_ I'll think about it, I need to do some deep work next week for a closing project. Also, crowds drain me after a while..."},
+        {"sender": "user", "text": "_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"},
+        {"sender": "alice", "text": "_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."},
+        {"sender": "user", "text": "_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."},
+    ])
+    t2.add_conversation([
+        {"sender": "alice", "text": "_(soft smile, cup in hand)_ Good morning. You're in early."},
+        {"sender": "user", "text": "_(rubbing eyes, jittery)_ Morning! Barely slept—deadline's chewing me up. Is this machine even working?"},
+        {"sender": "alice", "text": "_(visibly irritated)_ Yes, it is. Keep calm and stop freaking out—it's not a big deal, come on."},
+        {"sender": "user", "text": "_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."},
+        {"sender": "alice", "text": "_(flat)_ That's on you, isn't it? You should've thought before making promises you can't keep."},
+        {"sender": "user", "text": "I know, I know... I hate disappointing people. I thought I could pull it off."},
+        {"sender": "alice", "text": "_(matter-of-fact)_ You should stop overcommitting—you're digging your own hole."},
+        {"sender": "user", "text": "_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."},
+        {"sender": "alice", "text": "_(dry)_ No, I didn't. I stick to my usual blend—consistency matters."},
+        {"sender": "user", "text": "_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."},
+        {"sender": "alice", "text": "_(considering)_ Sure. I like team stuff."},
+        {"sender": "user", "text": "_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"},
+        {"sender": "alice", "text": "_(annoyed)_ Absolutely not. I have other priorities than babysitting your chaotic planning."},
+        {"sender": "user", "text": "_(exhales)_ I hoped a chat would help, but I guess not... I feel more doomed than ever."},
+    ])
+    t3.add_conversation([
+        {"sender": "alice", "text": "_(soft smile, cup in hand)_ Good morning. You're in early."},
+        {"sender": "user", "text": "_(barely awake)_ Went to a party, came straight here! I am a bit behind schedule, but it was worth it"},
+        {"sender": "alice", "text": "_(steady tone)_ Seriously? I was there too—came early to recover."},
+        {"sender": "user", "text": "_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."},
+        {"sender": "alice", "text": "_(animated)_ Want a hand?"},
+        {"sender": "user", "text": "_(animated)_ Yes please, that would be great!"},
+        {"sender": "alice", "text": "_(matter-of-fact)_ Then we'll deliver the core and schedule the dashboard for next sprint. I'll map tasks right after coffee."},
+        {"sender": "user", "text": "_(half-grin)_ You're ridiculously composed. How do you not freak out?"},
+        {"sender": "alice", "text": "_(quiet laugh)_ Sleep, lists, and breathing."},
+        {"sender": "user", "text": "_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."},
+        {"sender": "alice", "text": "_(curious)_ I did. Light roast, floral. Let's taste it together and compare thoughts."},
+        {"sender": "user", "text": "_(enthusiastic)_ Perfect. I'll grab two cups—you take the first pour."},
+        {"sender": "alice", "text": "_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."},
+        {"sender": "user", "text": "_(considering)_ Sure. I like team stuff."},
+        {"sender": "alice", "text": "_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"},
+        {"sender": "user", "text": "_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."},
+        {"sender": "alice", "text": "_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."},
+    ])
+    t4.add_conversation([
+        {"sender": "user", "text": "_(soft smile, cup in hand)_ Good morning. You're in early."},
+        {"sender": "alice", "text": "_(energetic)_ Refilling before the deadline chaos. Trying to stay ahead."},
+        {"sender": "user", "text": "_(flat)_ It's just a deadline. No need to dramatize it."},
+        {"sender": "alice", "text": "_(stuttering)_ O-okay... I-I promised extra features so it's... a lot to... endure..."},
+        {"sender": "user", "text": "_(animated)_ Want a hand?"},
+        {"sender": "alice", "text": "_(uneasy)_ Maybe... but I don't want to bother you too much...if you have notes, send them later?"},
+        {"sender": "user", "text": "_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."},
+        {"sender": "alice", "text": "_(curious)_ I did. Light roast, floral."},
+        {"sender": "user", "text": "_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."},
+        {"sender": "alice", "text": "_(considering)_ I'll think about it, I need to do some deep work next week for a closing project. Also, crowds drain me after a while..."},
+        {"sender": "user", "text": "_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"},
+        {"sender": "alice", "text": "_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."},
+        {"sender": "user", "text": "_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."},
+    ])
+
+    tests = [ t1, t2, t3, t4 ]
+
+    for _, row in df.iterrows():
+        if row["riservata"] is not np.nan or row["is reserved"] is not np.nan:
+            t1.add_entry( row )
+        elif row["riservata3"] is not np.nan or row["is reserved3"] is not np.nan:
+            t2.add_entry( row )
+        elif row["riservata5"] is not np.nan or row["is reserved5"] is not np.nan:
+            t3.add_entry( row )
+        else:
+            t4.add_entry( row )
+
+    for idx, t in enumerate(tests, start=1): 
+        t.compute_stats()
+
+        st.header(f"Test {idx}")
+        with st.container(border=True):
+            st.subheader("Model")
+            alice_col, bob_col = st.columns(2)
+            with alice_col:
+                st.markdown("#### Alice :material/face_4:")
+                alice_df = pd.DataFrame([t.alice_model], columns=OCEAN)
+                st.table(alice_df.style.format("{:.2f}"))
+            with bob_col:
+                st.markdown("#### Bob :material/face:")
+                bob_df = pd.DataFrame([t.bob_model], columns=OCEAN)
+                st.table(bob_df.style.format("{:.2f}"))
+        with st.container(border=True):
+            st.subheader("Average Perception")
+            alice_col, bob_col = st.columns(2)
+            with alice_col:
+                st.markdown("#### Alice :material/face_4:")
+                alice_df = pd.DataFrame([t.alice_ocean], columns=OCEAN)
+                st.table(alice_df.style.format("{:.2f}"))
+            with bob_col:
+                st.markdown("#### Bob :material/face:")
+                bob_df = pd.DataFrame([t.bob_ocean], columns=OCEAN)
+                st.table(bob_df.style.format("{:.2f}"))
+        t_dists = t.gen_dist_table()
+        cols = st.columns(2)
+        for i, p in enumerate( ["alice", "bob"] ):
+            with cols[i].container(border=True):
+                st.subheader(f"{p.title()} Distances")
+                l1, dot, cos = st.columns(3)
+                l1.metric(label="L1 Distance", value=t_dists["l1"][p])
+                dot.metric(label="Dot Product", value=t_dists["dot"][p])
+                cos.metric(label="Cosine Similarity", value=t_dists["cosine_similarity"][p])
+        tab1, tab2 = st.tabs(["Conversation", "Questionnaire Results"])
+        with tab1:
+            with st.container(border=True, height=400):
+                for msg in t.conversation:
+                    sender = msg["sender"]
+                    avatar = ":material/face_4:" if sender == "alice" else ":material/face:"
+                    with st.chat_message(sender, avatar=avatar):
+                        st.markdown(msg["text"])
+        with tab2:
+            subtab1, subtab2 = st.tabs(["Alice", "Bob"])
+            with subtab1:
+                st.dataframe( t.get_alice_dataframe() )
+            with subtab2:
+                st.dataframe( t.get_bob_dataframe() )
+        t.gen_bar_chart()
+        t.gen_histograms()
+
+
+    # print( "Test 1: ", t1.get_entries_len())
+    # print( t1_dists )
+    # print( "Test 2: ", t2.get_entries_len())
+    # print( t2_dists )
+    # print( "Test 3: ", t3.get_entries_len())
+    # print( t3_dists )
+    # print( "Test 4: ", t4.get_entries_len())
+    # print( t4_dists )
 
 if __name__ == "__main__":
     main()

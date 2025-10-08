@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>VEsNA-Pro Test Results</title>
+<link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>
+<script src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'></script>
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+    background-color: #ffffff;
+    color: #2c2c2c;
+    line-height: 1.5;
+    padding: 2rem 1rem;
+    font-size: 15px;
+}
+
+.main-container {
+    max-width: 85%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+h1 { 
+    color: #191919;
+    font-size: 1.875rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    color: #191919;
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 2rem 0 1rem 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
+    letter-spacing: -0.01em;
+}
+
+h2:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+h3 { 
+    color: #2c2c2c;
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin: 1.25rem 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+h3 .material-icons {
+    font-size: 1.25rem;
+    color: #191919;
+}
+
+h4 { 
+    color: #2c2c2c;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    margin: 0.75rem 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+h4 .material-icons {
+    font-size: 1.125rem;
+    color: #191919;
+}
+
+table { 
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: 0.75rem 0;
+    background: #ffffff;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1.5px solid #e5e5e5;
+    font-size: 0.8125rem;
+    table-layout: fixed;
+}
+
+th, td { 
+    padding: 0.5rem 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+th { 
+    background-color: #fafafa;
+    color: #2c2c2c;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+td {
+    background: #ffffff;
+    color: #2c2c2c;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+.container { 
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1.5px solid #e5e5e5;
+}
+
+.metrics-container {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.metric { 
+    background: #ffffff;
+    padding: 0.75rem 0.875rem;
+    border-radius: 6px;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+    border: 1.5px solid #e5e5e5;
+}
+
+.metric-label { 
+    font-size: 0.75rem;
+    color: #737373;
+    margin-bottom: 0.25rem;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.metric-value { 
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #191919;
+}
+
+.chat-container {
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 0.75rem 0;
+    max-height: 450px;
+    overflow-y: auto;
+    border: 1.5px solid #e5e5e5;
+}
+
+.chat-message { 
+    margin: 0.625rem 0;
+    padding: 0.75rem;
+    border-radius: 6px;
+    line-height: 1.5;
+    font-size: 0.9375rem;
+    max-width: 70%;
+    clear: both;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.chat-message.alice {
+    background: #f5f5f5;
+    border-left: 2px solid #737373;
+    float: left;
+    margin-right: auto;
+}
+
+.chat-message.bob {
+    background: #fafafa;
+    border-right: 2px solid #525252;
+    float: right;
+    margin-left: auto;
+}
+
+.chat-message .material-icons {
+    font-size: 1.5rem;
+    color: #191919;
+    flex-shrink: 0;
+}
+
+.chat-message-content {
+    flex: 1;
+}
+
+.chat-message strong {
+    color: #191919;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.375rem;
+    text-transform: capitalize;
+}
+
+.chat-message::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.chat-message em {
+    font-style: italic;
+    color: #525252;
+}
+
+.chat-message p {
+    margin: 0;
+}
+
+.chart-container {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1.5px solid #e5e5e5;
+}
+
+.two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.two-column > div {
+    min-width: 0;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 0 1rem;
+    }
+    .two-column {
+        grid-template-columns: 1fr;
+    }
+    h1 {
+        font-size: 1.5rem;
+    }
+    body {
+        padding: 1rem 0.5rem;
+    }
+}
+
+/* Scrollbar styling - Anthropic style */
+.chat-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+}
+
+/* Expander styling */
+.expander {
+    margin: 1.5rem 0;
+    border: 1.5px solid #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.expander-header {
+    padding: 1rem 1.25rem;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.expander-header:hover {
+    background: #f0f0f0;
+}
+
+.expander-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #191919;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.expander-icon {
+    font-size: 1.25rem;
+    color: #737373;
+    transition: transform 0.2s;
+}
+
+.expander.open .expander-icon {
+    transform: rotate(180deg);
+}
+
+.expander-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.expander.open .expander-content {
+    max-height: none;
+}
+
+.expander-inner {
+    padding: 1.5rem 1.25rem;
+}
+
+/* Guide section */
+.guide {
+    background: #fafafa;
+    border: 1.5px solid #d4d4d4;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.guide h2 {
+    margin: 0 0 1rem 0;
+    padding: 0;
+    border: none;
+    font-size: 1.25rem;
+    color: #191919;
+}
+
+.guide p {
+    margin: 0.75rem 0;
+    color: #2c2c2c;
+    line-height: 1.6;
+}
+
+.guide ul {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+}
+
+.guide li {
+    margin: 0.5rem 0;
+    color: #2c2c2c;
+    line-height: 1.6;
+}
+
+.guide strong {
+    color: #191919;
+    font-weight: 600;
+}
+
+/* Colored containers */
+.container-model {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-model .two-column > div {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.container-model table {
+    background: #fafafa;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-model th {
+    background-color: #f5f5f5;
+}
+
+.container-model td {
+    background: #fafafa;
+}
+
+.container-perception {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-perception .two-column > div {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.container-perception table {
+    background: #fafafa;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-perception th {
+    background-color: #f5f5f5;
+}
+
+.container-perception td {
+    background: #fafafa;
+}
+
+.container-metrics {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-metrics .two-column > div {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+    border-radius: 6px;
+    padding: 0.75rem;
+}
+
+.container-conversation {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-conversation .chat-container {
+    background: #fafafa;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-charts {
+    background: #ffffff;
+    border: 1.5px solid #d4d4d4;
+}
+
+.container-charts .chart-container {
+    background: #fafafa;
+    border: 1.5px solid #d4d4d4;
+}
+
+.section-description {
+    font-size: 0.875rem;
+    color: #525252;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* Tabs styling */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e5e5;
+    margin: 1rem 0 0 0;
+    gap: 0.5rem;
+}
+
+.tab {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #737373;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: #191919;
+}
+
+.tab.active {
+    color: #191919;
+    border-bottom-color: #191919;
+}
+
+.tab-content {
+    display: none;
+    padding: 1rem 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.subtabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.subtab {
+    padding: 0.375rem 0.75rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: #737373;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.subtab:hover {
+    color: #191919;
+}
+
+.subtab.active {
+    color: #191919;
+    border-bottom-color: #191919;
+}
+
+.subtab-content {
+    display: none;
+}
+
+.subtab-content.active {
+    display: block;
+}
+
+/* Dataframe styling */
+.dataframe-container {
+    overflow-x: auto;
+    margin: 0.75rem 0;
+}
+
+.dataframe {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    border: 1.5px solid #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.dataframe thead th {
+    background-color: #fafafa;
+    color: #2c2c2c;
+    font-weight: 500;
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e5e5;
+    font-size: 0.75rem;
+    position: sticky;
+    top: 0;
+}
+
+.dataframe tbody td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.dataframe tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.dataframe tbody tr:hover {
+    background-color: #fafafa;
+}
+
+.dataframe-index {
+    font-weight: 500;
+    color: #737373;
+}
+
+</style>
+</head>
+<body>
+<div class='main-container'>
+<h1>VEsNA-Pro: Exploiting BDI Agents with Propensities for Emergent Narrative</h1>
+<div class='guide'>
+<h2>📖 How to Use This Report</h2>
+<p>This interactive report presents the results of four personality perception tests conducted with BDI agents <strong>Alice</strong> and <strong>Bob</strong>. Each test evaluates how participants perceived the agents' personalities based on different conversational scenarios.</p>
+<p><strong>What you'll find in each test:</strong></p>
+<ul>
+<li><strong>Model Values:</strong> The intended OCEAN personality traits programmed into each agent (scale: -1 to 1)</li>
+<li><strong>Average Perception:</strong> How participants actually perceived the agents' personalities based on their interactions</li>
+<li><strong>Distance Metrics:</strong> Statistical measures comparing model values with perceived values (L1 Distance, Dot Product, Cosine Similarity). Higher values indicate better alignment between intended and perceived personalities</li>
+<li><strong>Conversation:</strong> The actual dialogue between Alice and Bob that participants evaluated</li>
+<li><strong>Questionnaire Results:</strong> Raw data from all participant responses to the questionnaire )</li>
+<li><strong>OCEAN Traits Comparison:</strong> Bar charts comparing model vs. perceived values with variance indicators</li>
+<li><strong>Distribution of Individual Responses:</strong> Histograms showing how individual participants rated each personality trait</li>
+</ul>
+<p><strong>OCEAN Traits:</strong> Openness (creativity/curiosity), Carefulness (organization/reliability), Extraversion (sociability/energy), Amicability (cooperation/empathy), Neuroticism (emotional stability/anxiety)</p>
+<p>Click on any test below to expand and explore the detailed results.</p>
+</div>
+<div class='expander' id='expander-1'>
+<div class='expander-header' onclick='toggleExpander(this)'>
+<h2 class='expander-title'>Test 1</h2>
+<span class='expander-icon'>▼</span>
+</div>
+<div class='expander-content'>
+<div class='expander-inner'>
+<div class='container container-model'>
+<h3>Model Values</h3>
+<p class='section-description'>Intended personality traits programmed into each agent (range: -1 to +1).</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='1.00'>1.00</td><td title='-0.70'>-0.70</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='container container-perception'>
+<h3>Average Perception</h3>
+<p class='section-description'>How participants perceived the agents after reading the conversation.</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.05'>-0.05</td><td title='-0.54'>-0.54</td><td title='-0.21'>-0.21</td><td title='0.14'>0.14</td><td title='-0.74'>-0.74</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.01'>0.01</td><td title='-0.33'>-0.33</td><td title='0.49'>0.49</td><td title='0.29'>0.29</td><td title='0.39'>0.39</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='two-column'>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face_4</span> Alice Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.6</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.54</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.62</div>
+</div>
+</div>
+</div>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face</span> Bob Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.76</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.61</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.9</div>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-conversation'>
+<h3>Conversation & Data</h3>
+<p class='section-description'>The dialogue participants evaluated and raw questionnaire responses.</p>
+<div class='tabs'>
+<button class='tab active' onclick='switchTab(event, "conversation-1")'>Conversation</button>
+<button class='tab' onclick='switchTab(event, "questionnaire-1")'>Questionnaire Results</button>
+</div>
+<div id='conversation-1' class='tab-content active'>
+<div class='chat-container'>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(soft smile, cup in hand)_ Good morning. You're in early."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(rubbing eyes, jittery)_ Morning! Barely slept—deadline's chewing me up. Is this machine even working?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(steady tone)_ It is. Let's start with coffee and make a simple plan—priorities, then small wins."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(calm)_ I would trim scope. What's essential for today?"></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(shrugs)_ Uh... all of it? And also the fancy dashboard... I told the client it would pop"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(matter-of-fact)_ Then we'll deliver the core and schedule the dashboard for next sprint. I'll map tasks right after coffee."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(half-grin)_ You're ridiculously composed. How do you not freak out?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(quiet laugh)_ Sleep, lists, and breathing."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(curious)_ I did. Light roast, floral."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(considering)_ I'll think about it, I need to do some deep work next week for a closing project. Also, crowds drain me after a while..."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."></div>
+</div>
+</div>
+</div>
+</div>
+<div id='questionnaire-1' class='tab-content'>
+<div class='subtabs'>
+<button class='subtab active' onclick='switchSubTab(event, "alice-data-1")'>Alice</button>
+<button class='subtab' onclick='switchSubTab(event, "bob-data-1")'>Bob</button>
+</div>
+<div id='alice-data-1' class='subtab-content active'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+<div id='bob-data-1' class='subtab-content'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-charts'>
+<h3>OCEAN Traits Comparison</h3>
+<p class='section-description'>Model (blue) vs. perceived (red) values with variance indicators.</p>
+<div class='chart-container'>
+<div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.1.1.min.js" integrity="sha256-HUEFyfiTnZJxCxur99FjbKYTvKSzwDaD3/x5TqHpFu4=" crossorigin="anonymous"></script>                <div id="bar_chart_1" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("bar_chart_1")) {                    Plotly.newPlot(                        "bar_chart_1",                        [{"marker":{"color":"#636EFA"},"name":"Model","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADwP2ZmZmZmZua\u002fAAAAAAAA8D8AAAAAAADwvw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"error_y":{"array":{"dtype":"f8","bdata":"orE+NNZHwj\u002f34JmBd3myP3S+CVWg68Y\u002fqsvtDzJUwj90rnpbp\u002fSvPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZqb9I4XoUrkfhv+F6FK5H4cq\u002f7FG4HoXrwT+uR+F6FK7nvw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"marker":{"color":"#636EFA"},"name":"Model","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADgvwAAAAAAAPA\u002fAAAAAAAAAAAAAAAAAADwPw=="},"type":"bar","xaxis":"x2","yaxis":"y2"},{"error_y":{"array":{"dtype":"f8","bdata":"AAAAAADAwz8j8r+NWynHPytsJcXoYsM\u002fzA+LlIGnwj9B3YhnPmjMPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"exSuR+F6hD8fhetRuB7Vv1yPwvUoXN8\u002fj8L1KFyP0j\u002f2KFyPwvXYPw=="},"type":"bar","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.45]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"range":[-1.1,1.1]},"xaxis2":{"anchor":"y2","domain":[0.55,1.0]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"range":[-1.1,1.1]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Alice","x":0.225,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","x":0.775,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}]},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+<div class='container container-charts'>
+<h3>Distribution of Individual Responses</h3>
+<p class='section-description'>Individual participant ratings for each trait. Dashed lines show model values.</p>
+<div class='chart-container'>
+<div>                            <div id="histogram_1" class="plotly-graph-div" style="height:800px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("histogram_1")) {                    Plotly.newPlot(                        "histogram_1",                        [{"marker":{"color":"#EF553B"},"name":"Alice Openness","opacity":0.7,"showlegend":false,"x":[0.25,0.0,-0.25,-0.5,-0.5,-0.25],"type":"histogram","xaxis":"x","yaxis":"y"},{"marker":{"color":"#EF553B"},"name":"Alice Carefulness","opacity":0.7,"showlegend":false,"x":[-0.5,-0.75,-0.75,-0.5,0.0,-0.5,-0.5,-0.5,-0.75,-0.75,-0.5,-1.0,-0.75,-0.25,-0.5,-0.5,-0.75],"type":"histogram","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#EF553B"},"name":"Alice Extraversion","opacity":0.7,"showlegend":false,"x":[-0.5,-0.5,-0.75,0.0,-0.25,0.0,-0.25,0.5,0.25,-0.75,-0.25,0.5,-0.5,-0.5,0.0,-0.5,-0.5],"type":"histogram","xaxis":"x3","yaxis":"y3"},{"marker":{"color":"#EF553B"},"name":"Alice Amicability","opacity":0.7,"showlegend":false,"x":[0.25,-0.5,0.0,0.75,0.5,0.0,0.5,0.25,0.0,0.0,0.5,0.0],"type":"histogram","xaxis":"x4","yaxis":"y4"},{"marker":{"color":"#EF553B"},"name":"Alice Neuroticism","opacity":0.7,"showlegend":false,"x":[-0.5,-0.5,-1.0,-0.5,-1.0,-1.0,-0.5,-0.5,-0.75,-0.75,-0.5,-0.75,-0.75,-1.0,-1.0,-0.75,-1.0,-0.75],"type":"histogram","xaxis":"x5","yaxis":"y5"},{"marker":{"color":"#636EFA"},"name":"Bob Openness","opacity":0.7,"showlegend":false,"x":[-0.5,0.25,0.5,-0.25,0.25,0.0],"type":"histogram","xaxis":"x6","yaxis":"y6"},{"marker":{"color":"#636EFA"},"name":"Bob Carefulness","opacity":0.7,"showlegend":false,"x":[-0.5,0.5,-0.5,-0.5,-0.25,-0.75,-0.5,0.0,-0.25,-0.25,-0.5,-0.5,-1.0],"type":"histogram","xaxis":"x7","yaxis":"y7"},{"marker":{"color":"#636EFA"},"name":"Bob Extraversion","opacity":0.7,"showlegend":false,"x":[0.5,0.75,0.75,0.5,0.75,0.75,-0.25,0.25,0.5,0.0,1.0,0.75,0.75,0.5,0.5,0.5,1.0],"type":"histogram","xaxis":"x8","yaxis":"y8"},{"marker":{"color":"#636EFA"},"name":"Bob Amicability","opacity":0.7,"showlegend":false,"x":[0.5,0.75,0.75,-0.25,0.5,0.5,-0.5,0.5,0.5,0.0,0.25,0.75],"type":"histogram","xaxis":"x9","yaxis":"y9"},{"marker":{"color":"#636EFA"},"name":"Bob Neuroticism","opacity":0.7,"showlegend":false,"x":[0.5,0.5,0.75,0.75,0.5,0.0,0.25,0.25,-0.25,0.5,1.0,0.5,0.25,-0.25,0.25,0.5],"type":"histogram","xaxis":"x10","yaxis":"y10"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis":{"anchor":"x","domain":[0.575,1.0],"title":{"text":"Count"}},"xaxis2":{"anchor":"y2","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis2":{"anchor":"x2","domain":[0.575,1.0]},"xaxis3":{"anchor":"y3","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis3":{"anchor":"x3","domain":[0.575,1.0]},"xaxis4":{"anchor":"y4","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis4":{"anchor":"x4","domain":[0.575,1.0]},"xaxis5":{"anchor":"y5","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis5":{"anchor":"x5","domain":[0.575,1.0]},"xaxis6":{"anchor":"y6","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis6":{"anchor":"x6","domain":[0.0,0.425],"title":{"text":"Count"}},"xaxis7":{"anchor":"y7","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis7":{"anchor":"x7","domain":[0.0,0.425]},"xaxis8":{"anchor":"y8","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis8":{"anchor":"x8","domain":[0.0,0.425]},"xaxis9":{"anchor":"y9","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis9":{"anchor":"x9","domain":[0.0,0.425]},"xaxis10":{"anchor":"y10","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis10":{"anchor":"x10","domain":[0.0,0.425]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Alice","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.7875,"yanchor":"middle","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.2125,"yanchor":"middle","yref":"paper"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x","y":0.744198863234747,"yref":"y domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x2","y":0.8457789000866958,"yref":"y2 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.70","x":-0.7,"xref":"x3","y":0.6906824670485202,"yref":"y3 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x4","y":0.7814347767794192,"yref":"y4 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x5","y":0.7448381571922684,"yref":"y5 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x6","y":0.8480901388328643,"yref":"y6 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.50","x":-0.5,"xref":"x7","y":0.6018475693859663,"yref":"y7 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x8","y":0.6283400604248656,"yref":"y8 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.00","x":0.0,"xref":"x9","y":0.8903654193978519,"yref":"y9 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x10","y":0.7362199721953446,"yref":"y10 domain"}],"shapes":[{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x2","y0":0,"y1":1,"yref":"y2 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-0.7,"x1":-0.7,"xref":"x3","y0":0,"y1":1,"yref":"y3 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x4","y0":0,"y1":1,"yref":"y4 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x5","y0":0,"y1":1,"yref":"y5 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x6","y0":0,"y1":1,"yref":"y6 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-0.5,"x1":-0.5,"xref":"x7","y0":0,"y1":1,"yref":"y7 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x8","y0":0,"y1":1,"yref":"y8 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.0,"x1":0.0,"xref":"x9","y0":0,"y1":1,"yref":"y9 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x10","y0":0,"y1":1,"yref":"y10 domain"}],"height":800,"showlegend":false},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+</div>
+</div>
+</div>
+<div class='expander' id='expander-2'>
+<div class='expander-header' onclick='toggleExpander(this)'>
+<h2 class='expander-title'>Test 2</h2>
+<span class='expander-icon'>▼</span>
+</div>
+<div class='expander-content'>
+<div class='expander-inner'>
+<div class='container container-model'>
+<h3>Model Values</h3>
+<p class='section-description'>Intended personality traits programmed into each agent (range: -1 to +1).</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.80'>-0.80</td><td title='-0.80'>-0.80</td><td title='0.70'>0.70</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='container container-perception'>
+<h3>Average Perception</h3>
+<p class='section-description'>How participants perceived the agents after reading the conversation.</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.06'>0.06</td><td title='-0.28'>-0.28</td><td title='-0.08'>-0.08</td><td title='-0.44'>-0.44</td><td title='0.10'>0.10</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.07'>-0.07</td><td title='-0.32'>-0.32</td><td title='0.36'>0.36</td><td title='0.34'>0.34</td><td title='0.34'>0.34</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='two-column'>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face_4</span> Alice Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.62</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.55</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.72</div>
+</div>
+</div>
+</div>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face</span> Bob Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.73</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.58</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.85</div>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-conversation'>
+<h3>Conversation & Data</h3>
+<p class='section-description'>The dialogue participants evaluated and raw questionnaire responses.</p>
+<div class='tabs'>
+<button class='tab active' onclick='switchTab(event, "conversation-2")'>Conversation</button>
+<button class='tab' onclick='switchTab(event, "questionnaire-2")'>Questionnaire Results</button>
+</div>
+<div id='conversation-2' class='tab-content active'>
+<div class='chat-container'>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(soft smile, cup in hand)_ Good morning. You're in early."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(rubbing eyes, jittery)_ Morning! Barely slept—deadline's chewing me up. Is this machine even working?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(visibly irritated)_ Yes, it is. Keep calm and stop freaking out—it's not a big deal, come on."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(flat)_ That's on you, isn't it? You should've thought before making promises you can't keep."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="I know, I know... I hate disappointing people. I thought I could pull it off."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(matter-of-fact)_ You should stop overcommitting—you're digging your own hole."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(dry)_ No, I didn't. I stick to my usual blend—consistency matters."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(considering)_ Sure. I like team stuff."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(annoyed)_ Absolutely not. I have other priorities than babysitting your chaotic planning."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(exhales)_ I hoped a chat would help, but I guess not... I feel more doomed than ever."></div>
+</div>
+</div>
+</div>
+</div>
+<div id='questionnaire-2' class='tab-content'>
+<div class='subtabs'>
+<button class='subtab active' onclick='switchSubTab(event, "alice-data-2")'>Alice</button>
+<button class='subtab' onclick='switchSubTab(event, "bob-data-2")'>Bob</button>
+</div>
+<div id='alice-data-2' class='subtab-content active'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='19'>19</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='20'>20</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='21'>21</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='22'>22</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='23'>23</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+</tbody></table>
+</div>
+</div>
+<div id='bob-data-2' class='subtab-content'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='19'>19</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td></tr>
+<tr><td class='dataframe-index' title='20'>20</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='21'>21</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='22'>22</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='23'>23</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-charts'>
+<h3>OCEAN Traits Comparison</h3>
+<p class='section-description'>Model (blue) vs. perceived (red) values with variance indicators.</p>
+<div class='chart-container'>
+<div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.1.1.min.js" integrity="sha256-HUEFyfiTnZJxCxur99FjbKYTvKSzwDaD3/x5TqHpFu4=" crossorigin="anonymous"></script>                <div id="bar_chart_2" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("bar_chart_2")) {                    Plotly.newPlot(                        "bar_chart_2",                        [{"marker":{"color":"#636EFA"},"name":"Model","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6b+amZmZmZnpv2ZmZmZmZuY\u002fAAAAAAAA8L8AAAAAAADwvw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"error_y":{"array":{"dtype":"f8","bdata":"7UNjfWisrz8sUgaebs23P1o13BBxF80\u002fHyxUZ744wj++eLBQnXnQPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"uB6F61G4rj\u002fsUbgehevRv3sUrkfherS\u002fKVyPwvUo3L+amZmZmZm5Pw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"marker":{"color":"#636EFA"},"name":"Model","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADgvwAAAAAAAPA\u002fAAAAAAAAAAAAAAAAAADwPw=="},"type":"bar","xaxis":"x2","yaxis":"y2"},{"error_y":{"array":{"dtype":"f8","bdata":"x3Ecx3HcxD8w0nMGyPjFP8aiTz4lHM0\u002f3sEzm6RfxD9wHMdxHIfJPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"7FG4HoXrsb97FK5H4XrUvwrXo3A9Ctc\u002fw\u002fUoXI\u002fC1T\u002fD9Shcj8LVPw=="},"type":"bar","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.45]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"range":[-1.1,1.1]},"xaxis2":{"anchor":"y2","domain":[0.55,1.0]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"range":[-1.1,1.1]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Alice","x":0.225,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","x":0.775,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}]},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+<div class='container container-charts'>
+<h3>Distribution of Individual Responses</h3>
+<p class='section-description'>Individual participant ratings for each trait. Dashed lines show model values.</p>
+<div class='chart-container'>
+<div>                            <div id="histogram_2" class="plotly-graph-div" style="height:800px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("histogram_2")) {                    Plotly.newPlot(                        "histogram_2",                        [{"marker":{"color":"#EF553B"},"name":"Alice Openness","opacity":0.7,"showlegend":false,"x":[0.0,-0.25,0.25,0.5,0.0,0.0],"type":"histogram","xaxis":"x","yaxis":"y"},{"marker":{"color":"#EF553B"},"name":"Alice Carefulness","opacity":0.7,"showlegend":false,"x":[-0.25,-0.25,-0.5,-0.25,-0.5,-0.75,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,-0.25,-0.25,-0.75,0.0],"type":"histogram","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#EF553B"},"name":"Alice Extraversion","opacity":0.7,"showlegend":false,"x":[-0.25,0.5,0.0,-0.25,0.0,0.25,-0.25,0.25,0.0,-0.5,-0.5,-0.75,0.25,-0.25,-0.5,0.0,-0.5,0.25,0.25],"type":"histogram","xaxis":"x3","yaxis":"y3"},{"marker":{"color":"#EF553B"},"name":"Alice Amicability","opacity":0.7,"showlegend":false,"x":[0.0,0.0,-0.75,-0.5,-0.5,-0.5,-1.0,-1.0,-0.25,-0.75,-0.5,-0.5,0.25,-0.5,-0.25,-0.25,-0.5,-0.75,-0.5,-0.75,0.0],"type":"histogram","xaxis":"x4","yaxis":"y4"},{"marker":{"color":"#EF553B"},"name":"Alice Neuroticism","opacity":0.7,"showlegend":false,"x":[-0.75,-0.5,0.25,0.75,0.25,0.25,-0.25,0.25,-0.25,-0.25,0.5,0.5,-0.25,0.5,0.0,-0.75,0.0,0.5,0.0,0.5,0.0],"type":"histogram","xaxis":"x5","yaxis":"y5"},{"marker":{"color":"#636EFA"},"name":"Bob Openness","opacity":0.7,"showlegend":false,"x":[0.5,0.0,0.0,-0.5,-0.25,-0.5,-0.25],"type":"histogram","xaxis":"x6","yaxis":"y6"},{"marker":{"color":"#636EFA"},"name":"Bob Carefulness","opacity":0.7,"showlegend":false,"x":[0.5,-0.5,-0.5,-0.75,0.5,0.0,-0.25,-1.0,-0.5,-0.25,-0.75,-0.75,-0.5,-0.5,-0.25,0.0,-0.25,-0.5,0.25,-0.75,-0.5,0.0,-0.25],"type":"histogram","xaxis":"x7","yaxis":"y7"},{"marker":{"color":"#636EFA"},"name":"Bob Extraversion","opacity":0.7,"showlegend":false,"x":[1.0,0.75,0.5,0.5,0.25,0.25,0.25,0.25,0.25,1.0,0.75,0.25,0.0,0.25,0.75,0.75,-0.25,0.5,0.25],"type":"histogram","xaxis":"x8","yaxis":"y8"},{"marker":{"color":"#636EFA"},"name":"Bob Amicability","opacity":0.7,"showlegend":false,"x":[0.5,0.5,0.0,0.5,-0.25,0.5,0.25,0.25,0.75,0.75,-0.5,0.25,0.5,0.5,0.25,0.75,0.75,0.5],"type":"histogram","xaxis":"x9","yaxis":"y9"},{"marker":{"color":"#636EFA"},"name":"Bob Neuroticism","opacity":0.7,"showlegend":false,"x":[0.75,1.0,0.0,0.75,0.0,0.0,0.25,0.5,0.0,0.75,0.25,0.5,0.0,0.25,0.0,0.75,0.0,0.25,0.75,0.5,0.25,0.0,0.75,0.0],"type":"histogram","xaxis":"x10","yaxis":"y10"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis":{"anchor":"x","domain":[0.575,1.0],"title":{"text":"Count"}},"xaxis2":{"anchor":"y2","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis2":{"anchor":"x2","domain":[0.575,1.0]},"xaxis3":{"anchor":"y3","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis3":{"anchor":"x3","domain":[0.575,1.0]},"xaxis4":{"anchor":"y4","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis4":{"anchor":"x4","domain":[0.575,1.0]},"xaxis5":{"anchor":"y5","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis5":{"anchor":"x5","domain":[0.575,1.0]},"xaxis6":{"anchor":"y6","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis6":{"anchor":"x6","domain":[0.0,0.425],"title":{"text":"Count"}},"xaxis7":{"anchor":"y7","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis7":{"anchor":"x7","domain":[0.0,0.425]},"xaxis8":{"anchor":"y8","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis8":{"anchor":"x8","domain":[0.0,0.425]},"xaxis9":{"anchor":"y9","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis9":{"anchor":"x9","domain":[0.0,0.425]},"xaxis10":{"anchor":"y10","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis10":{"anchor":"x10","domain":[0.0,0.425]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Alice","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.7875,"yanchor":"middle","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.2125,"yanchor":"middle","yref":"paper"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.80","x":-0.8,"xref":"x","y":0.6872198943246507,"yref":"y domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.80","x":-0.8,"xref":"x2","y":0.7442667519954675,"yref":"y2 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.70","x":0.7,"xref":"x3","y":0.612973701308136,"yref":"y3 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x4","y":0.783428946256988,"yref":"y4 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x5","y":0.882373863085415,"yref":"y5 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x6","y":0.6213305408486868,"yref":"y6 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.50","x":-0.5,"xref":"x7","y":0.7089520097005895,"yref":"y7 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x8","y":0.6633964306029666,"yref":"y8 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.00","x":0.0,"xref":"x9","y":0.7121297266520353,"yref":"y9 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x10","y":0.7187690059760767,"yref":"y10 domain"}],"shapes":[{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-0.8,"x1":-0.8,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-0.8,"x1":-0.8,"xref":"x2","y0":0,"y1":1,"yref":"y2 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":0.7,"x1":0.7,"xref":"x3","y0":0,"y1":1,"yref":"y3 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x4","y0":0,"y1":1,"yref":"y4 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x5","y0":0,"y1":1,"yref":"y5 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x6","y0":0,"y1":1,"yref":"y6 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-0.5,"x1":-0.5,"xref":"x7","y0":0,"y1":1,"yref":"y7 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x8","y0":0,"y1":1,"yref":"y8 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.0,"x1":0.0,"xref":"x9","y0":0,"y1":1,"yref":"y9 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x10","y0":0,"y1":1,"yref":"y10 domain"}],"height":800,"showlegend":false},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+</div>
+</div>
+</div>
+<div class='expander' id='expander-3'>
+<div class='expander-header' onclick='toggleExpander(this)'>
+<h2 class='expander-title'>Test 3</h2>
+<span class='expander-icon'>▼</span>
+</div>
+<div class='expander-content'>
+<div class='expander-inner'>
+<div class='container container-model'>
+<h3>Model Values</h3>
+<p class='section-description'>Intended personality traits programmed into each agent (range: -1 to +1).</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='container container-perception'>
+<h3>Average Perception</h3>
+<p class='section-description'>How participants perceived the agents after reading the conversation.</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.07'>-0.07</td><td title='-0.59'>-0.59</td><td title='0.32'>0.32</td><td title='0.31'>0.31</td><td title='-0.52'>-0.52</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.00'>0.00</td><td title='-0.16'>-0.16</td><td title='0.42'>0.42</td><td title='0.32'>0.32</td><td title='0.09'>0.09</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='two-column'>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face_4</span> Alice Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.72</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.64</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.89</div>
+</div>
+</div>
+</div>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face</span> Bob Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.72</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.57</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.88</div>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-conversation'>
+<h3>Conversation & Data</h3>
+<p class='section-description'>The dialogue participants evaluated and raw questionnaire responses.</p>
+<div class='tabs'>
+<button class='tab active' onclick='switchTab(event, "conversation-3")'>Conversation</button>
+<button class='tab' onclick='switchTab(event, "questionnaire-3")'>Questionnaire Results</button>
+</div>
+<div id='conversation-3' class='tab-content active'>
+<div class='chat-container'>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(soft smile, cup in hand)_ Good morning. You're in early."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(barely awake)_ Went to a party, came straight here! I am a bit behind schedule, but it was worth it"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(steady tone)_ Seriously? I was there too—came early to recover."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(talking fast)_ Okay... I kind of promised extra features last night, and I'm on edge. It felt right in the moment."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(animated)_ Want a hand?"></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(animated)_ Yes please, that would be great!"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(matter-of-fact)_ Then we'll deliver the core and schedule the dashboard for next sprint. I'll map tasks right after coffee."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(half-grin)_ You're ridiculously composed. How do you not freak out?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(quiet laugh)_ Sleep, lists, and breathing."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(curious)_ I did. Light roast, floral. Let's taste it together and compare thoughts."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(enthusiastic)_ Perfect. I'll grab two cups—you take the first pour."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(considering)_ Sure. I like team stuff."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."></div>
+</div>
+</div>
+</div>
+</div>
+<div id='questionnaire-3' class='tab-content'>
+<div class='subtabs'>
+<button class='subtab active' onclick='switchSubTab(event, "alice-data-3")'>Alice</button>
+<button class='subtab' onclick='switchSubTab(event, "bob-data-3")'>Bob</button>
+</div>
+<div id='alice-data-3' class='subtab-content active'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='19'>19</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='20'>20</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='21'>21</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='22'>22</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='23'>23</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='24'>24</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='25'>25</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='26'>26</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='27'>27</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='28'>28</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='29'>29</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='30'>30</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='31'>31</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+<div id='bob-data-3' class='subtab-content'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='18'>18</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='19'>19</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='20'>20</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='21'>21</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='22'>22</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='23'>23</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='24'>24</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='25'>25</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='26'>26</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='27'>27</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='28'>28</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='29'>29</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='30'>30</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='31'>31</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-charts'>
+<h3>OCEAN Traits Comparison</h3>
+<p class='section-description'>Model (blue) vs. perceived (red) values with variance indicators.</p>
+<div class='chart-container'>
+<div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.1.1.min.js" integrity="sha256-HUEFyfiTnZJxCxur99FjbKYTvKSzwDaD3/x5TqHpFu4=" crossorigin="anonymous"></script>                <div id="bar_chart_3" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("bar_chart_3")) {                    Plotly.newPlot(                        "bar_chart_3",                        [{"marker":{"color":"#636EFA"},"name":"Model","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADgvwAAAAAAAPA\u002fAAAAAAAA8D8AAAAAAADwvw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"error_y":{"array":{"dtype":"f8","bdata":"\u002fNBYHxrrwz+uR+F6FI66P4hfTBxTyLg\u002fDqTDONyNuj+yPjTWh6a+Pw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"7FG4HoXrsb\u002fhehSuR+Hiv3sUrkfhetQ\u002f16NwPQrX0z+kcD0K16Pgvw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"marker":{"color":"#636EFA"},"name":"Model","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADgvwAAAAAAAPA\u002fAAAAAAAA4D8AAAAAAADwPw=="},"type":"bar","xaxis":"x2","yaxis":"y2"},{"error_y":{"array":{"dtype":"f8","bdata":"wLJFQNurwj9asAVbsAXMPxekmIOS1sI\u002f0DCUnKAdwT\u002foEgmH\u002ffjNPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"AAAAAAAAAAB7FK5H4XrEv+F6FK5H4do\u002fexSuR+F61D8K16NwPQq3Pw=="},"type":"bar","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.45]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"range":[-1.1,1.1]},"xaxis2":{"anchor":"y2","domain":[0.55,1.0]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"range":[-1.1,1.1]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Alice","x":0.225,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","x":0.775,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}]},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+<div class='container container-charts'>
+<h3>Distribution of Individual Responses</h3>
+<p class='section-description'>Individual participant ratings for each trait. Dashed lines show model values.</p>
+<div class='chart-container'>
+<div>                            <div id="histogram_3" class="plotly-graph-div" style="height:800px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("histogram_3")) {                    Plotly.newPlot(                        "histogram_3",                        [{"marker":{"color":"#EF553B"},"name":"Alice Openness","opacity":0.7,"showlegend":false,"x":[-0.25,0.25,0.0,-0.25,-0.5,0.0,0.5,-0.25,0.0,-0.25,-0.5,-0.25,0.0],"type":"histogram","xaxis":"x","yaxis":"y"},{"marker":{"color":"#EF553B"},"name":"Alice Carefulness","opacity":0.7,"showlegend":false,"x":[-0.5,-0.5,-0.75,-1.0,-0.5,-0.75,-1.0,-1.0,-0.5,-0.5,-0.75,-0.25,-0.5,-0.5,-0.5,-0.75,-0.5,-0.5,-0.75,-1.0,-0.5,-0.5,-0.75,-0.5,0.25,-0.5,-0.5,-0.75,-0.75,-0.75],"type":"histogram","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#EF553B"},"name":"Alice Extraversion","opacity":0.7,"showlegend":false,"x":[0.5,0.25,0.25,0.5,-0.25,0.5,0.5,0.25,0.0,0.5,0.5,0.5,0.5,0.25,0.5,0.5,0.5,0.25,0.5,0.0,-0.25,0.5,0.25,0.75,0.25,0.5,0.25],"type":"histogram","xaxis":"x3","yaxis":"y3"},{"marker":{"color":"#EF553B"},"name":"Alice Amicability","opacity":0.7,"showlegend":false,"x":[0.5,0.25,0.5,0.5,0.5,0.25,0.25,0.5,0.5,0.25,0.0,0.25,0.5,0.25,0.5,0.25,0.5,0.0,0.75,0.5,0.5,0.5],"type":"histogram","xaxis":"x4","yaxis":"y4"},{"marker":{"color":"#EF553B"},"name":"Alice Neuroticism","opacity":0.7,"showlegend":false,"x":[-0.25,-0.25,-0.5,-0.75,-0.75,0.25,-0.5,-0.75,-0.5,-0.5,-0.5,0.0,-0.5,-0.25,-0.5,-0.75,-0.5,-0.5,-0.25,-1.0,-1.0,-0.75,-1.0,-0.75,-0.75,-0.5,-0.5,-0.75],"type":"histogram","xaxis":"x5","yaxis":"y5"},{"marker":{"color":"#636EFA"},"name":"Bob Openness","opacity":0.7,"showlegend":false,"x":[-0.25,-0.25,0.0,0.0,0.0,-0.5,0.75,0.25,0.0,-0.25],"type":"histogram","xaxis":"x6","yaxis":"y6"},{"marker":{"color":"#636EFA"},"name":"Bob Carefulness","opacity":0.7,"showlegend":false,"x":[-0.5,-0.25,0.5,-0.5,0.5,0.0,-0.75,0.5,0.0,-0.25,-0.5,-0.25,-0.5,-0.5,0.0,0.25,-0.25,0.25,-0.75,-0.5,0.25,-0.75,0.0,0.25,0.25,-0.25,-0.5,0.5,-0.25,-0.75],"type":"histogram","xaxis":"x7","yaxis":"y7"},{"marker":{"color":"#636EFA"},"name":"Bob Extraversion","opacity":0.7,"showlegend":false,"x":[0.5,0.5,0.75,1.0,0.5,0.5,0.75,0.75,0.5,0.5,0.0,0.0,0.5,0.25,0.5,-0.5,0.5,-0.25,0.0,0.5,0.5,0.5,0.25,0.75,0.0,0.75,0.5,0.25,0.75,0.25,1.0],"type":"histogram","xaxis":"x8","yaxis":"y8"},{"marker":{"color":"#636EFA"},"name":"Bob Amicability","opacity":0.7,"showlegend":false,"x":[0.75,0.25,0.25,0.75,0.25,0.75,0.5,0.5,0.25,0.0,0.25,0.25,0.5,0.25,-0.25,0.75,0.25,0.5,0.0,0.25,0.5],"type":"histogram","xaxis":"x9","yaxis":"y9"},{"marker":{"color":"#636EFA"},"name":"Bob Neuroticism","opacity":0.7,"showlegend":false,"x":[0.75,0.0,0.5,0.0,0.75,-0.75,-0.25,0.5,0.0,0.0,0.5,-0.25,0.5,0.25,0.75,0.5,-0.25,-0.25,0.0,0.0,-0.25,-0.75,-0.25,0.0],"type":"histogram","xaxis":"x10","yaxis":"y10"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis":{"anchor":"x","domain":[0.575,1.0],"title":{"text":"Count"}},"xaxis2":{"anchor":"y2","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis2":{"anchor":"x2","domain":[0.575,1.0]},"xaxis3":{"anchor":"y3","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis3":{"anchor":"x3","domain":[0.575,1.0]},"xaxis4":{"anchor":"y4","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis4":{"anchor":"x4","domain":[0.575,1.0]},"xaxis5":{"anchor":"y5","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis5":{"anchor":"x5","domain":[0.575,1.0]},"xaxis6":{"anchor":"y6","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis6":{"anchor":"x6","domain":[0.0,0.425],"title":{"text":"Count"}},"xaxis7":{"anchor":"y7","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis7":{"anchor":"x7","domain":[0.0,0.425]},"xaxis8":{"anchor":"y8","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis8":{"anchor":"x8","domain":[0.0,0.425]},"xaxis9":{"anchor":"y9","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis9":{"anchor":"x9","domain":[0.0,0.425]},"xaxis10":{"anchor":"y10","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis10":{"anchor":"x10","domain":[0.0,0.425]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Alice","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.7875,"yanchor":"middle","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.2125,"yanchor":"middle","yref":"paper"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x","y":0.8324111410315101,"yref":"y domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.50","x":-0.5,"xref":"x2","y":0.7878840775751539,"yref":"y2 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x3","y":0.7415529662269666,"yref":"y3 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x4","y":0.799327092800078,"yref":"y4 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x5","y":0.6553725238111449,"yref":"y5 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x6","y":0.6932733853525571,"yref":"y6 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.50","x":-0.5,"xref":"x7","y":0.7414646362203872,"yref":"y7 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x8","y":0.679280345614338,"yref":"y8 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.50","x":0.5,"xref":"x9","y":0.7484786381154969,"yref":"y9 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x10","y":0.656781788515121,"yref":"y10 domain"}],"shapes":[{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-0.5,"x1":-0.5,"xref":"x2","y0":0,"y1":1,"yref":"y2 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x3","y0":0,"y1":1,"yref":"y3 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x4","y0":0,"y1":1,"yref":"y4 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x5","y0":0,"y1":1,"yref":"y5 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x6","y0":0,"y1":1,"yref":"y6 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-0.5,"x1":-0.5,"xref":"x7","y0":0,"y1":1,"yref":"y7 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x8","y0":0,"y1":1,"yref":"y8 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.5,"x1":0.5,"xref":"x9","y0":0,"y1":1,"yref":"y9 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x10","y0":0,"y1":1,"yref":"y10 domain"}],"height":800,"showlegend":false},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+</div>
+</div>
+</div>
+<div class='expander' id='expander-4'>
+<div class='expander-header' onclick='toggleExpander(this)'>
+<h2 class='expander-title'>Test 4</h2>
+<span class='expander-icon'>▼</span>
+</div>
+<div class='expander-content'>
+<div class='expander-inner'>
+<div class='container container-model'>
+<h3>Model Values</h3>
+<p class='section-description'>Intended personality traits programmed into each agent (range: -1 to +1).</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.60'>0.60</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.70'>0.70</td><td title='1.00'>1.00</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='0.80'>0.80</td><td title='-1.00'>-1.00</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='-0.70'>-0.70</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='container container-perception'>
+<h3>Average Perception</h3>
+<p class='section-description'>How participants perceived the agents after reading the conversation.</p>
+<div class='two-column'>
+<div>
+<h4><span class='material-icons'>face_4</span>Alice</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.07'>-0.07</td><td title='-0.69'>-0.69</td><td title='-0.19'>-0.19</td><td title='0.24'>0.24</td><td title='0.12'>0.12</td></tr>
+</table>
+</div>
+<div>
+<h4><span class='material-icons'>face</span>Bob</h4>
+<table>
+<tr><th title='Openness'>Openness</th><th title='Carefulness'>Carefulness</th><th title='Extraversion'>Extraversion</th><th title='Amicability'>Amicability</th><th title='Neuroticism'>Neuroticism</th></tr>
+<tr><td title='-0.06'>-0.06</td><td title='-0.24'>-0.24</td><td title='0.44'>0.44</td><td title='0.22'>0.22</td><td title='-0.26'>-0.26</td></tr>
+</table>
+</div>
+</div>
+</div>
+<div class='two-column'>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face_4</span> Alice Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.55</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.47</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.42</div>
+</div>
+</div>
+</div>
+<div class='container container-metrics'>
+<h3><span class='material-icons'>face</span> Bob Distance Metrics</h3>
+<div class='metrics-container'>
+<div class='metric'>
+<div class='metric-label'>L1 Distance</div>
+<div class='metric-value'>0.62</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Dot Product</div>
+<div class='metric-value'>0.56</div>
+</div>
+<div class='metric'>
+<div class='metric-label'>Cosine Similarity</div>
+<div class='metric-value'>0.74</div>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-conversation'>
+<h3>Conversation & Data</h3>
+<p class='section-description'>The dialogue participants evaluated and raw questionnaire responses.</p>
+<div class='tabs'>
+<button class='tab active' onclick='switchTab(event, "conversation-4")'>Conversation</button>
+<button class='tab' onclick='switchTab(event, "questionnaire-4")'>Questionnaire Results</button>
+</div>
+<div id='conversation-4' class='tab-content active'>
+<div class='chat-container'>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(soft smile, cup in hand)_ Good morning. You're in early."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(energetic)_ Refilling before the deadline chaos. Trying to stay ahead."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(flat)_ It's just a deadline. No need to dramatize it."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(stuttering)_ O-okay... I-I promised extra features so it's... a lot to... endure..."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(animated)_ Want a hand?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(uneasy)_ Maybe... but I don't want to bother you too much...if you have notes, send them later?"></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(perks up)_ Yes—well, did you try that new single-origin? Maybe caffeine plus novelty will save me."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(curious)_ I did. Light roast, floral."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(animated)_ Also—team breakfast next week. I'm rallying people; might boost morale."></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(considering)_ I'll think about it, I need to do some deep work next week for a closing project. Also, crowds drain me after a while..."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(sincere)_ Fair. Uh, could you review my tasks before stand-up?"></div>
+</div>
+</div>
+<div class='chat-message alice'>
+<span class='material-icons'>face_4</span>
+<div class='chat-message-content'>
+<strong>Alice</strong>
+<div class='message-content' data-markdown="_(reassuring)_ Of course. Send me your list; I'll restructure it into milestones."></div>
+</div>
+</div>
+<div class='chat-message bob'>
+<span class='material-icons'>face</span>
+<div class='chat-message-content'>
+<strong>Bob</strong>
+<div class='message-content' data-markdown="_(exhales)_ Deal. Coffee's ready—thanks. I feel less doomed already."></div>
+</div>
+</div>
+</div>
+</div>
+<div id='questionnaire-4' class='tab-content'>
+<div class='subtabs'>
+<button class='subtab active' onclick='switchSubTab(event, "alice-data-4")'>Alice</button>
+<button class='subtab' onclick='switchSubTab(event, "bob-data-4")'>Bob</button>
+</div>
+<div id='alice-data-4' class='subtab-content active'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='-1.00'>-1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+<div id='bob-data-4' class='subtab-content'>
+<div class='dataframe-container'>
+<table class='dataframe'>
+<thead><tr><th title='Index'>Index</th><th title='is reserved'>is reserved</th><th title='is generally trusting'>is generally trusting</th><th title='does a thorough job'>does a thorough job</th><th title='is relaxed, handles stress well'>is relaxed, handles stress well</th><th title='has an active imagination'>has an active imagination</th><th title='is outgoing, sociable'>is outgoing, sociable</th><th title='tends to find fault with others'>tends to find fault with others</th><th title='tends to be lazy'>tends to be lazy</th><th title='gets nervous easily'>gets nervous easily</th><th title='has few artistic interests'>has few artistic interests</th></tr></thead>
+<tbody>
+<tr><td class='dataframe-index' title='0'>0</td><td title='-1.00'>-1.00</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='1'>1</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='2'>2</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='3'>3</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='1.00'>1.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td></tr>
+<tr><td class='dataframe-index' title='4'>4</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='5'>5</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='6'>6</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='7'>7</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='8'>8</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='9'>9</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td></tr>
+<tr><td class='dataframe-index' title='10'>10</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='11'>11</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='12'>12</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-1.00'>-1.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='13'>13</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='14'>14</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='15'>15</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='0.00'>0.00</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.00'>0.00</td></tr>
+<tr><td class='dataframe-index' title='16'>16</td><td title='-1.00'>-1.00</td><td title='0.50'>0.50</td><td title='1.00'>1.00</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='1.00'>1.00</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='0.00'>0.00</td><td title='N/A'>N/A</td></tr>
+<tr><td class='dataframe-index' title='17'>17</td><td title='-0.50'>-0.50</td><td title='0.50'>0.50</td><td title='0.50'>0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td><td title='0.50'>0.50</td><td title='N/A'>N/A</td><td title='-0.50'>-0.50</td><td title='-0.50'>-0.50</td><td title='N/A'>N/A</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+<div class='container container-charts'>
+<h3>OCEAN Traits Comparison</h3>
+<p class='section-description'>Model (blue) vs. perceived (red) values with variance indicators.</p>
+<div class='chart-container'>
+<div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-3.1.1.min.js" integrity="sha256-HUEFyfiTnZJxCxur99FjbKYTvKSzwDaD3/x5TqHpFu4=" crossorigin="anonymous"></script>                <div id="bar_chart_4" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("bar_chart_4")) {                    Plotly.newPlot(                        "bar_chart_4",                        [{"marker":{"color":"#636EFA"},"name":"Model","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"MzMzMzMz4z8AAAAAAADwPwAAAAAAAPC\u002fZmZmZmZm5j8AAAAAAADwPw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"error_y":{"array":{"dtype":"f8","bdata":"LMuyLMuywD+xSBl4ujWvPyiDFzpAf8w\u002fJKf5Wj0rwj8EyGN15CrLPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":true,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"7FG4HoXrsb8UrkfhehTmv1K4HoXrUci\u002fuB6F61G4zj+4HoXrUbi+Pw=="},"type":"bar","xaxis":"x","yaxis":"y"},{"marker":{"color":"#636EFA"},"name":"Model","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"mpmZmZmZ6T8AAAAAAADwvwAAAAAAAPA\u002fAAAAAAAA8L9mZmZmZmbmvw=="},"type":"bar","xaxis":"x2","yaxis":"y2"},{"error_y":{"array":{"dtype":"f8","bdata":"HxrrQ2N9wz\u002feZe10\u002fIPJP\u002flhkTLwdLs\u002fEI31obE+uj\u002fAR89W3tXMPw=="},"type":"data","visible":true},"marker":{"color":"#EF553B"},"name":"Perceived","showlegend":false,"x":["Openness","Carefulness","Extraversion","Amicability","Neuroticism"],"y":{"dtype":"f8","bdata":"uB6F61G4rr+4HoXrUbjOvylcj8L1KNw\u002fKVyPwvUozD+kcD0K16PQvw=="},"type":"bar","xaxis":"x2","yaxis":"y2"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.45]},"yaxis":{"anchor":"x","domain":[0.0,1.0],"range":[-1.1,1.1]},"xaxis2":{"anchor":"y2","domain":[0.55,1.0]},"yaxis2":{"anchor":"x2","domain":[0.0,1.0],"range":[-1.1,1.1]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Alice","x":0.225,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","x":0.775,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"}]},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+<div class='container container-charts'>
+<h3>Distribution of Individual Responses</h3>
+<p class='section-description'>Individual participant ratings for each trait. Dashed lines show model values.</p>
+<div class='chart-container'>
+<div>                            <div id="histogram_4" class="plotly-graph-div" style="height:800px; width:100%;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("histogram_4")) {                    Plotly.newPlot(                        "histogram_4",                        [{"marker":{"color":"#EF553B"},"name":"Alice Openness","opacity":0.7,"showlegend":false,"x":[-0.75,-0.25,-0.5,0.0],"type":"histogram","xaxis":"x","yaxis":"y"},{"marker":{"color":"#EF553B"},"name":"Alice Carefulness","opacity":0.7,"showlegend":false,"x":[-0.75,-0.5,-1.0,-0.75,-0.75,-0.75,-0.75,-0.75,-0.5,-0.75,-0.5,-0.5,-0.5,-0.5,-0.75,-1.0,-0.5,-1.0],"type":"histogram","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"#EF553B"},"name":"Alice Extraversion","opacity":0.7,"showlegend":false,"x":[-0.5,-0.5,-0.75,0.25,0.0,0.5,-0.5,-0.5,-0.5,0.25,0.0,-0.25,-0.25,0.5,-0.5,-0.5,-0.5],"type":"histogram","xaxis":"x3","yaxis":"y3"},{"marker":{"color":"#EF553B"},"name":"Alice Amicability","opacity":0.7,"showlegend":false,"x":[0.5,0.0,0.0,0.5,0.5,-0.25,0.25,0.5,0.75],"type":"histogram","xaxis":"x4","yaxis":"y4"},{"marker":{"color":"#EF553B"},"name":"Alice Neuroticism","opacity":0.7,"showlegend":false,"x":[0.25,0.0,0.0,0.0,0.0,0.75,0.0,0.25,0.5,0.0,0.0,0.0,-1.0,0.5],"type":"histogram","xaxis":"x5","yaxis":"y5"},{"marker":{"color":"#636EFA"},"name":"Bob Openness","opacity":0.7,"showlegend":false,"x":[0.25,-0.25,0.0],"type":"histogram","xaxis":"x6","yaxis":"y6"},{"marker":{"color":"#636EFA"},"name":"Bob Carefulness","opacity":0.7,"showlegend":false,"x":[-0.25,0.0,0.75,-0.5,-0.5,-0.5,-0.25,0.5,0.25,-0.5,-0.5,-0.25,-0.5,-0.75,-0.75,-0.5],"type":"histogram","xaxis":"x7","yaxis":"y7"},{"marker":{"color":"#636EFA"},"name":"Bob Extraversion","opacity":0.7,"showlegend":false,"x":[0.75,0.5,0.5,0.5,-0.25,0.75,0.5,0.5,0.5,0.5,0.25,0.5,0.5,0.25,0.5,-0.25,1.0,0.5],"type":"histogram","xaxis":"x8","yaxis":"y8"},{"marker":{"color":"#636EFA"},"name":"Bob Amicability","opacity":0.7,"showlegend":false,"x":[0.0,0.25,0.5,-0.25,0.5,0.5,0.25,0.25,0.25,0.5,0.5,0.0],"type":"histogram","xaxis":"x9","yaxis":"y9"},{"marker":{"color":"#636EFA"},"name":"Bob Neuroticism","opacity":0.7,"showlegend":false,"x":[-0.5,-0.25,-0.25,-0.75,-0.25,-0.5,0.5,-0.25,-0.5,-0.75,-0.75,-0.5,-0.5,0.5,0.25,0.0],"type":"histogram","xaxis":"x10","yaxis":"y10"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"xaxis":{"anchor":"y","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis":{"anchor":"x","domain":[0.575,1.0],"title":{"text":"Count"}},"xaxis2":{"anchor":"y2","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis2":{"anchor":"x2","domain":[0.575,1.0]},"xaxis3":{"anchor":"y3","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis3":{"anchor":"x3","domain":[0.575,1.0]},"xaxis4":{"anchor":"y4","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis4":{"anchor":"x4","domain":[0.575,1.0]},"xaxis5":{"anchor":"y5","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis5":{"anchor":"x5","domain":[0.575,1.0]},"xaxis6":{"anchor":"y6","domain":[0.0,0.156],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis6":{"anchor":"x6","domain":[0.0,0.425],"title":{"text":"Count"}},"xaxis7":{"anchor":"y7","domain":[0.20600000000000002,0.362],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis7":{"anchor":"x7","domain":[0.0,0.425]},"xaxis8":{"anchor":"y8","domain":[0.41200000000000003,0.5680000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis8":{"anchor":"x8","domain":[0.0,0.425]},"xaxis9":{"anchor":"y9","domain":[0.618,0.774],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis9":{"anchor":"x9","domain":[0.0,0.425]},"xaxis10":{"anchor":"y10","domain":[0.8240000000000001,0.9800000000000001],"title":{"text":"Score"},"range":[-1.05,1.05]},"yaxis10":{"anchor":"x10","domain":[0.0,0.425]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Openness","x":0.078,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Carefulness","x":0.28400000000000003,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Extraversion","x":0.49000000000000005,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Amicability","x":0.696,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Neuroticism","x":0.9020000000000001,"xanchor":"center","xref":"paper","y":0.425,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Alice","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.7875,"yanchor":"middle","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Bob","textangle":90,"x":0.9800000000000001,"xanchor":"left","xref":"paper","y":0.2125,"yanchor":"middle","yref":"paper"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.60","x":0.6,"xref":"x","y":0.8449346192529958,"yref":"y domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x2","y":0.8048968689600893,"yref":"y2 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x3","y":0.6031008799973012,"yref":"y3 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.70","x":0.7,"xref":"x4","y":0.6425732281240837,"yref":"y4 domain"},{"bgcolor":"red","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x5","y":0.8092443137772993,"yref":"y5 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"0.80","x":0.8,"xref":"x6","y":0.8361860054795105,"yref":"y6 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x7","y":0.7806874161744843,"yref":"y7 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"1.00","x":1.0,"xref":"x8","y":0.7556076428866141,"yref":"y8 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-1.00","x":-1.0,"xref":"x9","y":0.7731816095902804,"yref":"y9 domain"},{"bgcolor":"blue","font":{"color":"white","size":10,"weight":800},"showarrow":false,"text":"-0.70","x":-0.7,"xref":"x10","y":0.8109058133779015,"yref":"y10 domain"}],"shapes":[{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":0.6,"x1":0.6,"xref":"x","y0":0,"y1":1,"yref":"y domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x2","y0":0,"y1":1,"yref":"y2 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x3","y0":0,"y1":1,"yref":"y3 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":0.7,"x1":0.7,"xref":"x4","y0":0,"y1":1,"yref":"y4 domain"},{"line":{"color":"red","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x5","y0":0,"y1":1,"yref":"y5 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":0.8,"x1":0.8,"xref":"x6","y0":0,"y1":1,"yref":"y6 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x7","y0":0,"y1":1,"yref":"y7 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":1.0,"x1":1.0,"xref":"x8","y0":0,"y1":1,"yref":"y8 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-1.0,"x1":-1.0,"xref":"x9","y0":0,"y1":1,"yref":"y9 domain"},{"line":{"color":"blue","dash":"dash","width":3},"type":"line","x0":-0.7,"x1":-0.7,"xref":"x10","y0":0,"y1":1,"yref":"y10 domain"}],"height":800,"showlegend":false},                        {"responsive": true}                    )                };            </script>        </div></div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+<script>
+
+// Parse markdown in all chat messages
+document.addEventListener('DOMContentLoaded', function() {
+    const messageElements = document.querySelectorAll('.message-content');
+    messageElements.forEach(function(element) {
+        const markdown = element.getAttribute('data-markdown');
+        if (markdown) {
+            // Configure marked to render inline elements properly
+            marked.setOptions({
+                breaks: false,
+                gfm: true
+            });
+            // Parse and set innerHTML
+            element.innerHTML = marked.parseInline(markdown);
+        }
+    });
+});
+
+// Expander toggle function
+function toggleExpander(header) {
+    const expander = header.closest('.expander');
+    const content = expander.querySelector('.expander-content');
+    
+    if (expander.classList.contains('open')) {
+        expander.classList.remove('open');
+        content.style.maxHeight = '0';
+    } else {
+        expander.classList.add('open');
+        // Set maxHeight to scrollHeight to allow smooth animation
+        content.style.maxHeight = content.scrollHeight + 'px';
+        
+        // After opening, set to 'none' to allow content to grow dynamically
+        setTimeout(function() {
+            if (expander.classList.contains('open')) {
+                content.style.maxHeight = 'none';
+            }
+        }, 300);
+    }
+}
+
+// Tab switching function
+function switchTab(event, tabId) {
+    // Get the parent container
+    const container = event.target.closest('.container');
+    
+    // Hide all tab contents in this container
+    const tabContents = container.querySelectorAll('.tab-content');
+    tabContents.forEach(function(content) {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all tabs
+    const tabs = container.querySelectorAll('.tab');
+    tabs.forEach(function(tab) {
+        tab.classList.remove('active');
+    });
+    
+    // Show the selected tab content
+    document.getElementById(tabId).classList.add('active');
+    
+    // Add active class to the clicked tab
+    event.target.classList.add('active');
+}
+
+// Subtab switching function
+function switchSubTab(event, subtabId) {
+    // Get the parent tab-content
+    const tabContent = event.target.closest('.tab-content');
+    
+    // Hide all subtab contents in this tab
+    const subtabContents = tabContent.querySelectorAll('.subtab-content');
+    subtabContents.forEach(function(content) {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all subtabs
+    const subtabs = tabContent.querySelectorAll('.subtab');
+    subtabs.forEach(function(subtab) {
+        subtab.classList.remove('active');
+    });
+    
+    // Show the selected subtab content
+    document.getElementById(subtabId).classList.add('active');
+    
+    // Add active class to the clicked subtab
+    event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
