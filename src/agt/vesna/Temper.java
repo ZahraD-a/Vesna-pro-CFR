@@ -3,8 +3,11 @@ package vesna;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Queue;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 import static jason.asSyntax.ASSyntax.*;
 import jason.asSyntax.*;
@@ -83,50 +86,116 @@ public class Temper {
             throw new IllegalArgumentException( "Decision Strategy Unknown: " + strategy );
     }
 
+    public double computeWeight( Pred label ) throws NoValueException {
+        double choiceWeight = 0;
+
+        Literal temperAnnot = label.getAnnot( "temper" );
+        if ( temperAnnot == null )
+            return choiceWeight;
+
+        ListTerm choiceTemper = ( ListTerm ) temperAnnot.getTerm( 0 );
+        for ( Term traitTerm : choiceTemper ) {
+            Atom trait = ( Atom ) traitTerm;
+            if ( ! mood.keySet().contains( trait.getFunctor().toString() ) && ! personality.keySet().contains( trait.getFunctor().toString() ) )
+                continue;
+            double traitTemper;
+            if ( mood.keySet().contains( trait.getFunctor().toString() ) )
+                traitTemper = mood.get( trait.getFunctor().toString() );
+            else
+                traitTemper = personality.get( trait.getFunctor().toString() );
+            try {
+                double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
+                if ( traitValue < -1.0 || traitValue > 1.0 )
+                    throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 1].");
+                if ( strategy == DecisionStrategy.RANDOM )
+                    choiceWeight += traitTemper * traitValue;
+                else if ( strategy == DecisionStrategy.MOST_SIMILAR )
+                    choiceWeight += Math.abs( traitTemper - traitValue );
+            } catch ( NoValueException nve ) {
+                throw new NoValueException( "One of the plans has a mispelled annotation" );
+            }
+        }
+        return choiceWeight;
+    }
+
+    public boolean hasOptionsAnnotation( List<Option> options ) {
+    	List<OptionWrapper> wrappedOptions = options.stream()
+    		.map( OptionWrapper::new )
+    		.collect( Collectors.toList() );
+    	return hasAnnotation( wrappedOptions );
+    }
+
+    public boolean hasIntentionsAnnotation( Queue<Intention> intentions ) {
+    	List<IntentionWrapper> wrappedIntentions = intentions.stream()
+    		.map( IntentionWrapper::new )
+    		.collect( Collectors.toList() );
+    	return hasAnnotation( wrappedIntentions );
+    }
+
+    private <T extends TemperSelectable> boolean hasAnnotation( List<T> choices ) {
+        Literal annotPattern = createLiteral( "temper", new VarTerm( "X" ) );
+        for ( T choice : choices ) {
+            Pred l = choice.getLabel();
+            if ( l.hasAnnot() ) {
+                for ( Term t : l.getAnnots() ) {
+                    if ( new Unifier().unifies( annotPattern, t ) )
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public Option selectOption( List<Option> options ) {
+    	List<OptionWrapper> wrappedOptions = options.stream()
+			.map( OptionWrapper::new )
+			.collect( Collectors.toList() );
+		try {
+			return select( wrappedOptions ).getOption();
+		} catch ( NoValueException e ) {
+			return null;
+		}
+    }
+
+    public Intention selectIntention( Queue<Intention> intentions ) {
+    	List<IntentionWrapper> wrappedIntentions = new ArrayList<>( intentions ).stream()
+     		.map( IntentionWrapper::new )
+     		.collect( Collectors.toList() );
+       try {
+        	Intention selected = select( wrappedIntentions ).getIntention();
+         	Iterator<Intention> it = intentions.iterator();
+          	while( it.hasNext() ) {
+	           	if ( it.next() == selected ) {
+	           		it.remove();
+	             	break;
+	           }
+           }
+           return selected;
+       } catch ( NoValueException e ) {
+	       return null;
+       }
+    }
+
     public <T extends TemperSelectable> T select( List<T> choices ) throws NoValueException {
         List<Double> weights = new ArrayList<>();
 
         for ( T choice : choices ) {
-
-            double choiceWeight = 0;
-            Pred label = choice.getLabel();
-
-            Literal temperAnnot = label.getAnnot( "temper" );
-            if ( temperAnnot == null )
-                continue;
-
-            ListTerm choiceTemper = ( ListTerm ) temperAnnot.getTerm( 0 );
-            for ( Term traitTerm : choiceTemper ) {
-                Atom trait = ( Atom ) traitTerm;
-                if ( ! mood.keySet().contains( trait.getFunctor().toString() ) && ! personality.keySet().contains( trait.getFunctor().toString() ) )
-                    continue;
-                double traitTemper;
-                if ( mood.keySet().contains( trait.getFunctor().toString() ) )
-                    traitTemper = mood.get( trait.getFunctor().toString() );
-                else
-                    traitTemper = personality.get( trait.getFunctor().toString() );
-                try {
-                    double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
-                    if ( traitValue < -1.0 || traitValue > 1.0 )
-                        throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 1].");
-                    if ( strategy == DecisionStrategy.RANDOM )
-                        choiceWeight += traitTemper * traitValue;
-                    else if ( strategy == DecisionStrategy.MOST_SIMILAR )
-                        choiceWeight += Math.abs( traitTemper - traitValue );
-                } catch ( NoValueException nve ) {
-                    throw new NoValueException( "One of the plans has a mispelled annotation" );
-                }
-            }
-            weights.add( choiceWeight );
+            weights.add( computeWeight( choice.getLabel() ) );
         }
 
         T chosen = null;
-        if ( strategy == DecisionStrategy.RANDOM )
-            chosen = choices.get( getWeightedRandomIdx( weights ) );
-        else if ( strategy == DecisionStrategy.MOST_SIMILAR )
-            chosen = choices.get( getMostSimilarIdx( weights ) );
-        if ( chosen == null )
-            chosen = choices.get( 0 );
+        int chosenIdx = -1;
+        if ( strategy == DecisionStrategy.RANDOM ) {
+        	chosenIdx = getWeightedRandomIdx( weights );
+            chosen = choices.get( chosenIdx );
+        } else if ( strategy == DecisionStrategy.MOST_SIMILAR ) {
+            chosenIdx = getMostSimilarIdx( weights );
+            chosen = choices.get( chosenIdx );
+        }
+        if ( chosen == null ) {
+        	chosenIdx = 0;
+            chosen = choices.get( chosenIdx );
+        }
 
         Literal effectList = chosen.getLabel().getAnnot( "effects" );
         if ( effectList != null )

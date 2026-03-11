@@ -4,10 +4,12 @@ import jason.JasonException;
 import jason.architecture.AgArch;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
+import jason.asSyntax.parser.ParseException;
 import jason.runtime.RuntimeServicesFactory;
 import jason.mas2j.ClassParameters;
 import jason.bb.BeliefBase;
 import jason.bb.DefaultBeliefBase;
+import jason.infra.local.LocalAgArch;
 import jason.runtime.Settings;
 import jason.NoValueException;
 
@@ -30,8 +32,6 @@ import java.util.Iterator;
 import java.util.stream.Collectors;
 
 import java.util.logging.Logger;
-
-import javax.validation.OverridesAttribute;
 
 /**
  * <p>
@@ -62,11 +62,11 @@ public class VesnaAgent extends Agent{
 
 	// GLOBAL VARIABLES
 	/** WebSocket Client that connects with the body */
-	private WsClient client;
-	// // private String myName;
+	private WsClient body;
 	/** The temper of the agent */
 	private Temper temper;
-	// // private Random dice = new Random();
+	/** The list of methods the dev wants to debug */
+	private List<String> debugs;
 	/** The logger necessary to print on the JaCaMo log */
 	protected transient Logger logger;
 
@@ -82,22 +82,35 @@ public class VesnaAgent extends Agent{
 
 		super.initAg();
 
-		// Initialize the global variables
-		// // myName = getTS().getAgArch().getAgName();
 		Settings stts = getTS().getSettings();
-		String temperStr 	= stts.getUserParameter( "temper" );
-		String strategy 	= stts.getUserParameter( "strategy" );
-		String address 		= stts.getUserParameter( "address" );
-		int port 			= Integer.parseInt( stts.getUserParameter( "port" ) );
 		logger = getTS().getLogger();
 
-		// Initialize the agent temper and strategy
-		temper = new Temper( temperStr, strategy );
+		initDebug( stts );
+		initTemper( stts );
+		initBody( stts );
+	}
 
-		logger.info( "Body is at " + address + " : " + port );
+	private void initDebug( Settings stts ) {
+		String debugStts = stts.getUserParameter( "vesnadebug" );
+		debugs = new ArrayList<>();
+		if ( debugStts == null )
+			return;
+		try{
+			Literal debugList = parseLiteral( debugStts );
+			debugs = debugList.getTerms().stream().map( Term::toString ).collect( Collectors.toList() );
+		} catch( ParseException pe ) {
+			logger.warning( "Invalid debug list: " + debugStts );
+		}
+	}
 
-		initBody( address, port );
-
+	private void initTemper( Settings stts ) {
+		String temperStts = stts.getUserParameter( "temper" );
+		String strategy = stts.getUserParameter( "strategy" );
+		if ( temperStts == null )
+			return;
+		if ( strategy == null )
+			strategy = "most_similar";
+		temper = new Temper( temperStts, strategy );
 	}
 
 	/**
@@ -106,32 +119,21 @@ public class VesnaAgent extends Agent{
 		* @param	address	the address where the body is located
 		* @param	port	the port where the body is listening
 	 */
-	private void initBody( String address, int port ) {
-
-		// Initialize the WebSocket client
+	private void initBody( Settings stts ) {
+		String address = stts.getUserParameter( "address" );
+		int port = Integer.parseInt( stts.getUserParameter( "port" ) );
+		if ( address == null ) {
+			logger.warning( "No body configured." );
+			return;
+		}
 		try {
 			URI bodyAddress = new URI( "ws://" + address + ":" + port );
-			client = new WsClient( bodyAddress );
-		} catch( Exception e ){
-			stop( e.getMessage() );
-		}
-
-		// Connect the two handle functions to the client object
-		client.setMsgHandler( new WsClientMsgHandler() {
-			@Override
-			public void handleMsg( String msg ) {
-				vesnaHandleMsg( msg );
-			}
-
-			@Override
-			public void handleError( Exception ex ) {
-				vesnaHandleError( ex );
-			}
-		}  );
-
-		// Connect the body
-		try {
-			client.connect();
+			body = new WsClient( bodyAddress );
+			body.setMsgHandler( new WsClientMsgHandler() {
+				@Override public void handleMsg( String msg ) { bodyHandleMsg( msg ); }
+				@Override public void handleError( Exception ex ) { bodyHandleError( ex );}
+			}  );
+			body.connect();
 		} catch( Exception e ){
 			stop( e.getMessage() );
 		}
@@ -142,7 +144,7 @@ public class VesnaAgent extends Agent{
 	 * @param action The action to perform formatted into a JSON string
 	*/
 	public void perform( String action ) {
-		client.send( action );
+		body.send( action );
 	}
 
 	/** Signals the mind about a perception
@@ -210,7 +212,7 @@ public class VesnaAgent extends Agent{
 	 * }
 	 * </pre>
 	*/
-	public void vesnaHandleMsg( String msg ) {
+	public void bodyHandleMsg( String msg ) {
 		System.out.println( "Received message: " + msg );
 		JSONObject log = new JSONObject( msg );
 		String sender = log.getString( "sender" );
@@ -240,7 +242,7 @@ public class VesnaAgent extends Agent{
 	/** Handles a connection error: prints a message and kills the agent
 	 * @param ex The exception raised
 	 */
-	public void vesnaHandleError( Exception ex ){
+	public void bodyHandleError( Exception ex ){
 		logger.severe( ex.getMessage() );
 		kill_agent();
 	}
@@ -253,18 +255,15 @@ public class VesnaAgent extends Agent{
 	 */
 	private void kill_agent() {
 		logger.severe( "Killing agent" );
-		try {
-			InternalAction drop_all_desires = getIA( ".drop_all_desires" );
-			InternalAction drop_all_intentions = getIA( ".drop_all_intentions" );
-			InternalAction drop_all_events = getIA( ".drop_all_events" );
-			InternalAction action = getIA( ".kill_agent" );
-
-			drop_all_desires.execute( getTS(), new Unifier(), new Term[] {} );
-			drop_all_intentions.execute( getTS(), new Unifier(), new Term[] {} );
-			drop_all_events.execute( getTS(), new Unifier(), new Term[] {} );
-			action.execute( getTS(), new Unifier(), new Term[] { createString( getTS().getAgArch().getAgName() ) } );
-		} catch ( Exception e ) {
-			e.printStackTrace();
+		if ( body != null )
+			body.close();
+		AgArch arch = ts.getAgArch();
+		while ( arch != null ) {
+			if ( arch instanceof LocalAgArch ) {
+				( (LocalAgArch) arch ).stopAg();
+				break;
+			}
+			arch = arch.getNextAgArch();
 		}
 	}
 
@@ -277,24 +276,13 @@ public class VesnaAgent extends Agent{
 	 * @return The selected option
 	 * @see vesna.Temper#select(List) Temper.select(List)
 	 */
+	@Override
 	public Option selectOption( List<Option> options ) {
-
-		// If there is only one options or the options are without temper go with the default
-		if ( options.size() == 1 || !areOptionsWithTemper( options ) )
-			return super.selectOption( options );
-
-		// Wrap the options inside an object Temper Selectable
-		List<OptionWrapper> wrappedOptions = options.stream()
-			.map( OptionWrapper::new )
-			.collect( Collectors.toList() );
-
-		// Select with temper
-		try {
-			return temper.select( wrappedOptions ).getOption();
-		} catch ( NoValueException nve ) {
-			stop( nve.getMessage() );
-		}
-		return null;
+		if ( options == null || options.isEmpty() )
+			return null;
+		if ( !hasTemper() || options.size() == 1 || !temper.hasOptionsAnnotation( options ) )
+			return options.remove( 0 ); // this is what the super method does
+		return temper.selectOption( options );
 	}
 
 	/** Overrides the selectIntention in order to consider Temper if added
@@ -307,69 +295,13 @@ public class VesnaAgent extends Agent{
 	 * @see vesna.Temper#select(List) Temper.select(List)
 	 */
 	public Intention selectIntention( Queue<Intention> intentions ) {
-
-		// logger.info( "I have " + intentions.size() + " intentions" );
-
-		// If there is only one intention or the intentions are without temper go with the default
-		if ( intentions.size() == 1 || !areIntentionsWithTemper(intentions ) )
-			return super.selectIntention( intentions );
-
-		// Wrap the intentions inside an object Temper Selectable
-		List<IntentionWrapper> wrappedIntentions = new ArrayList<>( intentions ).stream()
-			.map( IntentionWrapper::new )
-			.collect( Collectors.toList() );
-
-		// Select with temper and remove the Intention from the queue
-		try {
-			Intention selected = temper.select( wrappedIntentions ).getIntention();
-			Iterator<Intention> it = intentions.iterator();
-			while( it.hasNext() ) {
-				if ( it.next() == selected ) {
-					it.remove();
-					break;
-				}
-			}
-			return selected;
-		} catch ( NoValueException nve ) {
-			stop( nve.getMessage() );
-		}
-		return null;
+		if ( intentions.size() == 1 || !temper.hasIntentionsAnnotation( intentions ) )
+			return intentions.poll(); // this is what the super method does
+		return temper.selectIntention( intentions );
 	}
 
-	/** Check if there is at least one option with temper annotation
-	 * @param options The list of options to check
-	 * @return true if at least one option has temper annotation, false otherwise
-	 */
-	private boolean areOptionsWithTemper( List<Option> options ) {
-		Literal propension = createLiteral( "temper", new VarTerm( "X" ) );
-		for ( Option option : options ) {
-			Plan p = option.getPlan();
-			Pred l = p.getLabel();
-			if ( l.hasAnnot() ) {
-				for ( Term t : l.getAnnots() )
-					if ( new Unifier().unifies( propension, t ) )
-						return true;
-			}
-		}
-		return false;
-	}
-
-	/** Check if there is at least one intention with temper annotation
-	 * @param intentions The queue of intentions to check
-	 * @return true if at least one intention has temper annotation, false otherwise
-	 */
-	private boolean areIntentionsWithTemper( Queue<Intention> intentions ) {
-		Literal propension = createLiteral( "propensions", new VarTerm( "X" ) );
-		for ( Intention intention : intentions ) {
-			Plan p = intention.peek().getPlan();
-			Pred l = p.getLabel();
-			if ( l.hasAnnot() ) {
-				for ( Term t : l.getAnnots() )
-					if ( new Unifier().unifies( propension, t ) )
-						return true;
-			}
-		}
-		return false;
+	private boolean hasTemper() {
+		return temper != null;
 	}
 
 }
