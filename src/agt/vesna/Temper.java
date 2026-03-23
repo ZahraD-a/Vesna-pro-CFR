@@ -170,6 +170,9 @@ public class Temper {
 	             	break;
 	           }
            }
+           Literal effectList = selected.peek().getPlan().getLabel().getAnnot( "effects" );
+           if ( effectList != null )
+               updateDynTemper( effectList );
            return selected;
        } catch ( NoValueException e ) {
 	       return null;
@@ -197,9 +200,6 @@ public class Temper {
             chosen = choices.get( chosenIdx );
         }
 
-        Literal effectList = chosen.getLabel().getAnnot( "effects" );
-        if ( effectList != null )
-            updateDynTemper( effectList );
 
         return chosen;
     }
