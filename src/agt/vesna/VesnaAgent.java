@@ -65,6 +65,8 @@ public class VesnaAgent extends Agent{
 	private WsClient body;
 	/** The temper of the agent */
 	private Temper temper;
+	/** The Reward Machine for CFR-based learning */
+	private RewardMachine rewardMachine;
 	/** The list of methods the dev wants to debug */
 	private List<String> debugs;
 	/** The logger necessary to print on the JaCaMo log */
@@ -87,7 +89,20 @@ public class VesnaAgent extends Agent{
 
 		initDebug( stts );
 		initTemper( stts );
+		initRewardMachine( stts );
 		initBody( stts );
+	}
+
+	private void initRewardMachine( Settings stts ) {
+		String rmEnabled = stts.getUserParameter( "reward_machine" );
+		if ( rmEnabled != null && rmEnabled.equals( "true" ) ) {
+			rewardMachine = new RewardMachine();
+			System.out.println( "[RM] Reward Machine initialized" );
+		}
+	}
+
+	public RewardMachine getRewardMachine() {
+		return rewardMachine;
 	}
 
 	private void initDebug( Settings stts ) {
@@ -110,6 +125,41 @@ public class VesnaAgent extends Agent{
 			return;
 		if ( strategy == null )
 			strategy = "most_similar";
+
+		// Try to load persisted personality first
+		Map<String, Object> persisted = Temper.loadPersonalityFromFile();
+		if ( persisted != null ) {
+			// Merge persisted values with the configuration
+			Map<String, Double> savedPersonality = (Map<String, Double>) persisted.get( "personality" );
+			Map<String, Double> savedMood = (Map<String, Double>) persisted.get( "mood" );
+
+			// Build new temper string with saved values
+			// Use proper Jason NumberTerm format: 0.8 instead of 0.8000000000000002
+			StringBuilder mergedTemper = new StringBuilder( "temper( " );
+			boolean first = true;
+
+			// Add personality traits
+			for ( Map.Entry<String, Double> entry : savedPersonality.entrySet() ) {
+				if ( !first ) mergedTemper.append( ", " );
+				// Round to 3 decimal places for clean formatting
+				double val = Math.round( entry.getValue() * 1000.0 ) / 1000.0;
+				mergedTemper.append( entry.getKey() ).append( "(" ).append( val ).append( ")" );
+				first = false;
+			}
+			// Add mood traits
+			for ( Map.Entry<String, Double> entry : savedMood.entrySet() ) {
+				if ( !first ) mergedTemper.append( ", " );
+				double val = Math.round( entry.getValue() * 1000.0 ) / 1000.0;
+				mergedTemper.append( entry.getKey() ).append( "(" ).append( val ).append( ")" )
+					.append( "[mood]" );
+				first = false;
+			}
+
+			mergedTemper.append( " )" );
+			temperStts = mergedTemper.toString();
+			System.out.println( "[PERSIST] Merged loaded personality: " + temperStts );
+		}
+
 		temper = new Temper( temperStts, strategy );
 	}
 
@@ -282,7 +332,10 @@ public class VesnaAgent extends Agent{
 			return null;
 		if ( !hasTemper() || options.size() == 1 || !temper.hasOptionsAnnotation( options ) )
 			return options.remove( 0 ); // this is what the super method does
-		return temper.selectOption( options );
+		Option selected = temper.selectOption( options );
+		System.out.println( temper.toString() );
+		System.out.println( "[TEMPER] Selected plan: " + selected.getPlan().getLabel().getFunctor() );
+		return selected;
 	}
 
 	/** Overrides the selectIntention in order to consider Temper if added
@@ -302,6 +355,11 @@ public class VesnaAgent extends Agent{
 
 	private boolean hasTemper() {
 		return temper != null;
+	}
+
+	/** Get the Temper object (for CFR integration) */
+	public Temper getTemper() {
+		return temper;
 	}
 
 }
