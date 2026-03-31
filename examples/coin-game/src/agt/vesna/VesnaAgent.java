@@ -35,7 +35,7 @@ import org.json.JSONArray;
 
 public class VesnaAgent extends Agent{
 
-    private WsClient client;
+    private  client;
     private String my_name;
 
     public enum Propension {
