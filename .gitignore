@@ -5,3 +5,24 @@
 **/.classpath
 **/.DS_Store
 **/.idea
+
+gradle-8.5/
+gradle.zip
+
+# Personality persistence (generated at runtime)
+personality.json
+
+# CFR training data (generated at runtime)
+*.csv
+cfr_regrets.csv
+personality_evolution.csv
+
+# Claude Code workspace
+.claude/
+
+# VS Code workspace
+.vscode/
+
+# Test analysis outputs
+tests/*.png
+tests/*.html
