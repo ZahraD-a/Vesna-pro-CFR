@@ -11,16 +11,13 @@ import java.util.Map;
 /**
  * Internal action: vesna.via.print_personality
  *
- * Prints the current personality profile and logs initial state.
+ * Prints the current OCEAN personality profile with interpretations.
  *
  * Usage in ASL:
  *   vesna.via.print_personality.
- *
- * @author VesnaPro CFR Extension
  */
 public class print_personality extends DefaultInternalAction {
 
-    /** Track if initial state has been logged */
     private static boolean initialLogged = false;
 
     @Override
@@ -30,55 +27,48 @@ public class print_personality extends DefaultInternalAction {
         Temper temper = agent.getTemper();
 
         if (temper == null) {
-            System.out.println("\n========== PERSONALITY ==========");
-            System.out.println("No Temper configured.");
-            System.out.println("======================================\n");
+            System.out.println("[PERSONALITY] No Temper configured.");
             return true;
         }
 
         Map<String, Double> personality = temper.getPersonality();
 
-        System.out.println("\n========== PERSONALITY PROFILE ==========");
+        double O = personality.getOrDefault("openness", 0.5);
+        double C = personality.getOrDefault("conscientiousness", 0.5);
+        double E = personality.getOrDefault("extraversion", 0.5);
+        double A = personality.getOrDefault("agreeableness", 0.5);
+        double N = personality.getOrDefault("neuroticism", 0.5);
 
-        double cautious = personality.getOrDefault("cautious", 0.5);
-        double bold = personality.getOrDefault("bold", 0.5);
-        double curious = personality.getOrDefault("curious", 0.5);
+        System.out.println("\n========== PERSONALITY PROFILE (OCEAN) ==========");
+        System.out.printf("  Openness:          %.3f %s%n", O, label(O, "Creative", "Traditional"));
+        System.out.printf("  Conscientiousness: %.3f %s%n", C, label(C, "Disciplined", "Spontaneous"));
+        System.out.printf("  Extraversion:      %.3f %s%n", E, label(E, "Social", "Reserved"));
+        System.out.printf("  Agreeableness:     %.3f %s%n", A, label(A, "Helpful", "Competitive"));
+        System.out.printf("  Neuroticism:       %.3f %s%n", N, label(N, "Sensitive", "Stable"));
 
-        System.out.printf("  Cautious:  %.3f", cautious);
-        if (cautious > 0.7) System.out.print(" (Very Careful)");
-        else if (cautious < 0.3) System.out.print(" (Not Careful)");
-        else System.out.print(" (Balanced)");
-        System.out.println();
+        System.out.println("\n  Behavioral Tendencies:");
+        if (A > 0.7) System.out.println("    -> Likely to help everyone (risk of exploitation)");
+        else if (A < 0.3) System.out.println("    -> Likely to set boundaries, decline requests");
+        else System.out.println("    -> Selective helper (context-dependent)");
 
-        System.out.printf("  Bold:      %.3f", bold);
-        if (bold > 0.7) System.out.print(" (Very Bold)");
-        else if (bold < 0.3) System.out.print(" (Not Bold)");
-        else System.out.print(" (Balanced)");
-        System.out.println();
+        if (C > 0.7) System.out.println("    -> Focuses on own work, very reliable");
+        if (E > 0.7) System.out.println("    -> Seeks social interactions, high visibility");
+        else if (E < 0.3) System.out.println("    -> Avoids time-consuming social obligations");
 
-        System.out.printf("  Curious:   %.3f", curious);
-        if (curious > 0.7) System.out.print(" (Very Curious)");
-        else if (curious < 0.3) System.out.print(" (Not Curious)");
-        else System.out.print(" (Balanced)");
-        System.out.println();
+        System.out.println("=================================================\n");
 
-        System.out.println("\n  Preferred Strategy:");
-        if (cautious > bold + 0.2) {
-            System.out.println("    → Likely to choose safe/reliable options");
-        } else if (bold > cautious + 0.2) {
-            System.out.println("    → Likely to choose risky/exploratory options");
-        } else {
-            System.out.println("    → Balanced between safe and risky options");
-        }
-
-        System.out.println("=============================================\n");
-
-        // Log initial state (episode 0) on first call
+        // Log initial state on first call
         if (!initialLogged) {
             PolicyLogger.logInitial(personality);
             initialLogged = true;
         }
 
         return true;
+    }
+
+    private String label(double val, String high, String low) {
+        if (val > 0.7) return "(Very " + high + ")";
+        if (val < 0.3) return "(Very " + low + ")";
+        return "(Balanced)";
     }
 }

@@ -65,8 +65,6 @@ public class VesnaAgent extends Agent{
 	private WsClient body;
 	/** The temper of the agent */
 	private Temper temper;
-	/** The Reward Machine for CFR-based learning */
-	private RewardMachine rewardMachine;
 	/** The list of methods the dev wants to debug */
 	private List<String> debugs;
 	/** The logger necessary to print on the JaCaMo log */
@@ -89,20 +87,7 @@ public class VesnaAgent extends Agent{
 
 		initDebug( stts );
 		initTemper( stts );
-		initRewardMachine( stts );
 		initBody( stts );
-	}
-
-	private void initRewardMachine( Settings stts ) {
-		String rmEnabled = stts.getUserParameter( "reward_machine" );
-		if ( rmEnabled != null && rmEnabled.equals( "true" ) ) {
-			rewardMachine = new RewardMachine();
-			System.out.println( "[RM] Reward Machine initialized" );
-		}
-	}
-
-	public RewardMachine getRewardMachine() {
-		return rewardMachine;
 	}
 
 	private void initDebug( Settings stts ) {
@@ -160,7 +145,19 @@ public class VesnaAgent extends Agent{
 			System.out.println( "[PERSIST] Merged loaded personality: " + temperStts );
 		}
 
-		temper = new Temper( temperStts, strategy );
+		// Parse optional seed and cfr_learning parameters
+		long seed = -1;
+		String seedStr = stts.getUserParameter( "seed" );
+		if ( seedStr != null ) {
+			try { seed = Long.parseLong( seedStr ); } catch ( NumberFormatException e ) { }
+		}
+		boolean cfrEnabled = true;
+		String cfrStr = stts.getUserParameter( "cfr_learning" );
+		if ( cfrStr != null && cfrStr.equals( "false" ) ) {
+			cfrEnabled = false;
+		}
+
+		temper = new Temper( temperStts, strategy, seed, cfrEnabled );
 	}
 
 	/**
@@ -171,11 +168,12 @@ public class VesnaAgent extends Agent{
 	 */
 	private void initBody( Settings stts ) {
 		String address = stts.getUserParameter( "address" );
-		int port = Integer.parseInt( stts.getUserParameter( "port" ) );
 		if ( address == null ) {
-			logger.warning( "No body configured." );
+			logger.info( "No body configured (no address parameter)." );
 			return;
 		}
+		String portStr = stts.getUserParameter( "port" );
+		int port = portStr != null ? Integer.parseInt( portStr ) : 9080;
 		try {
 			URI bodyAddress = new URI( "ws://" + address + ":" + port );
 			body = new WsClient( bodyAddress );
@@ -348,7 +346,7 @@ public class VesnaAgent extends Agent{
 	 * @see vesna.Temper#select(List) Temper.select(List)
 	 */
 	public Intention selectIntention( Queue<Intention> intentions ) {
-		if ( intentions.size() == 1 || !temper.hasIntentionsAnnotation( intentions ) )
+		if ( !hasTemper() || intentions.size() == 1 || !temper.hasIntentionsAnnotation( intentions ) )
 			return intentions.poll(); // this is what the super method does
 		return temper.selectIntention( intentions );
 	}
