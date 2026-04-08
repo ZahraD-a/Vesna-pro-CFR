@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.stream.Collectors;
 import java.io.*;
 import java.nio.file.*;
+import org.json.JSONObject;
 
 import static jason.asSyntax.ASSyntax.*;
 import jason.asSyntax.*;
@@ -19,47 +20,61 @@ import jason.asSemantics.*;
 import jason.asSyntax.parser.ParseException;
 import jason.NoValueException;
 
-/** This class implements the temper of the agent
- * <p>
- * The temper of an agent is subdivided into:
+/**
+ * Temper: personality-driven plan selection with optional CFR learning.
+ *
+ * <p>The temper of an agent is subdivided into:
  * <ul>
- * <li> <b>personality:</b> for the moment it does never change. <i>In the future</i>, it could change based on mood but very slowly;
- * <li> <b>mood:</b> it changes applying plan post-actions if provided.
+ * <li><b>personality:</b> persistent traits (OCEAN model), updated only by CFR when enabled;
+ * <li><b>mood:</b> mutable traits, changed by plan effects annotations.
  * </ul>
- * The agent can apply two decision strategies:
+ * <p>The agent can apply two decision strategies:
  * <ul>
- * <li> <b>Most similar:</b> deterministic, it chooses always the plan with personality and mood more similar to the current ones;
- * <li> <b>Random:</b> undeterministic, it chooses with a weighted random based on the similarity between the plan annotations and the current temper.
+ * <li><b>Most similar:</b> deterministic, picks plan closest to agent's temper;
+ * <li><b>Random:</b> softmax-weighted probabilistic selection.
  * </ul>
+ *
+ * <p>When CFR learning is enabled, regret matching (adapted from Zinkevich et al. 2008)
+ * drives personality evolution at episode boundaries.
+ *
+ * @author Andrea Gatti (original temper system)
+ * @author Zahra Daoui (CFR personality learning extension)
  */
 public class Temper {
 
-    /** Decision Strategy is an enumerable between most similar and random */
+    // ==================== ORIGINAL VESNA-PRO FIELDS ====================
+
     private enum DecisionStrategy { MOST_SIMILAR, RANDOM }
 
-    /** Personality is the persistent part of the agent temper */
+    /** Personality: persistent traits [0.0, 1.0] */
     private Map<String, Double> personality;
-    /** Mood is the mutable part of the agent temper */
+    /** Mood: mutable traits [-1.0, 1.0] */
     private Map<String, Double> mood;
-    /** The agent decision strategy */
+    /** Decision strategy */
     private DecisionStrategy strategy;
-    /** A dice necessary to generate random numbers */
+    /** RNG for weighted random selection */
     private Random dice = new Random();
 
-    // ==================== CFR EXECUTION TRACE ====================
-    /** Minimal trace for CFR: each decision + outcome */
+    // ==================== CFR EXTENSION FIELDS ====================
+
+    /** Whether CFR personality learning is enabled (false = static baseline) */
+    private boolean cfrEnabled = true;
+
+    /** Trace entry: one decision point with context and outcome */
     public static class TraceEntry {
         public final long timestamp;
-        public final String trigger;           // What goal triggered this
-        public final List<String> options;      // Available plans
-        public final int selectedIndex;         // Which was chosen
+        public final String trigger;
+        public final List<String> options;
+        public final int selectedIndex;
         public final Map<String, Double> personalityAtDecision;
         public final Map<String, Double> moodAtDecision;
-        public final List<Double> weights;      // Weights for each option (for CFR)
-        public final List<Map<String, Double>> planAnnotations;  // Each plan's trait values
-        public double reward = 0.0;             // Set later when outcome known
+        public final List<Double> weights;
+        public final List<Map<String, Double>> planAnnotations;
+        public double reward = 0.0;
 
-        TraceEntry(String trig, List<String> opts, int sel, Map<String, Double> pers, Map<String, Double> mod, List<Double> wts, List<Map<String, Double>> annotations) {
+        TraceEntry(String trig, List<String> opts, int sel,
+                   Map<String, Double> pers, Map<String, Double> mod,
+                   List<Double> wts, List<Map<String, Double>> annotations) {
             timestamp = System.currentTimeMillis();
             trigger = trig;
             options = new ArrayList<>(opts);
@@ -75,26 +90,28 @@ public class Temper {
 
         @Override
         public String toString() {
-            return "Trace[" + trigger + ": selected=" + options.get(selectedIndex) + " reward=" + reward + "]";
+            return "Trace[" + trigger + ": selected=" + options.get(selectedIndex)
+                + " reward=" + reward + "]";
         }
     }
 
     private List<TraceEntry> trace = new ArrayList<>();
-    private TraceEntry pendingEntry = null;  // Current decision waiting for reward
-    private Map<String, Double> cumulativeRegret = new HashMap<>();  // Per-trait cumulative regret
-    private double cfrLearningRate = 0.1;   // CFR learning rate - higher for faster personality discovery
-    private static final String PERSONALITY_FILE = "personality.json";  // Persistence file
+    private Map<String, Double> cumulativeRegret = new HashMap<>();
+    private double cfrLearningRate = 0.5;
+    private double softmaxTemperature = 2.0;
+    private static final double TEMPERATURE_DECAY = 0.995;
+    private static final double MIN_TEMPERATURE = 0.5;
+    private static final String PERSONALITY_FILE = "personality.json";
 
-    // ==================== CFR: EXTENSIVE-FORM GAME STRUCTURE ====================
-    /**
-     * CFR Data for an Information Set (decision point).
-     * In extensive-form games, each decision point is an information set.
-     */
+    /** Behavioral memory (extracted to separate class) */
+    private BehavioralMemory behavioralMemory = new BehavioralMemory();
+
+    /** CFR data for an information set (decision point). */
     public static class InformationSet {
-        public final String name;              // e.g., "stage1", "stage2", "stage3"
-        public final Map<String, Double> cumulativeRegret;  // Cumulative regret per action
-        public final Map<String, Double> strategySum;       // Sum of strategies for averaging
-        public int visitCount;                 // How many times this infoset was reached
+        public final String name;
+        public final Map<String, Double> cumulativeRegret;
+        public final Map<String, Double> strategySum;
+        public int visitCount;
 
         public InformationSet(String name) {
             this.name = name;
@@ -104,31 +121,16 @@ public class Temper {
         }
     }
 
-    /** Map of information sets in the game tree */
     private Map<String, InformationSet> informationSets = new HashMap<>();
-
-    /** Current episode's decisions for CFR learning */
     private List<TraceEntry> currentEpisodeDecisions = new ArrayList<>();
-
-    /** Rewards received at each stage of current episode */
     private Map<String, Double> stageRewards = new HashMap<>();
-
-    /** Total episode reward */
     private double totalEpisodeReward = 0.0;
 
-    /** Discount factor for future rewards */
-    private static final double GAMMA = 0.9;
-
-    /**
-     * Get or create an information set for a stage.
-     */
-    private InformationSet getInformationSet(String stageName) {
-        return informationSets.computeIfAbsent(stageName, InformationSet::new);
+    private InformationSet getInformationSet(String name) {
+        return informationSets.computeIfAbsent(name, InformationSet::new);
     }
 
-    /**
-     * Normalize plan labels: strip quotes and map Jason duplicates to original.
-     */
+    /** Normalize plan labels: strip quotes and handle Jason duplicates. */
     private String normalizePlanLabel(String label) {
         if (label == null) return null;
         String cleaned = label.replaceAll("^\"|\"$", "");
@@ -136,199 +138,142 @@ public class Temper {
         return cleaned;
     }
 
-    /**
-     * Get the expected (average) reward for a plan based on historical data.
-     */
-    private double getExpectedReward(String planLabel) {
-        // For extensive-form games, we need to compute the expected value
-        // through the game tree from this information set.
-        // This is a simplified version - proper CFR would compute counterfactual values.
-        InformationSet infoset = informationSets.get(planLabel);
-        if (infoset == null || infoset.strategySum.isEmpty()) {
-            return 0.0;
-        }
-        // Return the average strategy value as proxy
-        double sum = 0.0;
-        for (Double val : infoset.strategySum.values()) {
-            sum += val;
-        }
-        return sum / Math.max(1, infoset.strategySum.size());
+    // ==================== HISTORICAL PERFORMANCE ====================
+
+    private Map<String, Double> planTotalReward = new HashMap<>();
+    private Map<String, Integer> planAttempts = new HashMap<>();
+
+    private void updateHistoricalPerformance(String plan, double reward) {
+        planTotalReward.put(plan, planTotalReward.getOrDefault(plan, 0.0) + reward);
+        planAttempts.put(plan, planAttempts.getOrDefault(plan, 0) + 1);
     }
 
-    /**
-     * Print CFR statistics for all information sets.
-     */
-    public void printCFRStats() {
-        System.out.println("\n==================== CFR STATISTICS ====================");
-
-        // Detect scenario type
-        boolean isCoffeeScenario = false;
-        for (String name : informationSets.keySet()) {
-            InformationSet infoset = informationSets.get(name);
-            for (String action : infoset.cumulativeRegret.keySet()) {
-                if (action.contains("coffee") || action.contains("shop") || action.contains("home")) {
-                    isCoffeeScenario = true;
-                    break;
-                }
-            }
-        }
-
-        if (isCoffeeScenario) {
-            // Print Coffee Decision cumulative regrets
-            System.out.println("\n  [Coffee Decision] Cumulative Regrets:");
-            InformationSet rootSet = informationSets.get("root");
-            if (rootSet != null) {
-                System.out.println("    try_new_shop:    " + String.format("%.3f", rootSet.cumulativeRegret.getOrDefault("try_new_shop", 0.0)));
-                System.out.println("    go_regular_shop: " + String.format("%.3f", rootSet.cumulativeRegret.getOrDefault("go_regular_shop", 0.0)));
-                System.out.println("    make_at_home:    " + String.format("%.3f", rootSet.cumulativeRegret.getOrDefault("make_at_home", 0.0)));
-
-                // Compute implied strategy from regrets
-                double totalPos = 0.0;
-                for (Double r : rootSet.cumulativeRegret.values()) {
-                    if (r > 0) totalPos += r;
-                }
-                if (totalPos > 0) {
-                    System.out.println("\n  Implied Strategy (from regrets):");
-                    System.out.println("    try_new_shop:    " + String.format("%.1f%%",
-                        Math.max(0, rootSet.cumulativeRegret.getOrDefault("try_new_shop", 0.0)) / totalPos * 100));
-                    System.out.println("    go_regular_shop: " + String.format("%.1f%%",
-                        Math.max(0, rootSet.cumulativeRegret.getOrDefault("go_regular_shop", 0.0)) / totalPos * 100));
-                    System.out.println("    make_at_home:    " + String.format("%.1f%%",
-                        Math.max(0, rootSet.cumulativeRegret.getOrDefault("make_at_home", 0.0)) / totalPos * 100));
-                }
-            }
-        } else {
-            // Print Bridge Crossing cumulative regrets
-            if (!rpsCumulativeRegret.isEmpty()) {
-                System.out.println("\n  [Bridge Crossing] Cumulative Regrets:");
-                System.out.println("    Carefully:     " + String.format("%.3f", rpsCumulativeRegret.getOrDefault("carefully", 0.0)));
-                System.out.println("    Boldly:        " + String.format("%.3f", rpsCumulativeRegret.getOrDefault("boldly", 0.0)));
-                System.out.println("    Test Steps:    " + String.format("%.3f", rpsCumulativeRegret.getOrDefault("test_steps", 0.0)));
-                System.out.println("    Alternative:   " + String.format("%.3f", rpsCumulativeRegret.getOrDefault("alternative", 0.0)));
-                System.out.println("    Wait:          " + String.format("%.3f", rpsCumulativeRegret.getOrDefault("wait", 0.0)));
-            }
-        }
-
-        // Print extensive-form game information sets
-        System.out.println("\n  Information Sets: " + informationSets.size());
-        for (Map.Entry<String, InformationSet> entry : informationSets.entrySet()) {
-            InformationSet infoset = entry.getValue();
-            System.out.println("\n  [" + infoset.name + "] visited " + infoset.visitCount + " times");
-            if (!infoset.cumulativeRegret.isEmpty()) {
-                System.out.println("    Cumulative Regrets:");
-                for (Map.Entry<String, Double> regret : infoset.cumulativeRegret.entrySet()) {
-                    System.out.println("      " + regret.getKey() + ": " + String.format("%.3f", regret.getValue()));
-                }
-            }
-            if (!infoset.strategySum.isEmpty()) {
-                System.out.println("    Average Strategy:");
-                for (Map.Entry<String, Double> strat : infoset.strategySum.entrySet()) {
-                    double avgStrat = strat.getValue() / Math.max(1, infoset.visitCount);
-                    System.out.println("      " + strat.getKey() + ": " + String.format("%.3f", avgStrat));
-                }
-            }
-        }
-        System.out.println("========================================================\n");
+    /** Get historical average reward for a plan. Returns 0.0 if no data. */
+    private double getHistoricalAverage(String plan) {
+        int attempts = planAttempts.getOrDefault(plan, 0);
+        if (attempts == 0) return 0.0;
+        return planTotalReward.getOrDefault(plan, 0.0) / attempts;
     }
 
-    public Temper( String temper, String strategy ) throws IllegalArgumentException {
+    // ==================== CONSTRUCTORS ====================
 
-        // The temper should always be set at this point
-        if ( temper == null )
-            throw new IllegalArgumentException( "Temper cannot be null" );
+    /** Original constructor (backward-compatible). */
+    public Temper(String temper, String strategy) throws IllegalArgumentException {
+        this(temper, strategy, -1, true);
+    }
 
-        // Initialize the new personality
+    /** Extended constructor with seed and CFR control. */
+    public Temper(String temper, String strategy, long seed, boolean cfrEnabled)
+            throws IllegalArgumentException {
+        if (temper == null)
+            throw new IllegalArgumentException("Temper cannot be null");
+
         personality = new HashMap<>();
         mood = new HashMap<>();
         cumulativeRegret = new HashMap<>();
-
-        try {
-            // Load the personality into the Map
-            Literal listLit = parseLiteral( temper );
-            for ( Term term : listLit.getTerms() ) {
-                Literal trait = ( Literal ) term;
-                double value = ( double ) ( ( NumberTerm ) trait.getTerm( 0 ) ).solve();
-                if ( trait.hasAnnot( createLiteral( "mood" ) ) ) {
-                    if ( value < -1.0 || value > 1.0 )
-                        throw new IllegalArgumentException( "Trait value for mood must be between -1 and 1, found:" + trait );
-                    mood.put( trait.getFunctor().toString(), value );
-                    continue;
-                } else {
-                    if ( value < 0.0 || value > 1.0 )
-                        throw new IllegalArgumentException( "Trait value for personality must be between 0 and 1, found:" + trait );
-                    personality.put( trait.getFunctor().toString(), value );
-                }
-            }
-        } catch ( ParseException pe ) {
-            throw new IllegalArgumentException( pe.getMessage() + " Maybe one of the terms of personality is mispelled" );
-        } catch ( NoValueException nve ) {
-            throw new IllegalArgumentException( nve.getMessage() + " Maybe one of the terms is misspelled and does not contain a number" );
+        this.cfrEnabled = cfrEnabled;
+        if (seed >= 0) {
+            this.dice = new Random(seed);
+            System.out.println("[TEMPER] Using fixed seed: " + seed);
         }
 
-        // Load the strategy
-        if ( strategy == null )
+        try {
+            Literal listLit = parseLiteral(temper);
+            for (Term term : listLit.getTerms()) {
+                Literal trait = (Literal) term;
+                double value = (double) ((NumberTerm) trait.getTerm(0)).solve();
+                if (trait.hasAnnot(createLiteral("mood"))) {
+                    if (value < -1.0 || value > 1.0)
+                        throw new IllegalArgumentException(
+                            "Mood value must be in [-1, 1], found: " + trait);
+                    mood.put(trait.getFunctor().toString(), value);
+                } else {
+                    if (value < 0.0 || value > 1.0)
+                        throw new IllegalArgumentException(
+                            "Personality value must be in [0, 1], found: " + trait);
+                    personality.put(trait.getFunctor().toString(), value);
+                }
+            }
+        } catch (ParseException pe) {
+            throw new IllegalArgumentException(pe.getMessage());
+        } catch (NoValueException nve) {
+            throw new IllegalArgumentException(nve.getMessage());
+        }
+
+        if (strategy == null)
             this.strategy = DecisionStrategy.MOST_SIMILAR;
-        if ( strategy.equals( "most_similar" ) )
+        else if (strategy.equals("most_similar"))
             this.strategy = DecisionStrategy.MOST_SIMILAR;
-        else if ( strategy.equals( "random" ) )
+        else if (strategy.equals("random"))
             this.strategy = DecisionStrategy.RANDOM;
         else
-            throw new IllegalArgumentException( "Decision Strategy Unknown: " + strategy );
+            throw new IllegalArgumentException("Unknown strategy: " + strategy);
     }
 
-    public double computeWeight( Pred label ) throws NoValueException {
+    // ==================== ORIGINAL: WEIGHT COMPUTATION ====================
+
+    /**
+     * Compute weight for a plan based on personality similarity.
+     * RANDOM strategy: dot product (higher = more similar)
+     * MOST_SIMILAR strategy: absolute distance (lower = more similar)
+     */
+    public double computeWeight(Pred label) throws NoValueException {
         double choiceWeight = 0;
 
-        Literal temperAnnot = label.getAnnot( "temper" );
-        if ( temperAnnot == null )
+        Literal temperAnnot = label.getAnnot("temper");
+        if (temperAnnot == null)
             return choiceWeight;
 
-        ListTerm choiceTemper = ( ListTerm ) temperAnnot.getTerm( 0 );
-        for ( Term traitTerm : choiceTemper ) {
-            Atom trait = ( Atom ) traitTerm;
-            if ( ! mood.keySet().contains( trait.getFunctor().toString() ) && ! personality.keySet().contains( trait.getFunctor().toString() ) )
+        ListTerm choiceTemper = (ListTerm) temperAnnot.getTerm(0);
+        for (Term traitTerm : choiceTemper) {
+            Atom trait = (Atom) traitTerm;
+            String traitName = trait.getFunctor().toString();
+
+            if (!mood.containsKey(traitName) && !personality.containsKey(traitName))
                 continue;
+
             double traitTemper;
-            if ( mood.keySet().contains( trait.getFunctor().toString() ) )
-                traitTemper = mood.get( trait.getFunctor().toString() );
+            if (mood.containsKey(traitName))
+                traitTemper = mood.get(traitName);
             else
-                traitTemper = personality.get( trait.getFunctor().toString() );
-            try {
-                double traitValue = ( double ) ( (NumberTerm ) trait.getTerm( 0 ) ).solve();
-                if ( traitValue < -1.0 || traitValue > 1.0 )
-                    throw new IllegalArgumentException("Trait value out of range, found: " + trait + ". The value should be inside [0, 1].");
-                if ( strategy == DecisionStrategy.RANDOM )
-                    choiceWeight += traitTemper * traitValue;
-                else if ( strategy == DecisionStrategy.MOST_SIMILAR )
-                    choiceWeight += Math.abs( traitTemper - traitValue );
-            } catch ( NoValueException nve ) {
-                throw new NoValueException( "One of the plans has a misspelled annotation" );
-            }
+                traitTemper = personality.get(traitName);
+
+            double traitValue = (double) ((NumberTerm) trait.getTerm(0)).solve();
+            if (traitValue < -1.0 || traitValue > 1.0)
+                throw new IllegalArgumentException(
+                    "Trait value out of range: " + trait);
+
+            if (strategy == DecisionStrategy.RANDOM)
+                choiceWeight += traitTemper * traitValue;
+            else if (strategy == DecisionStrategy.MOST_SIMILAR)
+                choiceWeight += Math.abs(traitTemper - traitValue);
         }
         return choiceWeight;
     }
 
-    public boolean hasOptionsAnnotation( List<Option> options ) {
-    	List<OptionWrapper> wrappedOptions = options.stream()
-    		.map( OptionWrapper::new )
-    		.collect( Collectors.toList() );
-    	return hasAnnotation( wrappedOptions );
+    // ==================== ORIGINAL: PLAN / INTENTION SELECTION ====================
+
+    public boolean hasOptionsAnnotation(List<Option> options) {
+        List<OptionWrapper> wrappedOptions = options.stream()
+            .map(OptionWrapper::new)
+            .collect(Collectors.toList());
+        return hasAnnotation(wrappedOptions);
     }
 
-    public boolean hasIntentionsAnnotation( Queue<Intention> intentions ) {
-    	List<IntentionWrapper> wrappedIntentions = intentions.stream()
-    		.map( IntentionWrapper::new )
-    		.collect( Collectors.toList() );
-    	return hasAnnotation( wrappedIntentions );
+    public boolean hasIntentionsAnnotation(Queue<Intention> intentions) {
+        List<IntentionWrapper> wrappedIntentions = intentions.stream()
+            .map(IntentionWrapper::new)
+            .collect(Collectors.toList());
+        return hasAnnotation(wrappedIntentions);
     }
 
-    private <T extends TemperSelectable> boolean hasAnnotation( List<T> choices ) {
-        Literal annotPattern = createLiteral( "temper", new VarTerm( "X" ) );
-        for ( T choice : choices ) {
+    private <T extends TemperSelectable> boolean hasAnnotation(List<T> choices) {
+        Literal annotPattern = createLiteral("temper", new VarTerm("X"));
+        for (T choice : choices) {
             Pred l = choice.getLabel();
-            if ( l.hasAnnot() ) {
-                for ( Term t : l.getAnnots() ) {
-                    if ( new Unifier().unifies( annotPattern, t ) )
+            if (l.hasAnnot()) {
+                for (Term t : l.getAnnots()) {
+                    if (new Unifier().unifies(annotPattern, t))
                         return true;
                 }
             }
@@ -336,83 +281,84 @@ public class Temper {
         return false;
     }
 
-    public Option selectOption( List<Option> options ) {
-    	List<OptionWrapper> wrappedOptions = options.stream()
-			.map( OptionWrapper::new )
-			.collect( Collectors.toList() );
-		try {
-			return select( wrappedOptions ).getOption();
-		} catch ( NoValueException e ) {
-			return null;
-		}
+    public Option selectOption(List<Option> options) {
+        List<OptionWrapper> wrappedOptions = options.stream()
+            .map(OptionWrapper::new)
+            .collect(Collectors.toList());
+        try {
+            return select(wrappedOptions).getOption();
+        } catch (NoValueException e) {
+            return null;
+        }
     }
 
-    public Intention selectIntention( Queue<Intention> intentions ) {
-    	List<IntentionWrapper> wrappedIntentions = new ArrayList<>( intentions ).stream()
-     		.map( IntentionWrapper::new )
-     		.collect( Collectors.toList() );
-       try {
-        	Intention selected = select( wrappedIntentions ).getIntention();
-         	Iterator<Intention> it = intentions.iterator();
-          	while( it.hasNext() ) {
-	           	if ( it.next() == selected ) {
-	           		it.remove();
-	             	break;
-	           }
-           }
-           Literal effectList = selected.peek().getPlan().getLabel().getAnnot( "effects" );
-           if ( effectList != null )
-               updateDynTemper( effectList );
-           return selected;
-       } catch ( NoValueException e ) {
-	       return null;
-       }
+    public Intention selectIntention(Queue<Intention> intentions) {
+        List<IntentionWrapper> wrappedIntentions = new ArrayList<>(intentions).stream()
+            .map(IntentionWrapper::new)
+            .collect(Collectors.toList());
+        try {
+            Intention selected = select(wrappedIntentions).getIntention();
+            Iterator<Intention> it = intentions.iterator();
+            while (it.hasNext()) {
+                if (it.next() == selected) {
+                    it.remove();
+                    break;
+                }
+            }
+            Literal effectList = selected.peek().getPlan().getLabel().getAnnot("effects");
+            if (effectList != null)
+                updateDynTemper(effectList);
+            return selected;
+        } catch (NoValueException e) {
+            return null;
+        }
     }
 
-    public <T extends TemperSelectable> T select( List<T> choices ) throws NoValueException {
+    public <T extends TemperSelectable> T select(List<T> choices) throws NoValueException {
         List<Double> weights = new ArrayList<>();
-
-        for ( T choice : choices ) {
-            weights.add( computeWeight( choice.getLabel() ) );
+        for (T choice : choices) {
+            weights.add(computeWeight(choice.getLabel()));
         }
 
         T chosen = null;
         int chosenIdx = -1;
-        if ( strategy == DecisionStrategy.RANDOM ) {
-        	chosenIdx = getWeightedRandomIdx( weights );
-            chosen = choices.get( chosenIdx );
-        } else if ( strategy == DecisionStrategy.MOST_SIMILAR ) {
-            chosenIdx = getMostSimilarIdx( weights );
-            chosen = choices.get( chosenIdx );
+        if (strategy == DecisionStrategy.RANDOM) {
+            chosenIdx = getWeightedRandomIdx(weights);
+            chosen = choices.get(chosenIdx);
+        } else if (strategy == DecisionStrategy.MOST_SIMILAR) {
+            chosenIdx = getMostSimilarIdx(weights);
+            chosen = choices.get(chosenIdx);
         }
-        if ( chosen == null ) {
-        	chosenIdx = 0;
-            chosen = choices.get( chosenIdx );
+        if (chosen == null) {
+            chosenIdx = 0;
+            chosen = choices.get(chosenIdx);
         }
 
-        // Record decision in trace for CFR (pass weights for proper counterfactual)
-        recordDecision( choices, chosenIdx, weights );
+        // CFR extension: record decision only when CFR is active
+        if (cfrEnabled) {
+            recordDecision(choices, chosenIdx, weights);
+        }
 
         return chosen;
     }
 
-    // ==================== CFR TRACE METHODS ====================
+    // ==================== CFR: DECISION CONTEXT ====================
 
-    /** Current decision stage (for tracking information sets) */
     private String currentStage = "root";
 
-    /** Set the current decision stage */
     public void setCurrentStage(String stage) {
         this.currentStage = stage;
     }
 
-    /** Record a decision in the current episode for CFR learning */
-    private <T extends TemperSelectable> void recordDecision( List<T> choices, int selectedIdx, List<Double> weights ) {
-        List<String> optionLabels = choices.stream()
-            .map( c -> normalizePlanLabel(c.getLabel().getFunctor()) )
-            .collect( Collectors.toList() );
+    /** Record a decision in the current episode for CFR learning. */
+    private <T extends TemperSelectable> void recordDecision(
+            List<T> choices, int selectedIdx, List<Double> weights) {
 
-        // Extract plan annotations for CFR
+        List<String> optionLabels = choices.stream()
+            .map(c -> normalizePlanLabel(c.getLabel().getFunctor()))
+            .collect(Collectors.toList());
+
+        // Extract plan annotations
         List<Map<String, Double>> annotations = new ArrayList<>();
         for (T choice : choices) {
             Map<String, Double> planTraits = new HashMap<>();
@@ -432,21 +378,16 @@ public class Temper {
             annotations.add(planTraits);
         }
 
-        // Create trace entry for current episode
         TraceEntry entry = new TraceEntry(currentStage, optionLabels, selectedIdx,
             new HashMap<>(personality), new HashMap<>(mood), weights, annotations);
         currentEpisodeDecisions.add(entry);
 
-        // Update information set visit count
         InformationSet infoset = getInformationSet(currentStage);
         infoset.visitCount++;
-
-        // Record the action taken in strategy sum
         String chosenAction = optionLabels.get(selectedIdx);
         infoset.strategySum.put(chosenAction,
             infoset.strategySum.getOrDefault(chosenAction, 0.0) + 1.0);
 
-        // Compute probabilities for logging
         double[] probs = computeActionProbabilities(weights);
 
         StringBuilder sb = new StringBuilder();
@@ -462,947 +403,448 @@ public class Temper {
         System.out.print(sb.toString());
     }
 
-    /**
-     * Called when a stage outcome is received.
-     * Records the reward for this stage.
-     */
-    public void recordStageOutcome(String stage, double reward) {
-        stageRewards.put(stage, reward);
-        totalEpisodeReward += reward;
+    // ==================== CFR: RECORD OUTCOME ====================
 
-        // Update pending entry with reward
+    /**
+     * Record outcome using regret matching adapted from CFR.
+     *
+     * @param action The action taken (e.g., "help_bob")
+     * @param reward The actual reward received (after behavioral memory adjustment)
+     * @param person The person involved (bob, carol, dave)
+     */
+    public void recordHelpOutcome(String action, double reward, String person) {
+
+        // Set reward in most recent trace entry matching this stage
+        String expectedStage = "help_" + person;
         if (!currentEpisodeDecisions.isEmpty()) {
-            for (TraceEntry entry : currentEpisodeDecisions) {
-                if (entry.trigger.equals(stage) && entry.reward == 0.0) {
+            for (int i = currentEpisodeDecisions.size() - 1; i >= 0; i--) {
+                TraceEntry entry = currentEpisodeDecisions.get(i);
+                if (expectedStage.equals(entry.trigger) && entry.reward == 0.0) {
                     entry.reward = reward;
                     break;
                 }
             }
         }
-        System.out.println("[CFR] Stage " + stage + " reward: " + reward);
+
+        // Get information set for this person (already created in recordDecision)
+        String infosetName = "help_" + person;
+        InformationSet infoset = getInformationSet(infosetName);
+        // Note: visitCount already incremented in recordDecision — do NOT increment again
+
+        // Update historical performance
+        updateHistoricalPerformance(action, reward);
+
+        System.out.println("\n[CFR] " + person.toUpperCase() + " - " + action
+            + " -> reward=" + String.format("%.3f", reward));
+
+        // Standard CFR: compute regrets for all actions
+        String[] allActions = HelpScenarioConfig.getActionsForPerson(person);
+        double expectedChosen = getHistoricalAverage(action);
+
+        for (String alt : allActions) {
+            double expectedAlt = getHistoricalAverage(alt);
+            double regret;
+
+            if (alt.equals(action)) {
+                regret = 0.0;
+            } else {
+                regret = expectedAlt - expectedChosen;
+            }
+
+            double currentRegret = infoset.cumulativeRegret.getOrDefault(alt, 0.0);
+            infoset.cumulativeRegret.put(alt, currentRegret + regret);
+
+            if (regret != 0 || alt.equals(action)) {
+                String sign = regret > 0 ? "+" : "";
+                System.out.println(String.format(
+                    "  Regret(%s) = E[%.3f] - E[%.3f] = %s%.3f (cumulative: %.3f)",
+                    alt, expectedAlt, expectedChosen, sign, regret,
+                    currentRegret + regret));
+            }
+        }
+
+        totalEpisodeReward += reward;
     }
 
-    /** Get full trace for CFR analysis */
-    public List<TraceEntry> getTrace() { return new ArrayList<>(currentEpisodeDecisions); }
-
-    /** Get personality snapshot */
-    public Map<String, Double> getPersonality() { return new HashMap<>(personality); }
-
-    // ==================== CFR LEARNING ====================
+    // ==================== CFR: PERSONALITY UPDATE ====================
 
     /**
-     * PROPER CFR for Extensive-Form Games.
+     * Update OCEAN personality traits via CFR regret matching.
      *
-     * Computes counterfactual regret at each information set and updates
-     * personality via regret matching.
-     *
-     * CFR Algorithm:
-     * 1. For each information set I visited in episode:
-     *    a. Get the counterfactual value v(I, σ) - actual value received
-     *    b. For each action a at I:
-     *       - Compute counterfactual value if we had taken a: v(I, σ_{I→a})
-     *       - Instant regret: r(I, a) = v(I, σ_{I→a}) - v(I, σ)
-     *       - Update cumulative regret: R(I, a) += r(I, a)
-     * 2. Update strategy via regret matching:
-     *    σ^{T+1}(I, a) = [R^T(I, a)]+ / Σ[R^T(I, a')]^+
-     * 3. Update personality to match the strategy that minimizes regret
+     * For each information set (per person):
+     *   1. Find actions with positive cumulative regret
+     *   2. Compute regret weights: w(a) = R+(a) / sum(R+)
+     *   3. Compute gradient: grad(trait) = sum_a[ w(a) * (action_trait - current) ]
+     *   4. Apply: new = old + learning_rate * gradient, clamped to [0, 1]
      */
     public void updatePersonalityFromCFR() {
-        if (currentEpisodeDecisions.isEmpty()) {
+        if (currentEpisodeDecisions.isEmpty()) return;
+        if (!cfrEnabled) {
+            System.out.println("[CFR] Learning DISABLED (static baseline mode)");
             return;
         }
 
-        // Detect scenario type directly from information sets
-        boolean isCoffeeScenario = detectCoffeeScenario();
-        boolean isRPSScenario = detectRPSScenario();
+        System.out.println("\n========== CFR: PERSONALITY UPDATE ==========");
 
-        if (isCoffeeScenario) {
-            updatePersonalityFromCoffeeRegret();
-        } else if (isRPSScenario) {
-            updatePersonalityFromRPSRegret();
-        } else {
-            updatePersonalityFromBridgeRegret();
-        }
-    }
-
-    /**
-     * Detect if we're running the coffee decision scenario.
-     */
-    private boolean detectCoffeeScenario() {
-        for (InformationSet infoset : informationSets.values()) {
-            for (String action : infoset.cumulativeRegret.keySet()) {
-                if (action.contains("coffee") || action.contains("shop") || action.contains("home")) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Detect if we're running the RPS scenario.
-     */
-    private boolean detectRPSScenario() {
-        return !rpsCumulativeRegret.isEmpty();
-    }
-
-    /**
-     * Get expected reward for a bridge action (like RPS payoff matrix).
-     * This represents the average outcome if this action is taken.
-     */
-    private double getBridgeExpectedReward(String action) {
-        int idx = bridgeActionToIndex(action);
-        if (idx >= 0 && idx < BRIDGE_EXPECTED_REWARDS.length) {
-            return BRIDGE_EXPECTED_REWARDS[idx];
-        }
-        return 0.0;  // Default for unknown actions
-    }
-
-    /**
-     * Compute the future value from this decision point through the rest of the episode.
-     * This accounts for the extensive-form structure - decisions affect future options.
-     */
-    private double computeFutureValue(TraceEntry entry, List<TraceEntry> allDecisions) {
-        double value = entry.reward;
-
-        // Find subsequent decisions and add their discounted rewards
-        int entryIndex = allDecisions.indexOf(entry);
-        for (int i = entryIndex + 1; i < allDecisions.size(); i++) {
-            TraceEntry subsequent = allDecisions.get(i);
-            value += subsequent.reward * Math.pow(GAMMA, i - entryIndex);
-        }
-
-        return value;
-    }
-
-    /**
-     * Estimate the counterfactual value if we had taken an alternative action.
-     * For bridge crossing, use the expected reward for each action type.
-     */
-    private double estimateCounterfactualValue(Map<String, Double> altTraits,
-                                               Map<String, Double> personalityAtDecision,
-                                               double actualValue) {
-        // Determine which bridge strategy this action profile corresponds to
-        // and return its expected reward (counterfactual value)
-        double cautious = altTraits.getOrDefault("cautious", 0.5);
-        double bold = altTraits.getOrDefault("bold", 0.5);
-
-        // Map personality profile to expected reward based on bridge success rates
-        // carefully: -0.2, boldly: 0.8, test_steps: 0.2, alternative: 0.4, wait: 0.0
-        if (cautious > 0.7 && bold < 0.3) {
-            return -0.2;  // carefully - mostly fails
-        } else if (cautious < 0.3 && bold > 0.7) {
-            return 0.8;   // boldly - mostly succeeds (90% success rate)
-        } else if (cautious > 0.6 && bold < 0.5) {
-            return 0.2;   // test_steps - moderate
-        } else if (cautious > 0.4 && cautious < 0.6 && bold > 0.4 && bold < 0.6) {
-            return 0.4;   // alternative - good success rate
-        } else {
-            return 0.0;   // wait - 50/50
-        }
-    }
-
-    /**
-     * Compute alignment between plan traits and personality.
-     * Returns 1.0 for perfect match, 0.0 for no match, -1.0 for opposite.
-     */
-    private double computePersonalityAlignment(Map<String, Double> planTraits,
-                                                Map<String, Double> personality) {
-        double dotProduct = 0.0;
-        double normPlan = 0.0;
-        double normPers = 0.0;
-
-        Set<String> allTraits = new HashSet<>();
-        allTraits.addAll(planTraits.keySet());
-        allTraits.addAll(personality.keySet());
-
-        for (String trait : allTraits) {
-            double planVal = planTraits.getOrDefault(trait, 0.0);
-            double persVal = personality.getOrDefault(trait, 0.5); // Default to neutral
-
-            dotProduct += planVal * persVal;
-            normPlan += planVal * planVal;
-            normPers += persVal * persVal;
-        }
-
-        if (normPlan == 0.0 || normPers == 0.0) return 0.0;
-        return dotProduct / (Math.sqrt(normPlan) * Math.sqrt(normPers));
-    }
-
-    /**
-     * Update personality based on regret matching across all information sets.
-     *
-     * The key insight: personality should evolve to favor the actions
-     * that have positive cumulative regret (i.e., we regret not taking them).
-     */
-    private void updatePersonalityViaRegretMatching() {
-        Map<String, Double> personalityGradients = new HashMap<>();
+        Map<String, Double> traitGradients = new HashMap<>();
         for (String trait : personality.keySet()) {
-            personalityGradients.put(trait, 0.0);
+            traitGradients.put(trait, 0.0);
         }
 
-        // Aggregate gradients from all information sets
+        int infosetCount = 0;
+
         for (InformationSet infoset : informationSets.values()) {
             if (infoset.cumulativeRegret.isEmpty()) continue;
 
-            // Find actions with positive regret (things we should have done)
-            List<Map.Entry<String, Double>> positiveRegrets = new ArrayList<>();
             double totalPositiveRegret = 0.0;
+            for (Double r : infoset.cumulativeRegret.values()) {
+                if (r > 0) totalPositiveRegret += r;
+            }
+
+            if (totalPositiveRegret < 0.001) continue;
+            infosetCount++;
+
+            System.out.println("\n  [" + infoset.name + "] Regrets:");
 
             for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
-                if (entry.getValue() > 0) {
-                    positiveRegrets.add(entry);
-                    totalPositiveRegret += entry.getValue();
+                String action = entry.getKey();
+                double regret = entry.getValue();
+
+                System.out.println("    " + action + ": "
+                    + String.format("%.3f", regret)
+                    + (regret > 0 ? " (positive)" : ""));
+
+                if (regret <= 0) continue;
+
+                double regretWeight = regret / totalPositiveRegret;
+                Map<String, Double> actionTraits = HelpScenarioConfig.getActionTraits(action);
+                if (actionTraits == null) continue;
+
+                for (Map.Entry<String, Double> traitEntry : actionTraits.entrySet()) {
+                    String traitName = traitEntry.getKey();
+                    double actionValue = traitEntry.getValue();
+                    double currentValue = personality.getOrDefault(traitName, 0.5);
+                    double gradient = regretWeight * (actionValue - currentValue);
+
+                    traitGradients.put(traitName,
+                        traitGradients.getOrDefault(traitName, 0.0) + gradient);
                 }
             }
-
-            if (totalPositiveRegret == 0) continue;
-
-            // For each positive regret action, compute desired personality change
-            // (simplified - assumes we know which traits favor which actions)
-            for (Map.Entry<String, Double> regretEntry : positiveRegrets) {
-                double regretWeight = regretEntry.getValue() / totalPositiveRegret;
-
-                // Update personality towards traits that favor this action
-                // This is a heuristic - proper implementation would use plan annotations
-                for (String trait : personality.keySet()) {
-                    double gradient = regretWeight * 0.1; // Learning rate
-                    personalityGradients.put(trait,
-                        personalityGradients.get(trait) + gradient);
-                }
-            }
         }
 
-        // Apply gradients to personality
-        for (String trait : personality.keySet()) {
-            double gradient = personalityGradients.get(trait);
-            if (Math.abs(gradient) < 0.001) continue;
+        if (infosetCount > 0) {
+            System.out.println("\n  Applying updates (lr=" + cfrLearningRate + "):");
+            for (String trait : traitGradients.keySet()) {
+                double gradient = traitGradients.get(trait);
+                if (Math.abs(gradient) < 0.001) continue;
 
-            double oldValue = personality.get(trait);
-            double newValue = oldValue + cfrLearningRate * gradient;
-            newValue = Math.max(0.0, Math.min(1.0, newValue));
+                double oldValue = personality.getOrDefault(trait, 0.5);
+                double newValue = oldValue + cfrLearningRate * gradient;
+                newValue = Math.max(0.0, Math.min(1.0, newValue));
+                personality.put(trait, newValue);
 
-            personality.put(trait, newValue);
-
-            if (Math.abs(newValue - oldValue) > 0.001) {
-                System.out.println("[CFR] Personality update: " + trait + " " +
-                    String.format("%.3f", oldValue) + " -> " + String.format("%.3f", newValue));
-            }
-        }
-    }
-
-    /**
-     * Compute action probabilities from weights using softmax normalization.
-     */
-    private double[] computeActionProbabilities(List<Double> weights) {
-        double[] probs = new double[weights.size()];
-
-        double minWeight = Double.MAX_VALUE;
-        for (double w : weights) {
-            minWeight = Math.min(minWeight, w);
-        }
-
-        double sum = 0.0;
-        for (int i = 0; i < weights.size(); i++) {
-            probs[i] = Math.exp(weights.get(i) - minWeight);
-            sum += probs[i];
-        }
-
-        if (sum > 0) {
-            for (int i = 0; i < probs.length; i++) {
-                probs[i] /= sum;
+                System.out.println("    " + trait + ": "
+                    + String.format("%.3f", oldValue)
+                    + " -> " + String.format("%.3f", newValue)
+                    + " (gradient=" + String.format("%+.4f", gradient) + ")");
             }
         } else {
-            for (int i = 0; i < probs.length; i++) {
-                probs[i] = 1.0 / probs.length;
-            }
+            System.out.println("  No positive regrets — personality unchanged");
         }
 
-        return probs;
+        System.out.println("=============================================\n");
     }
 
-    /** Start new episode (clear trace, but keep regrets for CFR convergence) */
+    // ==================== EPISODE MANAGEMENT ====================
+
+    /** End episode: trigger CFR learning, save, reset episode state. */
     public void startNewEpisode() {
-        System.out.println("[CFR] Episode complete. Decisions: " + currentEpisodeDecisions.size() +
-            ", Total reward: " + String.format("%.2f", totalEpisodeReward));
-        printHistoricalStats();
+        System.out.println("[CFR] Episode complete. Decisions: "
+            + currentEpisodeDecisions.size()
+            + ", Total reward: " + String.format("%.2f", totalEpisodeReward));
 
-        // Print personality before CFR update
-        System.out.println("[CFR] Personality BEFORE CFR update: " + formatPersonalitySimple());
-
+        System.out.println("[CFR] Personality BEFORE: " + formatPersonality());
         updatePersonalityFromCFR();
-
-        // Print personality after CFR update
-        System.out.println("[CFR] Personality AFTER CFR update:  " + formatPersonalitySimple());
+        System.out.println("[CFR] Personality AFTER:  " + formatPersonality());
 
         savePersonality();
+
+        // Reset episode state (but KEEP cumulative regrets for convergence)
         currentEpisodeDecisions.clear();
         stageRewards.clear();
         totalEpisodeReward = 0.0;
         currentStage = "root";
 
-        // CFR: Keep cumulative regrets across episodes (never reset!)
-        // The average strategy (strategySum / visitCount) converges to equilibrium
-        System.out.println("[CFR] Regrets preserved for convergence (not reset)");
+        // Decay exploration temperature
+        softmaxTemperature = Math.max(MIN_TEMPERATURE, softmaxTemperature * TEMPERATURE_DECAY);
+        System.out.println("[CFR] Regrets preserved. Temperature=" + String.format("%.3f", softmaxTemperature));
     }
 
-    /**
-     * Format personality as simple string (e.g., "cautious=0.750 bold=0.250").
-     */
-    private String formatPersonalitySimple() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
+    private String formatPersonality() {
+        StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (Map.Entry<String, Double> entry : personality.entrySet()) {
             if (!first) sb.append(" ");
-            sb.append(entry.getKey()).append("=").append(String.format("%.3f", entry.getValue()));
+            sb.append(entry.getKey()).append("=")
+              .append(String.format("%.3f", entry.getValue()));
             first = false;
         }
         sb.append("}");
         return sb.toString();
     }
 
-    /** Print historical performance statistics */
-    private void printHistoricalStats() {
-        if (planStats.isEmpty()) return;
-        System.out.println("\n--- Historical Performance ---");
-        for (String plan : new String[]{"try_new_shop", "go_regular_shop", "make_at_home"}) {
-            PlanStats stats = planStats.get(plan);
-            if (stats != null && stats.attempts > 0) {
-                System.out.println(String.format("  %s: %d attempts, %.1f%% success, avg reward=%.2f",
-                    plan, stats.attempts, stats.getSuccessRate() * 100, stats.getAverageReward()));
+    // ==================== CFR STATS ====================
+
+    /** Print CFR statistics for all information sets. */
+    public void printCFRStats() {
+        System.out.println("\n==================== CFR STATISTICS ====================");
+
+        System.out.println("\n  Information Sets: " + informationSets.size());
+        for (Map.Entry<String, InformationSet> entry : informationSets.entrySet()) {
+            InformationSet infoset = entry.getValue();
+            System.out.println("\n  [" + infoset.name + "] visited "
+                + infoset.visitCount + " times");
+
+            if (!infoset.cumulativeRegret.isEmpty()) {
+                System.out.println("    Cumulative Regrets:");
+                double totalPos = 0.0;
+                for (Double r : infoset.cumulativeRegret.values()) {
+                    if (r > 0) totalPos += r;
+                }
+                for (Map.Entry<String, Double> regret : infoset.cumulativeRegret.entrySet()) {
+                    double r = regret.getValue();
+                    String pct = totalPos > 0 && r > 0
+                        ? String.format(" (%.1f%%)", r / totalPos * 100) : "";
+                    System.out.println("      " + regret.getKey() + ": "
+                        + String.format("%.3f", r) + pct);
+                }
             }
-        }
-        System.out.println("-------------------------------\n");
-    }
 
-    // ==================== RPS-CFR: ROCK-PAPER-SCISSORS CFR ====================
-
-    /** RPS Payoff matrix: payoff[agent][opp] */
-    private static final double[][] RPS_PAYOFF = {
-        // opp: Rock,  Paper, Scissors
-        {   0.0,   -1.0,    1.0    },  // agent: Rock
-        {   1.0,    0.0,   -1.0    },  // agent: Paper
-        {  -1.0,    1.0,    0.0    }   // agent: Scissors
-    };
-
-    private static final String[] RPS_ACTIONS = {"rock", "paper", "scissors"};
-
-    /** Cumulative regret for each RPS action */
-    private Map<String, Double> rpsCumulativeRegret = new HashMap<>();
-
-    /** Track current RPS decision for CFR */
-    private String currentAgentMove = null;
-    private String currentOppMove = null;
-
-    /**
-     * Record RPS game outcome and compute CFR regrets.
-     * This is the main CFR entry point for RPS.
-     */
-    public void recordRPSOutcome(String agentMove, String oppMove, double reward) {
-        currentAgentMove = agentMove;
-        currentOppMove = oppMove;
-
-        int agentIdx = actionToIndex(agentMove);
-        int oppIdx = actionToIndex(oppMove);
-
-        if (agentIdx < 0 || oppIdx < 0) {
-            System.out.println("[RPS-CFR] Invalid move: agent=" + agentMove + ", opp=" + oppMove);
-            return;
-        }
-
-        // Compute counterfactual regrets for unchosen actions
-        System.out.println("[RPS-CFR] Computing regrets (actual reward: " + reward + "):");
-
-        for (int a = 0; a < 3; a++) {
-            if (a == agentIdx) continue; // Skip chosen action
-
-            String actionName = RPS_ACTIONS[a];
-
-            // Counterfactual: "What if I had played 'a' instead?"
-            double counterfactualReward = RPS_PAYOFF[a][oppIdx];
-
-            // Instant regret = counterfactual - actual
-            double regret = counterfactualReward - reward;
-
-            // Update cumulative regret
-            double currentRegret = rpsCumulativeRegret.getOrDefault(actionName, 0.0);
-            rpsCumulativeRegret.put(actionName, currentRegret + regret);
-
-            System.out.println(String.format("  Regret(%s) = %.1f - %.1f = %.2f (cumulative: %.2f)",
-                actionName, counterfactualReward, reward, regret, currentRegret + regret));
-        }
-
-        // NOTE: Personality updates moved to episode-end (cfr_episode) only
-        // This prevents rapid saturation and allows for stable learning
-
-        // Add to total episode reward
-        totalEpisodeReward += reward;
-    }
-
-    /**
-     * Expected success rates for bridge crossing strategies.
-     * These represent the counterfactual "what would have happened on average?"
-     *
-     * IMPORTANT: These are AVERAGE outcomes, not best-case.
-     * In a learning environment, the agent needs to experience BOTH success and failure
-     * to learn which personality works better.
-     */
-    private static final double[] BRIDGE_EXPECTED_REWARDS = {
-        0.0,   // carefully: 50% success, 50% failure → 0.5*1 + 0.5*(-1) = 0.0 (BALANCED)
-        0.0,   // boldly: 50% success, 50% failure → 0.5*1 + 0.5*(-1) = 0.0 (BALANCED)
-        0.0,   // test_steps: 50% success, 50% failure → 0.0 (BALANCED)
-        0.0,   // alternative: 50% success, 50% failure → 0.0 (BALANCED)
-        0.0    // wait: 50% success, 50% failure → 0.0 (BALANCED)
-    };
-
-    private static final String[] BRIDGE_ACTIONS = {
-        "carefully", "boldly", "test_steps", "alternative", "wait"
-    };
-
-    /**
-     * Record bridge/coffee decision outcome.
-     * Like RPS, we compute counterfactual regrets for ALL alternatives at episode end.
-     *
-     * CFR ALGORITHM (from article):
-     * 1. Actual reward received: reward
-     * 2. For each alternative plan a:
-     *    regret(a) = expected_reward(a) - actual_reward
-     * 3. Cumulative regret: R(a) += regret(a)
-     * 4. Strategy update at episode end via regret matching
-     */
-    public void recordBridgeOutcome(String strategy, double reward) {
-        currentAgentMove = strategy;
-        currentOppMove = null; // No opponent in single-agent scenarios
-
-        // Detect scenario type
-        boolean isCoffeeScenario = strategy.contains("coffee") || strategy.contains("shop") || strategy.contains("home");
-
-        // Set the reward in the most recent TraceEntry
-        if (!currentEpisodeDecisions.isEmpty()) {
-            for (int i = currentEpisodeDecisions.size() - 1; i >= 0; i--) {
-                TraceEntry entry = currentEpisodeDecisions.get(i);
-                if ("root".equals(entry.trigger) && entry.reward == 0.0) {
-                    entry.reward = reward;
-                    break;
+            if (!infoset.strategySum.isEmpty()) {
+                System.out.println("    Average Strategy:");
+                for (Map.Entry<String, Double> strat : infoset.strategySum.entrySet()) {
+                    double avg = strat.getValue() / Math.max(1, infoset.visitCount);
+                    System.out.println("      " + strat.getKey() + ": "
+                        + String.format("%.3f", avg));
                 }
             }
         }
 
-        // Compute counterfactual regrets immediately (like RPS in the article)
-        InformationSet infoset = getInformationSet("root");
-
-        if (isCoffeeScenario) {
-            // COFFEE SCENARIO: Use dynamic expected rewards based on historical success
-            // This tracks ACTUAL performance, not theoretical probabilities
-            updateHistoricalPerformance(strategy, reward);
-
-            System.out.println("[CFR-Coffee] " + strategy + " → reward=" + reward);
-
-            // Compute counterfactual regrets for ALL alternatives based on historical performance
-            for (String planName : new String[]{"try_new_shop", "go_regular_shop", "make_at_home"}) {
-                // Skip the plan we actually chose
-                if (planName.equals(strategy)) continue;
-
-                // Get historical average reward for this plan
-                double historicalReward = getHistoricalAverage(planName);
-
-                // CFR regret formula: regret = historical_avg(alt) - actual(chosen)
-                // Positive regret means "Historically, this alternative performs better"
-                double regret = historicalReward - reward;
-
-                // Only track positive regrets (we regret not choosing better options)
-                if (regret > 0) {
-                    double currentRegret = infoset.cumulativeRegret.getOrDefault(planName, 0.0);
-                    infoset.cumulativeRegret.put(planName, currentRegret + regret);
-
-                    System.out.println(String.format("  Regret(%s) = %.2f - %.1f = %.3f (cumulative: %.3f)",
-                        planName, historicalReward, reward, regret, currentRegret + regret));
+        // Print historical performance
+        if (!planAttempts.isEmpty()) {
+            System.out.println("\n  Historical Performance:");
+            for (String plan : planAttempts.keySet()) {
+                int attempts = planAttempts.get(plan);
+                if (attempts > 0) {
+                    double avg = planTotalReward.getOrDefault(plan, 0.0) / attempts;
+                    System.out.println(String.format("    %s: %d attempts, avg=%.3f",
+                        plan, attempts, avg));
                 }
             }
-        } else {
-            // BRIDGE SCENARIO: Use existing logic
-            int strategyIdx = bridgeActionToIndex(strategy);
-            if (strategyIdx < 0) {
-                System.out.println("[Bridge-CFR] Invalid strategy: " + strategy);
-                return;
-            }
-            System.out.println("[Bridge] Strategy=" + strategy + ", Reward=" + reward);
         }
 
-        // Add to total episode reward
-        totalEpisodeReward += reward;
+        System.out.println("\n========================================================\n");
     }
 
-    // ==================== HISTORICAL PERFORMANCE TRACKING ====================
+    // ==================== CUMULATIVE REGRETS (for logging) ====================
 
-    /** Track historical performance for each plan */
-    private Map<String, PlanStats> planStats = new HashMap<>();
-
-    /** Statistics for a single plan */
-    private static class PlanStats {
-        int successCount = 0;
-        int failureCount = 0;
-        double totalReward = 0.0;
-        int attempts = 0;
-
-        double getAverageReward() {
-            return attempts == 0 ? 0.0 : totalReward / attempts;
+    /** Get cumulative regrets across all information sets (for PolicyLogger). */
+    public Map<String, Double> getHelpCumulativeRegrets() {
+        Map<String, Double> regrets = new HashMap<>();
+        for (String action : HelpScenarioConfig.getAllActionTraits().keySet()) {
+            regrets.put(action, 0.0);
         }
-
-        double getSuccessRate() {
-            return attempts == 0 ? 0.0 : (double) successCount / attempts;
-        }
-    }
-
-    /** Update historical performance for a plan */
-    private void updateHistoricalPerformance(String plan, double reward) {
-        PlanStats stats = planStats.computeIfAbsent(plan, k -> new PlanStats());
-        stats.attempts++;
-        stats.totalReward += reward;
-        if (reward > 0) stats.successCount++;
-        else if (reward < 0) stats.failureCount++;
-    }
-
-    /** Get historical average reward for a plan */
-    private double getHistoricalAverage(String plan) {
-        PlanStats stats = planStats.get(plan);
-        if (stats == null || stats.attempts == 0) {
-            // Return theoretical expected reward if no data
-            switch (plan) {
-                case "try_new_shop": return 0.2;     // 60% success
-                case "go_regular_shop": return 0.7;  // 85% success
-                case "make_at_home": return 0.9;     // 95% success
-                default: return 0.0;
-            }
-        }
-        return stats.getAverageReward();
-    }
-
-    /**
-     * Convert bridge strategy name to index.
-     */
-    private int bridgeActionToIndex(String strategy) {
-        for (int i = 0; i < BRIDGE_ACTIONS.length; i++) {
-            if (BRIDGE_ACTIONS[i].equalsIgnoreCase(strategy)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Update personality based on RPS (Rock-Paper-Scissors) regrets.
-     *
-     * Note: Currently delegates to bridge scenario as fallback.
-     * RPS-specific personality updates can be added here when needed.
-     *
-     * The RPS cumulative regrets are tracked in rpsCumulativeRegret,
-     * but personality updates for RPS scenarios use the same logic as bridge.
-     */
-    private void updatePersonalityFromRPSRegret() {
-        // RPS personality updates use the same bridge logic
-        // (both scenarios track cautious/bold traits)
-        updatePersonalityFromBridgeRegret();
-    }
-
-    /**
-     * Update personality based on Coffee Decision CFR regrets.
-     *
-     * COFFEE SCENARIO:
-     * - try_new_shop:    bold(0.8), curious(0.7), cautious(0.2) → 60% success
-     * - go_regular_shop: cautious(0.8), bold(0.2), curious(0.3) → 85% success
-     * - make_at_home:    cautious(0.9), curious(0.1), bold(0.1) → 95% success
-     *
-     * CFR Learning: Agent discovers that CAUTIOUS leads to more success!
-     */
-    private void updatePersonalityFromCoffeeRegret() {
-        System.out.println("\n========== CFR: COFFEE DECISION SCENARIO ==========");
-
-        // Plan trait profiles (what traits each plan uses)
-        Map<String, Map<String, Double>> planTraits = new HashMap<>();
-        planTraits.put("try_new_shop",    Map.of("bold", 0.8, "curious", 0.7, "cautious", 0.2));
-        planTraits.put("go_regular_shop", Map.of("cautious", 0.8, "bold", 0.2, "curious", 0.3));
-        planTraits.put("make_at_home",    Map.of("cautious", 0.9, "curious", 0.1, "bold", 0.1));
-
-        // Expected success rates (what would happen on average)
-        Map<String, Double> expectedReward = new HashMap<>();
-        expectedReward.put("try_new_shop",    0.6 * 1.0 + 0.4 * (-1.0));  // 60% success → 0.2
-        expectedReward.put("go_regular_shop", 0.85 * 1.0 + 0.15 * (-1.0)); // 85% success → 0.7
-        expectedReward.put("make_at_home",    0.95 * 1.0 + 0.05 * (-1.0)); // 95% success → 0.9
-
-        // Aggregate regrets from all decisions in this episode
-        Map<String, Double> totalRegret = new HashMap<>();
-        totalRegret.put("try_new_shop", 0.0);
-        totalRegret.put("go_regular_shop", 0.0);
-        totalRegret.put("make_at_home", 0.0);
-
-        int regretCount = 0;
-        for (InformationSet infoset : informationSets.values()) {
-            for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
-                String plan = entry.getKey();
-                double regret = entry.getValue();
-                totalRegret.put(plan, totalRegret.getOrDefault(plan, 0.0) + regret);
-                regretCount++;
-            }
-        }
-
-        // Print regrets (like in the article's table)
-        System.out.println("Cumulative Regrets:");
-        System.out.println("  try_new_shop:    " + String.format("%.3f", totalRegret.get("try_new_shop")));
-        System.out.println("  go_regular_shop: " + String.format("%.3f", totalRegret.get("go_regular_shop")));
-        System.out.println("  make_at_home:    " + String.format("%.3f", totalRegret.get("make_at_home")));
-
-        // Compute personality updates via regret matching
-        // (like strategy update in article: σ(a) = [R(a)]+ / Σ[R(a')]+)
-        Map<String, Double> traitGradients = new HashMap<>();
-        traitGradients.put("bold", 0.0);
-        traitGradients.put("curious", 0.0);
-        traitGradients.put("cautious", 0.0);
-
-        // Sum positive regrets only
-        double totalPositiveRegret = 0.0;
-        for (Map.Entry<String, Double> entry : totalRegret.entrySet()) {
-            if (entry.getValue() > 0) {
-                totalPositiveRegret += entry.getValue();
-            }
-        }
-
-        if (totalPositiveRegret > 0.001) {
-            System.out.println("\nPersonality Updates (Regret Matching):");
-
-            // For each plan with positive regret, update personality toward its traits
-            for (Map.Entry<String, Double> entry : totalRegret.entrySet()) {
-                String plan = entry.getKey();
-                double regret = entry.getValue();
-
-                if (regret > 0) {
-                    double regretWeight = regret / totalPositiveRegret;
-                    Map<String, Double> traits = planTraits.get(plan);
-
-                    System.out.println("  Plan '" + plan + "' (regret=" + String.format("%.3f", regret) +
-                        ", weight=" + String.format("%.1f%%", regretWeight * 100) + ")");
-
-                    // Update each trait toward this plan's trait value
-                    for (Map.Entry<String, Double> traitEntry : traits.entrySet()) {
-                        String traitName = traitEntry.getKey();
-                        double traitValue = traitEntry.getValue();
-
-                        // Gradient = regretWeight * (traitValue - currentPersonality)
-                        double currentPers = personality.getOrDefault(traitName, 0.5);
-                        double gradient = regretWeight * (traitValue - currentPers);
-
-                        traitGradients.put(traitName, traitGradients.get(traitName) + gradient);
-
-                        System.out.println("    " + traitName + ": plan_value=" + String.format("%.2f", traitValue) +
-                            ", current=" + String.format("%.2f", currentPers) + ", gradient=" + String.format("%.3f", gradient));
-                    }
-                }
-            }
-
-            // Apply updates with learning rate
-            System.out.println("\nApplying personality updates (learning_rate=" + cfrLearningRate + "):");
-            for (String trait : traitGradients.keySet()) {
-                double gradient = traitGradients.get(trait);
-                if (Math.abs(gradient) > 0.001) {
-                    double oldValue = personality.getOrDefault(trait, 0.5);
-                    double newValue = oldValue + cfrLearningRate * gradient;
-                    newValue = Math.max(0.0, Math.min(1.0, newValue));
-
-                    personality.put(trait, newValue);
-
-                    System.out.println("  " + trait + ": " + String.format("%.3f", oldValue) +
-                        " → " + String.format("%.3f", newValue));
-                }
-            }
-        } else {
-            System.out.println("\nNo positive regrets - personality unchanged");
-        }
-
-        System.out.println("====================================================\n");
-    }
-
-    /**
-     * Update personality based on Bridge Crossing CFR regrets.
-     */
-    private void updatePersonalityFromBridgeRegret() {
-        Map<String, Double> traitUpdates = new HashMap<>();
-        traitUpdates.put("cautious", 0.0);
-        traitUpdates.put("bold", 0.0);
-
-        // Aggregate regrets from ALL information sets (unified CFR)
         for (InformationSet infoset : informationSets.values()) {
             for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
                 String action = entry.getKey();
-                double regret = entry.getValue();
-
-                if (regret > 0) {
-                    switch (action) {
-                        case "cross_carefully":
-                        case "carefully":
-                            traitUpdates.put("cautious", traitUpdates.get("cautious") + regret);
-                            break;
-                        case "cross_boldly":
-                        case "boldly":
-                            traitUpdates.put("bold", traitUpdates.get("bold") + regret);
-                            break;
-                        case "test_steps":
-                            traitUpdates.put("cautious", traitUpdates.get("cautious") + regret * 0.7);
-                            traitUpdates.put("bold", traitUpdates.get("bold") + regret * 0.3);
-                            break;
-                        case "find_alternative":
-                        case "alternative":
-                            traitUpdates.put("cautious", traitUpdates.get("cautious") + regret * 0.5);
-                            traitUpdates.put("bold", traitUpdates.get("bold") + regret * 0.5);
-                            break;
-                        case "wait_conditions":
-                        case "wait":
-                            traitUpdates.put("cautious", traitUpdates.get("cautious") + regret * 0.8);
-                            traitUpdates.put("bold", traitUpdates.get("bold") + regret * 0.2);
-                            break;
-                    }
-                }
-            }
-        }
-
-        double netBias = traitUpdates.get("bold") - traitUpdates.get("cautious");
-
-        if (Math.abs(netBias) > 0.001) {
-            double oldCautious = personality.getOrDefault("cautious", 0.5);
-            double oldBold = personality.getOrDefault("bold", 0.5);
-
-            double change = netBias * cfrLearningRate * 0.5;
-            double newCautious = oldCautious - change;
-            double newBold = oldBold + change;
-
-            newCautious = Math.max(0.0, Math.min(1.0, newCautious));
-            newBold = Math.max(0.0, Math.min(1.0, newBold));
-
-            personality.put("cautious", newCautious);
-            personality.put("bold", newBold);
-
-            System.out.println(String.format("[Bridge-CFR] Personality: cautious=%.3f->%.3f, bold=%.3f->%.3f (bias=%.3f)",
-                oldCautious, newCautious, oldBold, newBold, netBias));
-        }
-    }
-
-    /** Get action index (0=rock, 1=paper, 2=scissors) */
-    private int actionToIndex(String action) {
-        if (action == null) return -1;
-        switch (action.toLowerCase()) {
-            case "rock": return 0;
-            case "paper": return 1;
-            case "scissors": return 2;
-            default: return -1;
-        }
-    }
-
-    /** Get current RPS cumulative regrets (for stats) */
-    public Map<String, Double> getRPSCumulativeRegrets() {
-        return new HashMap<>(rpsCumulativeRegret);
-    }
-
-    /** Get current Coffee Decision cumulative regrets (for visualization) */
-    public Map<String, Double> getCoffeeCumulativeRegrets() {
-        Map<String, Double> regrets = new HashMap<>();
-        regrets.put("try_new_shop", 0.0);
-        regrets.put("go_regular_shop", 0.0);
-        regrets.put("make_at_home", 0.0);
-
-        // Aggregate from all information sets
-        for (InformationSet infoset : informationSets.values()) {
-            for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
-                String plan = entry.getKey();
-                double regret = entry.getValue();
-                regrets.put(plan, regrets.getOrDefault(plan, 0.0) + regret);
+                regrets.put(action, regrets.getOrDefault(action, 0.0) + entry.getValue());
             }
         }
         return regrets;
     }
 
-    /** Apply mood effects from plan annotation (called after plan execution) */
-    public void applyMoodEffects( Literal effectList ) throws NoValueException {
-        updateDynTemper( effectList );
+    // ==================== BEHAVIORAL MEMORY DELEGATION ====================
+
+    /** Initialize behavioral memory for the help scenario. */
+    public void initBehavioralMemory() {
+        HelpScenarioConfig.initBehavioralMemory(behavioralMemory);
+    }
+
+    /** Update behavioral memory after an interaction. */
+    public void updateBehavioralMemory(String person, boolean helped) {
+        behavioralMemory.update(person, helped, dice);
+    }
+
+    /** Get behavioral memory value for a person. */
+    public double getBehavioralValue(String person, String metric) {
+        return behavioralMemory.getValue(person, metric);
     }
 
     // ==================== PERSONALITY PERSISTENCE ====================
 
-    /** Save personality to JSON file */
+    /** Save personality to JSON file. */
     private void savePersonality() {
         try {
-            StringBuilder json = new StringBuilder();
-            json.append("{\n");
-            json.append("  \"personality\": {\n");
-            int i = 0;
-            for ( Map.Entry<String, Double> entry : personality.entrySet() ) {
-                double val = Math.round( entry.getValue() * 1000.0 ) / 1000.0;
-                json.append("    \"").append( entry.getKey() ).append("\": ")
-                    .append( val );  // Use rounded value for clean JSON
-                if ( i < personality.size() - 1 ) json.append(",");
-                json.append("\n");
-                i++;
+            JSONObject persJson = new JSONObject();
+            for (Map.Entry<String, Double> e : personality.entrySet()) {
+                persJson.put(e.getKey(), Math.round(e.getValue() * 1000.0) / 1000.0);
             }
-            json.append("  },\n");
-            json.append("  \"mood\": {\n");
-            i = 0;
-            for ( Map.Entry<String, Double> entry : mood.entrySet() ) {
-                double val = Math.round( entry.getValue() * 1000.0 ) / 1000.0;
-                json.append("    \"").append( entry.getKey() ).append("\": ")
-                    .append( val );  // Use rounded value for clean JSON
-                if ( i < mood.size() - 1 ) json.append(",");
-                json.append("\n");
-                i++;
+            JSONObject moodJson = new JSONObject();
+            for (Map.Entry<String, Double> e : mood.entrySet()) {
+                moodJson.put(e.getKey(), Math.round(e.getValue() * 1000.0) / 1000.0);
             }
-            json.append("  }\n");
-            json.append("}\n");
+            JSONObject root = new JSONObject();
+            root.put("personality", persJson);
+            root.put("mood", moodJson);
 
-            Files.writeString( Path.of( PERSONALITY_FILE ), json.toString() );
-            System.out.println( "[PERSIST] Personality saved to " + PERSONALITY_FILE );
-        } catch ( IOException e ) {
-            System.err.println( "[PERSIST] Failed to save personality: " + e.getMessage() );
+            Files.writeString(Path.of(PERSONALITY_FILE), root.toString(2));
+        } catch (IOException e) {
+            System.err.println("[PERSIST] Failed to save: " + e.getMessage());
         }
     }
 
-    /** Load personality from JSON file (call this before constructor if needed) */
+    /** Load personality from JSON file. */
     public static Map<String, Object> loadPersonalityFromFile() {
         try {
-            File f = new File( PERSONALITY_FILE );
-            if ( !f.exists() ) {
-                System.out.println( "[PERSIST] No saved personality found, using defaults" );
-                return null;
-            }
+            File f = new File(PERSONALITY_FILE);
+            if (!f.exists()) return null;
 
-            String content = Files.readString( Path.of( PERSONALITY_FILE ) );
-            System.out.println( "[PERSIST] Loaded personality from " + PERSONALITY_FILE );
-            System.out.println( content );
+            String content = Files.readString(Path.of(PERSONALITY_FILE));
+            System.out.println("[PERSIST] Loaded personality from " + PERSONALITY_FILE);
 
-            // Simple JSON parser for our format
+            JSONObject root = new JSONObject(content);
             Map<String, Object> result = new HashMap<>();
-            result.put( "personality", new HashMap<String, Double>() );
-            result.put( "mood", new HashMap<String, Double>() );
 
-            String[] lines = content.split( "\n" );
-            String currentSection = null;
-
-            for ( String line : lines ) {
-                line = line.trim();
-                if ( line.contains( "\"personality\":" ) ) {
-                    currentSection = "personality";
-                } else if ( line.contains( "\"mood\":" ) ) {
-                    currentSection = "mood";
-                } else if ( line.contains( ": " ) && currentSection != null ) {
-                    // Parse "key": value
-                    String[] parts = line.split( "\": " );
-                    if ( parts.length == 2 ) {
-                        String key = parts[0].replace( "\"", "" ).trim();
-                        double value = Double.parseDouble( parts[1].replace( ",", "" ).trim() );
-                        ( (Map<String, Double>) result.get( currentSection ) ).put( key, value );
-                    }
+            Map<String, Double> persMap = new HashMap<>();
+            if (root.has("personality")) {
+                JSONObject persJson = root.getJSONObject("personality");
+                for (String key : persJson.keySet()) {
+                    persMap.put(key, persJson.getDouble(key));
                 }
             }
+            result.put("personality", persMap);
+
+            Map<String, Double> moodMap = new HashMap<>();
+            if (root.has("mood")) {
+                JSONObject moodJson = root.getJSONObject("mood");
+                for (String key : moodJson.keySet()) {
+                    moodMap.put(key, moodJson.getDouble(key));
+                }
+            }
+            result.put("mood", moodMap);
 
             return result;
-        } catch ( Exception e ) {
-            System.err.println( "[PERSIST] Failed to load personality: " + e.getMessage() );
+        } catch (Exception e) {
+            System.err.println("[PERSIST] Failed to load: " + e.getMessage());
             return null;
         }
     }
 
-    /** Get personality file name for use in VesnaAgent */
-    public static String getPersonalityFile() {
-        return PERSONALITY_FILE;
+    // ==================== GETTERS ====================
+
+    public static String getPersonalityFile() { return PERSONALITY_FILE; }
+    public Map<String, Double> getPersonality() { return new HashMap<>(personality); }
+    public Map<String, Double> getMood() { return new HashMap<>(mood); }
+    public double getTotalEpisodeReward() { return totalEpisodeReward; }
+    public List<TraceEntry> getTrace() { return new ArrayList<>(currentEpisodeDecisions); }
+
+    // ==================== SOFTMAX & SELECTION HELPERS ====================
+
+    /** Softmax normalization with temperature annealing for exploration control. */
+    private double[] computeActionProbabilities(List<Double> weights) {
+        double[] probs = new double[weights.size()];
+        double minWeight = Double.MAX_VALUE;
+        for (double w : weights) minWeight = Math.min(minWeight, w);
+
+        double sum = 0.0;
+        for (int i = 0; i < weights.size(); i++) {
+            probs[i] = Math.exp((weights.get(i) - minWeight) / softmaxTemperature);
+            sum += probs[i];
+        }
+
+        if (sum > 0) {
+            for (int i = 0; i < probs.length; i++) probs[i] /= sum;
+        } else {
+            for (int i = 0; i < probs.length; i++) probs[i] = 1.0 / probs.length;
+        }
+        return probs;
     }
 
-    /** Get current mood values */
-    public Map<String, Double> getMood() {
-        return new HashMap<>(mood);
-    }
-
-    /** Get total reward for current episode */
-    public double getTotalEpisodeReward() {
-        return totalEpisodeReward;
-    }
-
-    // ==================== PRIVATE HELPERS ====================
-
-    private int getWeightedRandomIdx( List<Double> weights ) {
-        // Use softmax to convert weights to probabilities (same as computeActionProbabilities)
-        double[] probs = computeActionProbabilities( weights );
-
-        // Compute cumulative probabilities
+    private int getWeightedRandomIdx(List<Double> weights) {
+        double[] probs = computeActionProbabilities(weights);
         double[] cumulative = new double[weights.size()];
         double total = 0.0;
-        for ( int i = 0; i < weights.size(); i++ ) {
+        for (int i = 0; i < weights.size(); i++) {
             total += probs[i];
             cumulative[i] = total;
         }
 
-        // Random roll in [0, 1]
-        double roll = dice.nextDouble( 0.0, 1.0 );
+        double roll = dice.nextDouble();
 
-        // Debug output
-        StringBuilder sb = new StringBuilder( "[RANDOM] roll=" ).append( String.format("%.3f", roll ) );
-        sb.append( " cumulative=" );
-        for ( int i = 0; i < cumulative.length; i++ ) {
-            sb.append( String.format("%.3f", cumulative[i] ) );
-            if ( i < cumulative.length - 1 ) sb.append( ", " );
+        StringBuilder sb = new StringBuilder("[RANDOM] roll=")
+            .append(String.format("%.3f", roll)).append(" cumulative=");
+        for (int i = 0; i < cumulative.length; i++) {
+            sb.append(String.format("%.3f", cumulative[i]));
+            if (i < cumulative.length - 1) sb.append(", ");
         }
-        System.out.println( sb.toString() );
+        System.out.println(sb.toString());
 
-        // Find which bucket the roll falls into
-        for ( int i = 0; i < cumulative.length; i++ ) {
-            if ( roll < cumulative[i] ) {
-                return i;
-            }
+        for (int i = 0; i < cumulative.length; i++) {
+            if (roll < cumulative[i]) return i;
         }
-        return weights.size() - 1;  // Fallback to last
+        return weights.size() - 1;
     }
 
-    private int getMostSimilarIdx( List<Double> weights ) {
+    private int getMostSimilarIdx(List<Double> weights) {
         double min = Double.MAX_VALUE;
         int minIdx = -1;
-        for ( int i = 0; i < weights.size(); i++ ) {
-            if ( weights.get( i ) < min ) {
-                min = weights.get( i );
+        for (int i = 0; i < weights.size(); i++) {
+            if (weights.get(i) < min) {
+                min = weights.get(i);
                 minIdx = i;
             }
         }
         return minIdx;
     }
 
-    private void updateDynTemper( Literal effectList ) throws NoValueException {
-        ListTerm effects = ( ListTerm ) effectList.getTerm( 0 );
-        for ( Term effectTerm : effects ) {
-            Literal effect = ( Literal ) effectTerm;
-            if ( personality.keySet().contains( effect.getFunctor().toString() ) && !effect.hasAnnot( createLiteral( "mood" ) ) )
-                throw new IllegalArgumentException( "You used a Personality trait in the post-effects! Use only mood traits. In case of ambiguous name use the annotation [mood]." );
-            if ( mood.get( effect.getFunctor().toString() ) == null )
-                continue;
-            double moodValue = mood.get( effect.getFunctor().toString() );
-            try {
-                double effectValue = ( double ) ( ( NumberTerm ) effect.getTerm( 0 ) ).solve();
-                if ( effectValue < - 1.0 || effectValue > 1.0 )
-                    throw new IllegalArgumentException("Effect value out of range: " + effectValue + ". It should be between [-1,1].");
-                if ( moodValue + effectValue > 1.0 )
-                    mood.put( effect.getFunctor().toString(), 1.0 );
-                else if ( moodValue + effectValue < -1.0 )
-                    mood.put( effect.getFunctor().toString(), 0.0 );  // Original: sets to 0.0 (kept for compatibility)
-                else
-                    mood.put( effect.getFunctor().toString(), moodValue + effectValue );
-                System.out.println( "[TEMPER] Mood update: " + effect.getFunctor() + " " + String.format("%.2f", moodValue) + " -> " + String.format("%.2f", mood.get(effect.getFunctor().toString())) );
-            } catch ( NoValueException nve ) {
-                throw new NoValueException( "One of the plans has a misspelled annotation" );
-            }
+    // ==================== ORIGINAL: MOOD EFFECTS ====================
+
+    /** Apply mood effects from plan annotation (called by selectIntention). */
+    private void updateDynTemper(Literal effectList) throws NoValueException {
+        ListTerm effects = (ListTerm) effectList.getTerm(0);
+        for (Term effectTerm : effects) {
+            Literal effect = (Literal) effectTerm;
+            String effectName = effect.getFunctor().toString();
+
+            if (personality.containsKey(effectName) && !effect.hasAnnot(createLiteral("mood")))
+                throw new IllegalArgumentException(
+                    "Cannot use personality trait '" + effectName + "' in effects. Use mood traits only.");
+
+            if (mood.get(effectName) == null) continue;
+
+            double moodValue = mood.get(effectName);
+            double effectValue = (double) ((NumberTerm) effect.getTerm(0)).solve();
+
+            if (effectValue < -1.0 || effectValue > 1.0)
+                throw new IllegalArgumentException(
+                    "Effect value out of range: " + effectValue);
+
+            double newMood = Math.max(-1.0, Math.min(1.0, moodValue + effectValue));
+            mood.put(effectName, newMood);
+
+            System.out.println("[TEMPER] Mood: " + effectName + " "
+                + String.format("%.2f", moodValue) + " -> "
+                + String.format("%.2f", newMood));
         }
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append( "[TEMPER] Personality: " );
-        personality.forEach( (k, v) -> sb.append( k + "=" + String.format("%.2f", v) + " " ) );
-        sb.append( "| Mood: " );
-        mood.forEach( (k, v) -> sb.append( k + "=" + String.format("%.2f", v) + " " ) );
+        sb.append("[TEMPER] Personality: ");
+        personality.forEach((k, v) -> sb.append(k + "=" + String.format("%.2f", v) + " "));
+        sb.append("| Mood: ");
+        mood.forEach((k, v) -> sb.append(k + "=" + String.format("%.2f", v) + " "));
         return sb.toString();
     }
 

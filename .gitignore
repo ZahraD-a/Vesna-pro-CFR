@@ -26,3 +26,11 @@ personality_evolution.csv
 # Test analysis outputs
 tests/*.png
 tests/*.html
+
+paper/*
+
+paper
+
+tests/*
+
+ClaudePrism

@@ -1,12 +1,11 @@
 mas vesna {
 
-    agent alice:alice.asl {
+    agent alice:workplace_cfr_learning.asl {
         ag-class:   vesna.VesnaAgent
-        temper:     temper(cautious(0.2), bold(0.3), curious(0.5), excited(0.2)[mood], satisfied(-0.5)[mood], content(0.3)[mood])
-        address:    localhost
-        port:       9080
+        temper:     temper(openness(0.5), conscientiousness(0.5), extraversion(0.5), agreeableness(0.5), neuroticism(0.5), stress(0.0)[mood], satisfaction(0.0)[mood], social_energy(0.0)[mood])
         strategy:   random
-        reward_machine: true
+        seed:       -1
+        cfr_learning: true
         goals:      start
     }
 
