@@ -584,6 +584,14 @@ public class Temper {
         totalEpisodeReward = 0.0;
         currentStage = "root";
 
+        // Reset mood to neutral at episode boundary.
+        // Mood reflects within-episode emotional experience, not lifetime
+        // accumulation. This follows the original Pro-AgentSpeak(L) design
+        // where mood is transient.
+        for (String key : mood.keySet()) {
+            mood.put(key, 0.0);
+        }
+
         // Decay exploration temperature
         softmaxTemperature = Math.max(MIN_TEMPERATURE, softmaxTemperature * TEMPERATURE_DECAY);
         System.out.println("[CFR] Regrets preserved. Temperature=" + String.format("%.3f", softmaxTemperature));
