@@ -32,6 +32,7 @@ paper/*
 paper
 
 tests/*
+!tests/analyze_results.py
 
 ClaudePrism
 
