@@ -7,8 +7,8 @@
     "agreeableness": 0.334
   },
   "mood": {
-    "stress": 0.2,
+    "stress": -0.05,
     "satisfaction": 1,
-    "social_energy": -0.05
+    "social_energy": 0.45
   }
 }

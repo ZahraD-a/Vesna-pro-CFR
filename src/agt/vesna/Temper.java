@@ -99,13 +99,15 @@ public class Temper {
     private Map<String, Double> cumulativeRegret = new HashMap<>();
     /**
      * Learning rate for CFR personality update.
-     * Set low (0.05) so personality evolves over ~50-150 episodes, matching
+     * Set low (0.01) so personality evolves over ~100-150 episodes, matching
      * psychological literature on Big Five stability (Roberts & Mroczek 2008):
      * personality traits change over years, not minutes. At this rate, each
      * episode represents one working week and 300 episodes span ~6 years of
-     * professional contact.
+     * professional contact. The low value is needed because the gradient is
+     * summed across three information sets, giving an effective learning rate
+     * approximately 3x the raw value.
      */
-    private double cfrLearningRate = 0.05;
+    private double cfrLearningRate = 0.01;
     private double softmaxTemperature = 2.0;
     private static final double TEMPERATURE_DECAY = 0.995;
     private static final double MIN_TEMPERATURE = 0.5;
