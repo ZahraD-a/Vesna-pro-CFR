@@ -17,6 +17,15 @@ personality.json
 cfr_regrets.csv
 personality_evolution.csv
 
+# Whitelist per-seed experimental results for reproducibility
+!results/**
+!results/**/*.csv
+!results/**/*.json
+!results/**/*.png
+
+# Whitelist TensorBoard logs for the paper
+!runs/**
+
 # Claude Code workspace
 .claude/
 
@@ -33,6 +42,8 @@ paper
 
 tests/*
 !tests/analyze_results.py
+!tests/run_10_seeds.sh
+!tests/cfr_tensorboard.py
 
 ClaudePrism
 
