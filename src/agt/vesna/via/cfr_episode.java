@@ -6,6 +6,7 @@ import vesna.Temper;
 import vesna.VesnaAgent;
 import vesna.personality.PolicyLogger;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -37,12 +38,15 @@ public class cfr_episode extends DefaultInternalAction {
             System.out.println("\n========== EPISODE " + episodeCounter + " COMPLETE ==========");
             totalReward = temper.getTotalEpisodeReward();
 
-            // CFR learning: updates personality from regrets
+            // Capture end-of-episode mood BEFORE startNewEpisode resets it
+            Map<String, Double> endOfEpisodeMood = new HashMap<>(temper.getMood());
+
+            // CFR learning: updates personality from regrets, then resets mood
             temper.startNewEpisode();
 
-            // Log personality and mood evolution to CSV
+            // Log personality (post-update) and mood (end-of-episode) to CSV
             PolicyLogger.logEpisode(episodeCounter, temper.getPersonality(),
-                                    temper.getMood(), totalReward);
+                                    endOfEpisodeMood, totalReward);
 
             // Log cumulative regrets to CSV
             PolicyLogger.logRegrets(episodeCounter, temper.getHelpCumulativeRegrets());

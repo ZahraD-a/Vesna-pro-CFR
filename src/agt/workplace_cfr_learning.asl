@@ -193,7 +193,7 @@ max_episodes(300).
     :   true
     <-  +strategy(help_carol).
 
-@decline_carol[temper([conscientiousness(0.9), agreeableness(0.1), extraversion(0.1), openness(0.3), neuroticism(0.05)])]
+@decline_carol[temper([conscientiousness(0.9), agreeableness(0.1), extraversion(0.1), openness(0.3), neuroticism(0.05)]), effects([stress(-0.05)[mood]])]
 +!choose_carol_response
     :   true
     <-  +strategy(decline_carol).
