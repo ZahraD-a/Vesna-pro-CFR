@@ -1,14 +1,14 @@
 {
   "personality": {
     "conscientiousness": 0.7,
-    "openness": 0.566,
-    "neuroticism": 0.084,
-    "extraversion": 0.334,
-    "agreeableness": 0.334
+    "openness": 0.559,
+    "neuroticism": 0.089,
+    "extraversion": 0.339,
+    "agreeableness": 0.344
   },
   "mood": {
-    "stress": 0.05,
+    "stress": 0,
     "satisfaction": 1,
-    "social_energy": 0.4
+    "social_energy": 0.35
   }
 }
