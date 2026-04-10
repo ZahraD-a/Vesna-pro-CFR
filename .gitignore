@@ -44,6 +44,8 @@ tests/*
 !tests/analyze_results.py
 !tests/run_10_seeds.sh
 !tests/cfr_tensorboard.py
+!tests/plot_convergence_detail.py
+!tests/plot_paper_figures.py
 
 ClaudePrism
 

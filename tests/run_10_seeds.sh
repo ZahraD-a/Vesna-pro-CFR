@@ -1,19 +1,35 @@
 #!/bin/bash
 # Run the CFR personality learning experiment with 10 different seeds (0-9)
-# Saves per-seed CSV outputs under results/seed_N/
+# Saves per-seed CSV outputs under results/seed_N/ (CFR) or results/static/seed_N/ (baseline)
 #
 # Usage (from project root):
-#   bash tests/run_10_seeds.sh
+#   bash tests/run_10_seeds.sh           # CFR learning mode (default)
+#   bash tests/run_10_seeds.sh static    # Static baseline (no learning)
 #
 # Requirements:
 #   - vesna.jcm must have a "seed: <N>" line (any non-negative integer)
+#   - vesna.jcm must have a "cfr_learning:" line
 #   - gradle-8.5 installed at ./gradle-8.5/bin/gradle
 
 set -e
 
 GRADLE=./gradle-8.5/bin/gradle
 JCM_FILE=vesna.jcm
-RESULTS_DIR=results
+
+MODE="${1:-cfr}"
+
+if [ "$MODE" = "static" ]; then
+    RESULTS_DIR=results/static
+    CFR_VALUE=false
+    echo "Mode: STATIC BASELINE (cfr_learning: false)"
+elif [ "$MODE" = "cfr" ]; then
+    RESULTS_DIR=results
+    CFR_VALUE=true
+    echo "Mode: CFR LEARNING (cfr_learning: true)"
+else
+    echo "ERROR: Unknown mode '$MODE'. Use 'cfr' or 'static'."
+    exit 1
+fi
 
 # Verify gradle
 if [ ! -x "$GRADLE" ]; then
@@ -24,19 +40,22 @@ fi
 # Verify JCM has a seed line
 if ! grep -q "seed:" "$JCM_FILE"; then
     echo "ERROR: $JCM_FILE has no 'seed:' line to replace."
-    echo "Add 'seed: 0' to the agent block before running this script."
     exit 1
 fi
+
+# Set cfr_learning value in JCM
+sed -i.bak "s/cfr_learning: *[a-z]\+/cfr_learning: $CFR_VALUE/" "$JCM_FILE"
+rm -f "$JCM_FILE.bak"
 
 mkdir -p "$RESULTS_DIR"
 
 echo "=========================================="
-echo "Running 10-seed CFR experiment"
+echo "Running 10-seed experiment ($MODE mode)"
 echo "=========================================="
 
 for SEED in 0 1 2 3 4 5 6 7 8 9; do
     echo ""
-    echo "--- Seed $SEED ---"
+    echo "--- Seed $SEED ($MODE) ---"
 
     # Update JCM with this seed (portable sed)
     sed -i.bak "s/seed: *[0-9]\+/seed:       $SEED/" "$JCM_FILE"
@@ -64,12 +83,13 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
     fi
 done
 
-# Reset seed to 0 in JCM
+# Reset to seed 0 + cfr mode in JCM
 sed -i.bak "s/seed: *[0-9]\+/seed:       0/" "$JCM_FILE"
+sed -i.bak "s/cfr_learning: *[a-z]\+/cfr_learning: true/" "$JCM_FILE"
 rm -f "$JCM_FILE.bak"
 
 echo ""
 echo "=========================================="
-echo "All 10 seeds complete. Results in $RESULTS_DIR/"
+echo "All 10 seeds complete ($MODE mode). Results in $RESULTS_DIR/"
 echo "=========================================="
-ls -la "$RESULTS_DIR/"
+ls -la "$RESULTS_DIR/" 2>/dev/null | grep seed_

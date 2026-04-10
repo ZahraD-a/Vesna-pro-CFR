@@ -4,11 +4,11 @@
     "openness": 0.55,
     "neuroticism": 0.095,
     "extraversion": 0.345,
-    "agreeableness": 0.357
+    "agreeableness": 0.356
   },
   "mood": {
-    "stress": 0,
-    "satisfaction": 0,
-    "social_energy": 0
+    "stress": 1,
+    "satisfaction": 1,
+    "social_energy": 1
   }
 }
