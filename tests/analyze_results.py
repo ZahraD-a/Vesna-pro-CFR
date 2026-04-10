@@ -65,13 +65,14 @@ def plot_main(pers_df, reg_df, out_path):
         fontsize=11, fontweight="bold", y=1.02
     )
 
-    ep = pers_df["episode"].values
+    ep_pers = pers_df["episode"].values
+    ep_reg = reg_df["episode"].values
 
     # (a) OCEAN personality
     ax = axes[0]
     ax.set_title("(a) Alice's Personality", fontsize=10, fontweight="bold")
     for trait, (color, label) in OCEAN_COLORS.items():
-        ax.plot(ep, pers_df[trait].values, label=label,
+        ax.plot(ep_pers, pers_df[trait].values, label=label,
                 color=color, linewidth=2,
                 marker="s", markevery=30, markersize=4)
     ax.legend(fontsize=7.5, loc="upper right", framealpha=0.7)
@@ -90,7 +91,7 @@ def plot_main(pers_df, reg_df, out_path):
             if action not in reg_df.columns:
                 continue
             label = action.replace(f"_{person}", "").capitalize()
-            ax.plot(ep, reg_df[action].values, label=label,
+            ax.plot(ep_reg, reg_df[action].values, label=label,
                     color=color, linewidth=2,
                     marker="s", markevery=30, markersize=4)
         ax.legend(fontsize=8, loc="upper left", framealpha=0.7)
@@ -140,6 +141,66 @@ def print_summary(pers_df, reg_df):
             print(f"  {a:22s}: {final_r[a]:+.3f}")
     print("="*60)
 
+def load_multi_seed(results_dir, n_seeds=10):
+    """Load CSVs from results/seed_0 .. seed_(n-1) and return aligned arrays."""
+    pers_list, reg_list = [], []
+    for s in range(n_seeds):
+        seed_dir = os.path.join(results_dir, f"seed_{s}")
+        try:
+            p, r = load_data(seed_dir)
+            pers_list.append(p)
+            reg_list.append(r)
+        except FileNotFoundError:
+            print(f"  Skipping seed_{s} (not found)")
+    return pers_list, reg_list
+
+def plot_multi_seed(pers_list, reg_list, out_path):
+    """Plot mean±std across seeds."""
+    fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+    fig.suptitle(
+        f"VesnaPro CFR — Mean ± Std across {len(pers_list)} seeds",
+        fontsize=11, fontweight="bold", y=1.02
+    )
+
+    # (a) OCEAN with bands
+    ax = axes[0]
+    ax.set_title(f"(a) Alice's Personality (n={len(pers_list)})",
+                 fontsize=10, fontweight="bold")
+    ep = pers_list[0]["episode"].values
+    for trait, (color, label) in OCEAN_COLORS.items():
+        stacked = np.array([p[trait].values for p in pers_list])
+        mean, std = stacked.mean(0), stacked.std(0)
+        ax.plot(ep, mean, label=label, color=color, linewidth=2)
+        ax.fill_between(ep, mean - std, mean + std, color=color, alpha=0.2)
+    ax.legend(fontsize=7.5, loc="upper right", framealpha=0.7)
+    apply_style(ax, ylabel="Trait Value", ylim=(0.0, 1.0))
+
+    # (b)(c)(d) regrets with bands
+    for idx, (person, colors, title) in enumerate([
+        ("bob",   BOB_COLORS,   "(b) Bob (Senior)"),
+        ("carol", CAROL_COLORS, "(c) Carol (Exploitative)"),
+        ("dave",  DAVE_COLORS,  "(d) Dave (Reciprocal)"),
+    ]):
+        ax = axes[idx + 1]
+        ax.set_title(title, fontsize=10, fontweight="bold")
+        ax.axhline(0, color="black", linewidth=0.6)
+        ep_r = reg_list[0]["episode"].values
+        for action, color in colors.items():
+            if action not in reg_list[0].columns:
+                continue
+            stacked = np.array([r[action].values for r in reg_list])
+            mean, std = stacked.mean(0), stacked.std(0)
+            label = action.replace(f"_{person}", "").capitalize()
+            ax.plot(ep_r, mean, label=label, color=color, linewidth=2)
+            ax.fill_between(ep_r, mean - std, mean + std, color=color, alpha=0.2)
+        ax.legend(fontsize=8, loc="upper left", framealpha=0.7)
+        apply_style(ax, ylabel="Cumulative Regret")
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=200, bbox_inches="tight")
+    print(f"Saved: {out_path}")
+    plt.close()
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default=".",
@@ -148,9 +209,21 @@ def main():
                         help="Directory containing CSV files from static run")
     parser.add_argument("--out-dir", default="tests",
                         help="Output directory for figures")
+    parser.add_argument("--multi-seed", default=None,
+                        help="Directory with per-seed subdirs (e.g. 'results') to plot mean±std")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
+
+    if args.multi_seed:
+        pers_list, reg_list = load_multi_seed(args.multi_seed)
+        if not pers_list:
+            print(f"ERROR: No seed directories found in {args.multi_seed}")
+            return
+        out_multi = os.path.join(args.out_dir, "fig_personality_regrets_bands.png")
+        plot_multi_seed(pers_list, reg_list, out_multi)
+        print_summary(pers_list[0], reg_list[0])
+        return
 
     try:
         pers_df, reg_df = load_data(args.base)

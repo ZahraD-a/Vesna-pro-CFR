@@ -4,6 +4,7 @@ mas vesna {
         ag-class:   vesna.VesnaAgent
         temper:     temper(openness(0.5), conscientiousness(0.5), extraversion(0.5), agreeableness(0.5), neuroticism(0.5), stress(0.0)[mood], satisfaction(0.0)[mood], social_energy(0.0)[mood])
         strategy:   random
+        seed:       0
         cfr_learning: true
         goals:      start
     }
