@@ -25,6 +25,7 @@
    - CFR updates personality toward traits of high-regret actions
    ========================================== */
 
+interactions_per_colleague(10).
 max_episodes(300).
 
 // ==========================================
@@ -46,15 +47,11 @@ max_episodes(300).
 // ==========================================
 
 +!episode
-    :   episode(N)
+    :   episode(N) & interactions_per_colleague(K)
     <-  .print("--- Episode ", N, " ---");
-        // Morning: Bob asks for help with PR review
-        !bob_request;
-        // Midday: Carol asks for help with a bug
-        !carol_request;
-        // Afternoon: Dave asks for help with presentation
-        !dave_request;
-        // End of episode: trigger CFR learning
+        !run_interactions(bob, K);
+        !run_interactions(carol, K);
+        !run_interactions(dave, K);
         vesna.via.cfr_episode;
         -episode(N);
         N1 = N + 1;
@@ -71,6 +68,27 @@ max_episodes(300).
 +!check_done
     :   episode(N)
     <-  !episode.
+
+// Multi-interaction dispatch — runs K interactions per colleague
++!run_interactions(_, 0) <- true.
+
++!run_interactions(bob, K)
+    :   K > 0
+    <-  !bob_request;
+        K1 = K - 1;
+        !run_interactions(bob, K1).
+
++!run_interactions(carol, K)
+    :   K > 0
+    <-  !carol_request;
+        K1 = K - 1;
+        !run_interactions(carol, K1).
+
++!run_interactions(dave, K)
+    :   K > 0
+    <-  !dave_request;
+        K1 = K - 1;
+        !run_interactions(dave, K1).
 
 /* ==========================================
    BOB'S REQUEST (Senior Developer)

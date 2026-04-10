@@ -148,10 +148,14 @@ public class Temper {
         planAttempts.put(plan, planAttempts.getOrDefault(plan, 0) + 1);
     }
 
-    /** Get historical average reward for a plan. Returns 0.0 if no data. */
+    /**
+     * Get historical average reward for a plan.
+     * Uses optimistic initialisation (0.5) for unseen actions
+     * following Auer et al. 2002 to prevent zero-initialisation bias.
+     */
     private double getHistoricalAverage(String plan) {
         int attempts = planAttempts.getOrDefault(plan, 0);
-        if (attempts == 0) return 0.0;
+        if (attempts == 0) return 0.5;
         return planTotalReward.getOrDefault(plan, 0.0) / attempts;
     }
 
