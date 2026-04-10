@@ -40,8 +40,9 @@ public class cfr_episode extends DefaultInternalAction {
             // CFR learning: updates personality from regrets
             temper.startNewEpisode();
 
-            // Log personality evolution to CSV
-            PolicyLogger.logEpisode(episodeCounter, temper.getPersonality(), totalReward);
+            // Log personality and mood evolution to CSV
+            PolicyLogger.logEpisode(episodeCounter, temper.getPersonality(),
+                                    temper.getMood(), totalReward);
 
             // Log cumulative regrets to CSV
             PolicyLogger.logRegrets(episodeCounter, temper.getHelpCumulativeRegrets());

@@ -26,6 +26,11 @@ public class PolicyLogger {
         "openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"
     };
 
+    /** Mood trait names in canonical order */
+    private static final String[] MOOD_TRAITS = {
+        "stress", "satisfaction", "social_energy"
+    };
+
     /** All help scenario actions in canonical order */
     private static final String[] HELP_ACTIONS = {
         "help_bob", "decline_bob", "delay_bob",
@@ -34,9 +39,12 @@ public class PolicyLogger {
     };
 
     /**
-     * Log personality state at end of episode.
+     * Log personality and mood state at end of episode.
      */
-    public static void logEpisode(int episode, Map<String, Double> personality, double totalReward) {
+    public static void logEpisode(int episode,
+                                   Map<String, Double> personality,
+                                   Map<String, Double> mood,
+                                   double totalReward) {
         try {
             if (!Files.exists(Paths.get(POLICY_LOG_FILE))) {
                 writeHeader();
@@ -47,6 +55,9 @@ public class PolicyLogger {
             row.append(episode).append(",");
             for (String trait : OCEAN_TRAITS) {
                 row.append(personality.getOrDefault(trait, 0.5)).append(",");
+            }
+            for (String m : MOOD_TRAITS) {
+                row.append(String.format("%.4f", mood.getOrDefault(m, 0.0))).append(",");
             }
             row.append(String.format("%.3f", totalReward));
 
@@ -64,6 +75,9 @@ public class PolicyLogger {
         for (String trait : OCEAN_TRAITS) {
             header.append(trait).append(",");
         }
+        for (String m : MOOD_TRAITS) {
+            header.append(m).append(",");
+        }
         header.append("total_reward");
 
         Files.write(Paths.get(POLICY_LOG_FILE),
@@ -72,10 +86,10 @@ public class PolicyLogger {
     }
 
     /**
-     * Log initial personality (episode 0, before learning).
+     * Log initial personality and mood (episode 0, before learning).
      */
-    public static void logInitial(Map<String, Double> personality) {
-        logEpisode(0, personality, 0.0);
+    public static void logInitial(Map<String, Double> personality, Map<String, Double> mood) {
+        logEpisode(0, personality, mood, 0.0);
     }
 
     /**

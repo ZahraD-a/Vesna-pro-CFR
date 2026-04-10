@@ -59,7 +59,7 @@ public class print_personality extends DefaultInternalAction {
 
         // Log initial state on first call
         if (!initialLogged) {
-            PolicyLogger.logInitial(personality);
+            PolicyLogger.logInitial(personality, temper.getMood());
             initialLogged = true;
         }
 

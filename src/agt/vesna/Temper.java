@@ -290,7 +290,12 @@ public class Temper {
             .map(OptionWrapper::new)
             .collect(Collectors.toList());
         try {
-            return select(wrappedOptions).getOption();
+            Option selected = select(wrappedOptions).getOption();
+            // Apply mood post-effects at plan selection (Def. 3.4 in Gatti et al.)
+            Literal effectList = selected.getPlan().getLabel().getAnnot("effects");
+            if (effectList != null)
+                updateDynTemper(effectList);
+            return selected;
         } catch (NoValueException e) {
             return null;
         }
