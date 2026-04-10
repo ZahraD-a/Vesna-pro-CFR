@@ -24,6 +24,15 @@ import static jason.asSyntax.ASSyntax.*;
  */
 public class record_outcome extends DefaultInternalAction {
 
+    /** Reciprocity shaping coefficient (alpha in Eq. reward_shaping of the paper).
+     *  Can be overridden via -Dalpha=0.4 on the JVM command line for sensitivity checks. */
+    private static final double ALPHA = Double.parseDouble(
+        System.getProperty("alpha", "0.6"));
+    private static final double BETA  = Double.parseDouble(
+        System.getProperty("beta", "0.3"));
+    private static final double GAMMA = Double.parseDouble(
+        System.getProperty("gamma", "0.2"));
+
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
 
@@ -55,18 +64,20 @@ public class record_outcome extends DefaultInternalAction {
         double isExploitative = temper.getBehavioralValue(person, "is_exploitative");
 
         if (helped) {
-            // Reciprocity bonus/penalty: emerges from observed behavior
-            // Helping reciprocal people → bonus; helping exploiters → penalty
-            enhancedReward += (reciprocity - 0.5) * 0.6;
+            // Reciprocity shaping (Hughes et al. 2018, Zhou et al. 2024):
+            // bonus for helping reciprocal people, penalty for exploiters.
+            enhancedReward += (reciprocity - 0.5) * ALPHA;
         }
 
         if (action.contains("decline") && isExploitative > 0.5) {
-            // Boundary-setting bonus: reward for declining known exploiters
-            enhancedReward += 0.3;
+            // Defection/boycott bonus (Ren & Zeng 2024):
+            // reward for declining detected exploiters.
+            enhancedReward += BETA;
         }
 
-        // Relationship bonus: better relationships yield better outcomes
-        enhancedReward += (relationship - 0.5) * 0.2;
+        // Potential-based shaping (Ng et al. 1999):
+        // relationship score acts as a potential function.
+        enhancedReward += (relationship - 0.5) * GAMMA;
 
         ts.getLogger().info(String.format(
             "[CFR] %s %s: base=%.2f -> enhanced=%.3f (recip=%.2f, rel=%.2f, exploit=%s)",
