@@ -146,9 +146,10 @@ def fig_personality_mood(pers_list):
 # FIGURE 2: Regrets per Colleague
 # ============================================================
 def fig_regrets(reg_list):
+    """Plot individual seed trajectories to show real stochastic variation."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
     fig.suptitle(
-        f"Cumulative Regrets per Information Set — mean ± std across {len(reg_list)} seeds",
+        f"Cumulative Regrets per Information Set — {len(reg_list)} individual seeds",
         fontsize=12, fontweight="bold", y=1.03
     )
 
@@ -165,11 +166,16 @@ def fig_regrets(reg_list):
         for action, color in colors.items():
             if action not in reg_list[0].columns:
                 continue
-            stacked = np.array([r[action].values for r in reg_list])
-            mean, std = stacked.mean(0), stacked.std(0)
             label = action.replace(f"_{person}", "").capitalize()
-            ax.plot(ep, mean, label=label, color=color, linewidth=2)
-            ax.fill_between(ep, mean - std, mean + std, color=color, alpha=0.2)
+            # Plot each seed as a thin line; only label the first for the legend
+            for i, r in enumerate(reg_list):
+                ax.plot(ep, r[action].values, color=color,
+                        linewidth=0.8, alpha=0.55,
+                        label=label if i == 0 else None)
+            # Overlay the mean as a bold line on top
+            stacked = np.array([r[action].values for r in reg_list])
+            mean = stacked.mean(0)
+            ax.plot(ep, mean, color=color, linewidth=2.2, alpha=1.0)
         ax.legend(fontsize=9, loc="upper left", framealpha=0.85)
         style(ax, ylabel="Cumulative Regret")
 
