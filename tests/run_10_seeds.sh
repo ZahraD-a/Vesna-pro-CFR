@@ -62,7 +62,7 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
     rm -f "$JCM_FILE.bak"
 
     # Clean previous single-run artifacts so we start fresh
-    rm -f personality_evolution.csv cfr_regrets.csv personality.json
+    rm -f personality_evolution.csv cfr_regrets.csv personality.json adapted_reciprocity.csv
 
     # Run gradle (quiet mode, errors still shown)
     "$GRADLE" run --quiet 2>&1 | tail -5
@@ -74,9 +74,8 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
     if [ -f personality_evolution.csv ]; then
         cp personality_evolution.csv "$SEED_DIR/"
         cp cfr_regrets.csv "$SEED_DIR/"
-        if [ -f personality.json ]; then
-            cp personality.json "$SEED_DIR/"
-        fi
+        if [ -f personality.json ]; then cp personality.json "$SEED_DIR/"; fi
+        if [ -f adapted_reciprocity.csv ]; then cp adapted_reciprocity.csv "$SEED_DIR/"; fi
         echo "  Saved to $SEED_DIR/"
     else
         echo "  ERROR: No CSV files generated for seed $SEED"

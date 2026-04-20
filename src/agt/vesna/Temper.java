@@ -135,6 +135,8 @@ public class Temper {
     private List<TraceEntry> currentEpisodeDecisions = new ArrayList<>();
     private Map<String, Double> stageRewards = new HashMap<>();
     private double totalEpisodeReward = 0.0;
+    /** Tracks the last action taken for each social partner this episode. */
+    private Map<String, String> lastActionPerPerson = new HashMap<>();
 
     private InformationSet getInformationSet(String name) {
         return informationSets.computeIfAbsent(name, InformationSet::new);
@@ -433,6 +435,9 @@ public class Temper {
      */
     public void recordHelpOutcome(String action, double reward, String person) {
 
+        // Track last action for colleague adaptation
+        lastActionPerPerson.put(person.toLowerCase(), action);
+
         // Set reward in most recent trace entry matching this stage
         String expectedStage = "help_" + person;
         if (!currentEpisodeDecisions.isEmpty()) {
@@ -591,6 +596,7 @@ public class Temper {
         // Reset episode state (but KEEP cumulative regrets for convergence)
         currentEpisodeDecisions.clear();
         stageRewards.clear();
+        lastActionPerPerson.clear();
         totalEpisodeReward = 0.0;
         currentStage = "root";
 
@@ -705,6 +711,17 @@ public class Temper {
     /** Get behavioral memory value for a person. */
     public double getBehavioralValue(String person, String metric) {
         return behavioralMemory.getValue(person, metric);
+    }
+
+    /** Returns the PersonMemory for a given social partner key, or null. */
+    public BehavioralMemory.PersonMemory getBehavioralMemoryPerson(String person) {
+        if (behavioralMemory == null) return null;
+        return behavioralMemory.getPersonMemory(person.toLowerCase());
+    }
+
+    /** Returns the last action taken for a given social partner this episode. */
+    public String getLastActionForPerson(String person) {
+        return lastActionPerPerson.getOrDefault(person.toLowerCase(), "");
     }
 
     // ==================== PERSONALITY PERSISTENCE ====================

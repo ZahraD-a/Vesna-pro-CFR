@@ -73,7 +73,8 @@ class CSVMonitor:
     def get_csv_paths(self):
         personality_csv = self.csv_dir / "personality_evolution.csv"
         regret_csv = self.csv_dir / "cfr_regrets.csv"
-        return personality_csv, regret_csv
+        adapt_csv = self.csv_dir / "adapted_reciprocity.csv"
+        return personality_csv, regret_csv, adapt_csv
 
     def detect_runs(self, df):
         """Detect separate training runs by finding episode resets."""
@@ -205,8 +206,23 @@ class CSVMonitor:
             total += count
         print(f"[TensorBoard] Logged {total} regret entries")
 
+    def log_adapt_data(self, df):
+        """Log adapted reciprocity per colleague to TensorBoard."""
+        if df.empty:
+            return
+        run_dir = self.log_dir / "run_001" / "adaptation"
+        writer = SummaryWriter(run_dir)
+        for _, row in df.iterrows():
+            ep = int(row['episode'])
+            for col in ['carol_adapted', 'bob_adapted', 'dave_adapted',
+                        'carol_innate', 'bob_innate', 'dave_innate']:
+                if col in row:
+                    writer.add_scalar(f'reciprocity/{col}', row[col], ep)
+        writer.close()
+        print(f"[TensorBoard] Logged {len(df)} adapted-reciprocity entries")
+
     def process_existing_data(self):
-        personality_path, regret_path = self.get_csv_paths()
+        personality_path, regret_path, adapt_path = self.get_csv_paths()
         print("\n=== Processing Existing Data ===")
 
         if personality_path.exists():
@@ -223,17 +239,27 @@ class CSVMonitor:
         else:
             print(f"No regret data at {regret_path}")
 
+        if adapt_path.exists():
+            df = pd.read_csv(adapt_path)
+            print(f"Found {len(df)} adapt entries in {adapt_path.name}")
+            self.log_adapt_data(df)
+        else:
+            print(f"No adapted reciprocity data at {adapt_path}")
+
         print("=== Processing Complete ===\n")
 
     def monitor(self, interval=5):
         print(f"\n=== Monitoring CSV files (interval: {interval}s) ===")
         print("Press Ctrl+C to stop...\n")
 
-        personality_path, regret_path = self.get_csv_paths()
+        personality_path, regret_path, adapt_path = self.get_csv_paths()
+        adapt_lines = 0
         if personality_path.exists():
             self.personality_lines = len(pd.read_csv(personality_path))
         if regret_path.exists():
             self.regret_lines = len(pd.read_csv(regret_path))
+        if adapt_path.exists():
+            adapt_lines = len(pd.read_csv(adapt_path))
 
         try:
             while True:
@@ -248,6 +274,12 @@ class CSVMonitor:
                     if len(df) > self.regret_lines:
                         self.log_regret_data(df.iloc[self.regret_lines:])
                         self.regret_lines = len(df)
+
+                if adapt_path.exists():
+                    df = pd.read_csv(adapt_path)
+                    if len(df) > adapt_lines:
+                        self.log_adapt_data(df.iloc[adapt_lines:])
+                        adapt_lines = len(df)
 
                 time.sleep(interval)
         except KeyboardInterrupt:

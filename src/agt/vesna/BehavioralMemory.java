@@ -34,6 +34,9 @@ public class BehavioralMemory {
         // Innate reciprocity tendency (probability they help you back)
         public final double reliability;
         public final double reciprocity;
+        /** Adaptive reciprocity: starts equal to innate, changes based on
+         *  observed agent behaviour. This is what actually drives Bernoulli trials. */
+        public double adaptedReciprocity;
 
         public PersonMemory(String name, double reliability, double reciprocity) {
             this.name = name;
@@ -42,6 +45,7 @@ public class BehavioralMemory {
             this.reciprocityRatio = 0.5;  // Start neutral — agent must learn from experience
             this.reliability = reliability;
             this.reciprocity = reciprocity;  // Innate tendency (hidden, drives stochastic outcomes)
+            this.adaptedReciprocity = reciprocity;
         }
 
         /**
@@ -52,8 +56,8 @@ public class BehavioralMemory {
             timesAsked++;
             if (helped) {
                 timesHelped++;
-                // Did they reciprocate? Based on their innate reciprocity tendency
-                boolean reciprocated = dice.nextDouble() < reciprocity;
+                // Did they reciprocate? Uses adapted reciprocity so colleague responds to agent behaviour
+                boolean reciprocated = dice.nextDouble() < adaptedReciprocity;
                 if (reciprocated) {
                     timesTheyHelpedYou++;
                     relationshipScore = Math.min(1.0, relationshipScore + 0.05);
@@ -71,6 +75,27 @@ public class BehavioralMemory {
             isExploitative = reciprocityRatio < 0.2 && timesAsked > 3;
             isAppreciative = relationshipScore > 0.7;
             isReciprocal = reciprocityRatio > 0.5;
+        }
+
+        /**
+         * Colleague adapts reciprocity based on what the agent did this cycle.
+         * If the agent declined: colleague increases reciprocity slightly
+         *   (incentive to win cooperation back).
+         * If the agent helped: slow natural drift back toward innate tendency.
+         *
+         * @param agentDeclined true if the agent declined this cycle
+         */
+        public void adaptReciprocity(boolean agentDeclined) {
+            if (agentDeclined) {
+                adaptedReciprocity = Math.min(0.85, adaptedReciprocity + 0.02);
+            } else {
+                adaptedReciprocity = adaptedReciprocity
+                    + 0.003 * (reciprocity - adaptedReciprocity);
+            }
+            System.out.println("[ADAPT] " + name
+                + " reciprocity: " + String.format("%.3f", adaptedReciprocity)
+                + " (innate=" + String.format("%.2f", reciprocity) + ")"
+                + (agentDeclined ? " [agent declined]" : " [agent helped]"));
         }
     }
 
@@ -110,5 +135,10 @@ public class BehavioralMemory {
     /** Check if memory has been initialized. */
     public boolean isEmpty() {
         return memory.isEmpty();
+    }
+
+    /** Return PersonMemory for a given key, or null if not found. */
+    public PersonMemory getPersonMemory(String key) {
+        return memory.get(key.toLowerCase());
     }
 }

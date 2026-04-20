@@ -59,8 +59,8 @@ max_episodes(300).
         !check_done.
 
 +!check_done
-    :   episode(300)
-    <-  .print("\n=== TRAINING COMPLETE (300 episodes) ===");
+    :   episode(N) & max_episodes(M) & N >= M
+    <-  .print("\n=== TRAINING COMPLETE (", N, " episodes) ===");
         vesna.via.print_personality;
         vesna.via.print_cfr_stats;
         .stopMAS.
