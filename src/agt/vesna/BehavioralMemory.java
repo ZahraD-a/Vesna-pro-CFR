@@ -64,8 +64,11 @@ public class BehavioralMemory {
                 } else {
                     relationshipScore = Math.max(0.0, relationshipScore - 0.02);
                 }
-                // EMA: α=0.12 so ρ_observed converges in ~30 episodes after Carol adapts
-                reciprocityRatio = 0.88 * reciprocityRatio + 0.12 * (reciprocated ? 1.0 : 0.0);
+            }
+
+            // Standard cumulative ratio — conservative trust recovery
+            if (timesHelped > 0) {
+                reciprocityRatio = (double) timesTheyHelpedYou / timesHelped;
             }
 
             // Update pattern flags (only after enough data)

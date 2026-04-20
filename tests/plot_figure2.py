@@ -19,8 +19,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-RESULTS_DIR = "results"
+RESULTS_DIR = "results/reversal"
 N_SEEDS     = 10
+TRIM_EP     = 400   # show first N episodes for convergence panels
 OUT         = "results/fig2_personality_regrets.png"
 
 # ── Publication colour palette ────────────────────────────────────────────────
@@ -90,9 +91,13 @@ def style(ax, ylabel="", ylim=None, legend_loc="best", legend=True):
 def main():
     pers, regs, adapts = load_seeds(RESULTS_DIR, N_SEEDS)
     n = len(pers)
-    ep_p = pers[0]["episode"].values   # 0..300
-    ep_r = regs[0]["episode"].values   # 1..300
-    ep_a = adapts[0]["episode"].values # 1..300
+    # trim to TRIM_EP episodes for convergence view
+    pers   = [p[p["episode"] <= TRIM_EP].reset_index(drop=True) for p in pers]
+    regs   = [r[r["episode"] <= TRIM_EP].reset_index(drop=True) for r in regs]
+    adapts = [a[a["episode"] <= TRIM_EP].reset_index(drop=True) for a in adapts]
+    ep_p = pers[0]["episode"].values
+    ep_r = regs[0]["episode"].values
+    ep_a = adapts[0]["episode"].values
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 9),
                              gridspec_kw={"hspace": 0.42, "wspace": 0.34})

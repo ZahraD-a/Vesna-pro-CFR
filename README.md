@@ -16,15 +16,14 @@ A BDI agent (Alice) works in a simulated office with three colleagues of contras
 | **Carol** | Exploitative peer | 0.10 (low) |
 | **Dave** | Reciprocal collaborator | 0.90 (high) |
 
-Alice starts with a **neutral OCEAN personality** (all traits = 0.5) and learns over 400 episodes via CFR-based regret matching. Her personality drifts toward the profile that maximises long-run social reward.
+Alice starts with a **neutral OCEAN personality** (all traits = 0.5) and learns over 2000 episodes via standard CFR-based regret matching. Her personality drifts toward the profile that maximises long-run social reward.
 
 **Adaptive colleague reciprocity:**
 Colleagues are no longer static. Each colleague observes Alice's behaviour each episode and adjusts their own reciprocity:
 - If Alice **declines** → colleague raises reciprocity +0.02 (cap 0.85) to win cooperation back
 - If Alice **helps** → colleague drifts slowly back toward their innate tendency (rate 0.003)
 
-**EMA-corrected exploitation detection:**
-`BehavioralMemory` tracks observed reciprocity via EMA (α=0.12) rather than a cumulative ratio. This ensures the exploitation flag φ responds to *recent* behaviour: when Carol's adapted reciprocity rises past 0.20, φ deactivates and the β=0.3 boundary bonus is removed — enabling the full regret reversal within 400 episodes.
+This closes a full mutual-adaptation loop and produces a genuine emergent social reversal.
 
 ---
 
@@ -36,25 +35,28 @@ Colleagues are no longer static. Each colleague observes Alice's behaviour each 
 
 | Panel | Finding |
 |-------|---------|
-| **(a) Alice personality** | Converges by ep 100: A 0.50→0.66, N 0.50→0.34, C 0.50→0.51 |
+| **(a) Alice personality** | Converges by ep 100: C rises, N falls, A settles around 0.41 |
 | **(b) Bob regrets** | Delay dominates — Bob's moderate reciprocity makes delay optimal |
-| **(c) Carol regrets** | decline_carol peaks then reverses; mean crosses zero at ep 222 ± 120 |
+| **(c) Carol regrets** | decline_carol peaks early; reversal begins as Carol adapts |
 | **(d) Dave regrets** | Help dominates massively; decline heavily penalised |
-| **(e) Adaptive reciprocity** | Bob and Carol both rise toward 0.82–0.85 by ep 150; Dave hits cap instantly |
+| **(e) Adaptive reciprocity** | Bob and Carol both rise toward 0.84 by ep 150; Dave hits cap |
 | **(f) Growth rate → 0** | Regret-gap growth rate reaches zero by ep 150 — social equilibrium |
 
-### Figure 3 — EMA reversal story (10 seeds, 400 episodes)
+### Figure 3 — Standard CFR reversal (10 seeds, 2000 episodes)
 
 ![Figure 3](results/fig3_reversal.png)
 
-The EMA fix exposes the full causal chain of the social reversal:
+Standard CFR with cumulative ratio estimation produces a conservative trust-recovery arc:
 
 | Panel | Finding |
 |-------|---------|
-| **(a) ρ_observed(Carol)** | EMA tracks Carol's true adapted reciprocity; rises from 0.10 past the 0.20 threshold by ep ~46 |
-| **(b) φ(Carol) flag** | Exploitation flag deactivates at ep 46 ± 12 — β bonus removed |
-| **(c) Instantaneous Δ** | Per-episode change in decline_carol regret turns negative after φ off |
-| **(d) Cumulative** | decline_carol regret crosses zero at ep 222 ± 120 — reversal confirmed |
+| **(a) Carol adapted reciprocity** | Rises from 0.10 to ~0.82 by ep 150 and saturates |
+| **(b) Carol rho_observed** | Cumulative ratio slowly crosses threshold 0.20 at ep 38 ± 19 |
+| **(c) phi(Carol) flag** | Exploitation flag deactivates at ep 44 ± 19; boundary bonus removed |
+| **(d) Instantaneous regret** | Per-episode decline_carol regret changes sign after phi off |
+| **(e) Cumulative reversal** | decline_carol regret crosses zero at ep **910 ± 324** — social reversal confirmed |
+
+The 910-episode reversal timeline is a concrete, measurable property of standard CFR conservative estimation: early exploitation evidence leaves a lasting imprint that requires proportional cooperative evidence to overcome.
 
 ---
 
@@ -62,10 +64,10 @@ The EMA fix exposes the full causal chain of the social reversal:
 
 ```
 src/agt/
-  workplace_cfr_learning.asl   — AgentSpeak scenario (10 interactions/ep x 400 ep)
+  workplace_cfr_learning.asl   — AgentSpeak scenario (10 interactions/ep x 2000 ep)
   vesna/
     Temper.java                — CFR engine: regret matching + softmax + personality update
-    BehavioralMemory.java      — Per-colleague memory (EMA reciprocity) + adaptive reciprocity
+    BehavioralMemory.java      — Per-colleague memory + adaptive reciprocity (cumulative ratio)
     via/
       cfr_episode.java         — Episode boundary: CFR update + colleague adaptation + CSV logging
       record_outcome.java      — Reward shaping (alpha/beta/gamma)
@@ -83,14 +85,6 @@ r_enhanced = r_base
 
 Default: `alpha=0.6`, `beta=0.3`, `gamma=0.2` (configurable via `-Palpha=X` Gradle flag).
 
-**EMA exploitation detection:**
-```java
-// BehavioralMemory.java — inside if (helped) block
-reciprocityRatio = 0.88 * reciprocityRatio + 0.12 * (reciprocated ? 1.0 : 0.0);
-isExploitative = reciprocityRatio < 0.2 && timesAsked > 3;
-```
-α=0.12 gives a ~30-episode convergence window (vs. cumulative ratio which becomes insensitive after ~1000 observations).
-
 ---
 
 ## Reproducing experiments
@@ -98,16 +92,16 @@ isExploitative = reciprocityRatio < 0.2 && timesAsked > 3;
 **Requirements:** Java 21, Python 3.x with `matplotlib pandas numpy`
 
 ```bash
-# Single run (seed 0, 400 episodes)
+# Single run (seed 0, 2000 episodes)
 ./gradle-8.5/bin/gradle run
 
-# Full 10-seed CFR experiment  ->  results/seed_0..9/
-bash tests/run_10_seeds.sh
+# Full 10-seed CFR experiment -> results/reversal/seed_0..9/
+bash tests/run_10_seeds.sh reversal
 
-# Generate Figure 2 (10 seeds, 400 ep)
+# Generate Figure 2 (personality convergence, 10 seeds, first 400 ep)
 python tests/plot_figure2.py
 
-# Generate Figure 3 (EMA reversal, 10 seeds, 400 ep)
+# Generate Figure 3 (standard CFR reversal, 10 seeds, 2000 ep)
 python tests/plot_figure3.py
 
 # TensorBoard visualisation (mean across seeds)
@@ -132,12 +126,13 @@ vesna-pro/
   src/agt/                     — Agent source (Java + AgentSpeak)
   src/env/                     — JaCaMo environment artifacts
   results/
-    seed_0..9/                 — 10-seed CFR run (400 episodes, EMA fix)
+    seed_0..9/                 — 10-seed CFR run (400 ep, for Figure 2)
+    reversal/seed_0..9/        — 10-seed CFR run (2000 ep, for Figure 3)
     fig2_personality_regrets.png
     fig3_reversal.png
   tests/
-    plot_figure2.py            — Figure 2: personality + regrets (10 seeds)
-    plot_figure3.py            — Figure 3: EMA reversal story (4 panels)
+    plot_figure2.py            — Figure 2: personality + regrets (10 seeds, 400 ep)
+    plot_figure3.py            — Figure 3: standard CFR reversal (10 seeds, 2000 ep)
     run_10_seeds.sh            — Batch experiment runner
     cfr_tensorboard.py         — TensorBoard event file writer
     log_tensorboard_mean.py    — Log mean-across-seeds to TensorBoard
