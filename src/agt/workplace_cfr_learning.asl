@@ -26,7 +26,7 @@
    ========================================== */
 
 interactions_per_colleague(10).
-max_episodes(300).
+max_episodes(400).
 
 // ==========================================
 // INITIALIZATION

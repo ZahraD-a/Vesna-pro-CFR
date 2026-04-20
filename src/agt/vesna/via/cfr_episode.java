@@ -34,17 +34,19 @@ public class cfr_episode extends DefaultInternalAction {
             vesna.BehavioralMemory.PersonMemory dave) {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ADAPT_LOG, true))) {
             if (!adaptHeaderWritten) {
-                pw.println("episode,carol_adapted,carol_innate,bob_adapted,bob_innate,dave_adapted,dave_innate");
+                pw.println("episode,carol_adapted,carol_innate,bob_adapted,bob_innate,dave_adapted,dave_innate,carol_observed_ratio,carol_phi");
                 adaptHeaderWritten = true;
             }
-            double ca = carol != null ? carol.adaptedReciprocity : 0;
-            double ci = carol != null ? carol.reciprocity : 0;
-            double ba = bob   != null ? bob.adaptedReciprocity   : 0;
-            double bi = bob   != null ? bob.reciprocity          : 0;
-            double da = dave  != null ? dave.adaptedReciprocity  : 0;
-            double di = dave  != null ? dave.reciprocity         : 0;
-            pw.printf("%d,%.4f,%.2f,%.4f,%.2f,%.4f,%.2f%n",
-                      episode, ca, ci, ba, bi, da, di);
+            double ca  = carol != null ? carol.adaptedReciprocity : 0;
+            double ci  = carol != null ? carol.reciprocity        : 0;
+            double ba  = bob   != null ? bob.adaptedReciprocity   : 0;
+            double bi  = bob   != null ? bob.reciprocity          : 0;
+            double da  = dave  != null ? dave.adaptedReciprocity  : 0;
+            double di  = dave  != null ? dave.reciprocity         : 0;
+            double cor = carol != null ? carol.reciprocityRatio   : 0;
+            int    phi = (carol != null && carol.isExploitative)  ? 1 : 0;
+            pw.printf("%d,%.4f,%.2f,%.4f,%.2f,%.4f,%.2f,%.4f,%d%n",
+                      episode, ca, ci, ba, bi, da, di, cor, phi);
         } catch (IOException e) {
             System.err.println("[ADAPT LOG] " + e.getMessage());
         }

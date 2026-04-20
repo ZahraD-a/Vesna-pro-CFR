@@ -64,11 +64,8 @@ public class BehavioralMemory {
                 } else {
                     relationshipScore = Math.max(0.0, relationshipScore - 0.02);
                 }
-            }
-
-            // Update observed reciprocity from data
-            if (timesHelped > 0) {
-                reciprocityRatio = (double) timesTheyHelpedYou / timesHelped;
+                // EMA: α=0.12 so ρ_observed converges in ~30 episodes after Carol adapts
+                reciprocityRatio = 0.88 * reciprocityRatio + 0.12 * (reciprocated ? 1.0 : 0.0);
             }
 
             // Update pattern flags (only after enough data)

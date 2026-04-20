@@ -44,6 +44,10 @@ tests/*
 !tests/analyze_results.py
 !tests/run_10_seeds.sh
 !tests/cfr_tensorboard.py
+!tests/log_tensorboard_mean.py
+!tests/plot_figure2.py
+!tests/plot_figure3.py
+!tests/cfr_tensorboard.py
 !tests/plot_convergence_detail.py
 !tests/plot_paper_figures.py
 
