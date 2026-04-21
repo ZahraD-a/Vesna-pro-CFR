@@ -2,7 +2,7 @@
 
 Extension of the VEsNA-Pro BDI agent framework with **Counterfactual Regret Minimization (CFR)** for emergent personality evolution and adaptive colleague reciprocity.
 
-> Paper submitted to **EUMAS 2026**: *"VEsNA-Pro: Exploiting BDI Agents with Propensities for Emergent Narrative"*
+ 
 
 ---
 
