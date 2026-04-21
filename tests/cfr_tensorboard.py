@@ -32,7 +32,7 @@ except ImportError:
         print("Install with: pip install torch tensorboard")
 
 
-# OCEAN trait names (must match PolicyLogger.java)
+# OCEAN trait names (must match PolicyLogger.java) , oceao plots
 OCEAN_TRAITS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism']
 
 # Help scenario actions (must match PolicyLogger.java)
