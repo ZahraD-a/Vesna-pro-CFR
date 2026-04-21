@@ -5,14 +5,7 @@
    Agent: Alice — a mid-level developer
    Learns which OCEAN personality traits lead to successful
    social interactions via Counterfactual Regret Minimization.
-
-   OCEAN Personality Model:
-   - Openness (O):          Creativity, flexibility, mentoring
-   - Conscientiousness (C): Discipline, focus, reliability
-   - Extraversion (E):      Social engagement, visibility
-   - Agreeableness (A):     Cooperation, helpfulness
-   - Neuroticism (N):       Emotional sensitivity, anxiety
-
+ 
    Characters:
    - Bob:   Senior Developer — demanding but fair, moderate reciprocity
    - Carol: Junior Developer — asks often, rarely reciprocates (exploitative)
@@ -109,7 +102,7 @@ max_episodes(2000).
         !choose_bob_response;
         !execute_bob.
 
-// --- Bob plan options (OCEAN-annotated, selected by Temper.select) ---
+// --- Bob plan options (OCEAN-annotated, selected by Temper.select) ------
 
 @help_bob[temper([agreeableness(0.8), conscientiousness(0.7), extraversion(0.5), openness(0.4), neuroticism(0.3)]), effects([satisfaction(+0.1)[mood]])]
 +!choose_bob_response
