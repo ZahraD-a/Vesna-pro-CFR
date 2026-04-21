@@ -17,7 +17,7 @@ personality.json
 cfr_regrets.csv
 personality_evolution.csv
 
-# Whitelist per-seed experimental results for reproducibility
+# Whitelist per-seed experimental results for reproducibility, run multiple seeds
 !results/**
 !results/**/*.csv
 !results/**/*.json
