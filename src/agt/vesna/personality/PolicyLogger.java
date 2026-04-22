@@ -132,9 +132,93 @@ public class PolicyLogger {
         try {
             Files.deleteIfExists(Paths.get(POLICY_LOG_FILE));
             Files.deleteIfExists(Paths.get(REGRET_LOG_FILE));
+            Files.deleteIfExists(Paths.get("carol_personality_evolution.csv"));
+            Files.deleteIfExists(Paths.get("carol_cfr_regrets.csv"));
         } catch (IOException e) {
             System.err.println("[POLICY] Failed to reset: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Log Carol's personality evolution (if she learns via CFR).
+     */
+    public static void logCarolPersonality(int episode, Map<String, Double> carolPersonality) {
+        try {
+            String filepath = "carol_personality_evolution.csv";
+            if (!Files.exists(Paths.get(filepath))) {
+                writeCarolHeader();
+            }
+
+            StringBuilder row = new StringBuilder();
+            row.append(LocalDateTime.now().format(TIME_FORMAT)).append(",");
+            row.append(episode).append(",");
+            for (String trait : OCEAN_TRAITS) {
+                row.append(String.format("%.4f", carolPersonality.getOrDefault(trait, 0.5))).append(",");
+            }
+            // Remove trailing comma
+            String rowStr = row.toString();
+            if (rowStr.endsWith(",")) {
+                rowStr = rowStr.substring(0, rowStr.length() - 1);
+            }
+
+            Files.write(Paths.get(filepath),
+                (rowStr + System.lineSeparator()).getBytes(),
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+        } catch (IOException e) {
+            System.err.println("[CAROL POLICY] Failed to log personality: " + e.getMessage());
+        }
+    }
+
+    private static void writeCarolHeader() throws IOException {
+        StringBuilder header = new StringBuilder("timestamp,episode");
+        for (String trait : OCEAN_TRAITS) {
+            header.append(",").append("carol_").append(trait);
+        }
+
+        Files.write(Paths.get("carol_personality_evolution.csv"),
+            (header.toString() + System.lineSeparator()).getBytes(),
+            StandardOpenOption.CREATE);
+    }
+    
+    /**
+     * Log Carol's CFR regrets for each action.
+     */
+    public static void logCarolRegrets(int episode, Map<String, Double> carolRegrets) {
+        try {
+            String filepath = "carol_cfr_regrets.csv";
+            if (!Files.exists(Paths.get(filepath))) {
+                writeCarolRegretHeader();
+            }
+
+            StringBuilder row = new StringBuilder();
+            row.append(LocalDateTime.now().format(TIME_FORMAT)).append(",");
+            row.append(episode).append(",");
+            String[] carolActions = {"help", "decline", "reciprocate"};
+            for (String action : carolActions) {
+                row.append(String.format("%.4f", carolRegrets.getOrDefault(action, 0.0))).append(",");
+            }
+            // Remove trailing comma
+            String rowStr = row.toString();
+            if (rowStr.endsWith(",")) {
+                rowStr = rowStr.substring(0, rowStr.length() - 1);
+            }
+
+            Files.write(Paths.get(filepath),
+                (rowStr + System.lineSeparator()).getBytes(),
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+        } catch (IOException e) {
+            System.err.println("[CAROL POLICY] Failed to log regrets: " + e.getMessage());
+        }
+    }
+
+    private static void writeCarolRegretHeader() throws IOException {
+        StringBuilder header = new StringBuilder("timestamp,episode,carol_help_regret,carol_decline_regret,carol_reciprocate_regret");
+
+        Files.write(Paths.get("carol_cfr_regrets.csv"),
+            (header.toString() + System.lineSeparator()).getBytes(),
+            StandardOpenOption.CREATE);
     }
 
     public static String getLogFilePath() { return POLICY_LOG_FILE; }
