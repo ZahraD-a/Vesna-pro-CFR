@@ -89,6 +89,11 @@ public class cfr_episode extends DefaultInternalAction {
             if (carolMem != null) carolMem.adaptReciprocity(lastCarolAction.contains("decline"));
             if (bobMem   != null) bobMem.adaptReciprocity(lastBobAction.contains("decline"));
             if (daveMem  != null) daveMem.adaptReciprocity(lastDaveAction.contains("decline"));
+            
+            // Carol's personality update (CFR-based learning)
+            if (carolMem != null && carolMem.learnsViaCFR) {
+                carolMem.updatePersonalityFromRegret();
+            }
             // ─────────────────────────────────────────────────────────────
 
             // Log adapted reciprocity to CSV for verification
@@ -100,6 +105,12 @@ public class cfr_episode extends DefaultInternalAction {
 
             // Log cumulative regrets to CSV
             PolicyLogger.logRegrets(episodeCounter, temper.getHelpCumulativeRegrets());
+            
+            // Log Carol's personality and regrets if she's learning
+            if (carolMem != null && carolMem.learnsViaCFR) {
+                PolicyLogger.logCarolPersonality(episodeCounter, carolMem.personality);
+                PolicyLogger.logCarolRegrets(episodeCounter, carolMem.cumulativeRegret);
+            }
         }
 
         System.out.println("======================================\n");

@@ -3,6 +3,8 @@ package vesna;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Tracks per-colleague relationship dynamics for CFR personality learning.
@@ -11,6 +13,11 @@ import java.util.Random;
  * and relationship quality. These values are used by record_outcome
  * to compute enhanced rewards that create reward divergence from
  * initially uniform base rewards.
+ * 
+ * EXTENSION: Carol (and optionally other colleagues) now have:
+ * - OCEAN personality traits that evolve via CFR
+ * - Response plans: help_colleague, decline_colleague, reciprocate_colleague
+ * - Regret tracking and personality updates
  */
 public class BehavioralMemory {
 
@@ -37,6 +44,28 @@ public class BehavioralMemory {
         /** Adaptive reciprocity: starts equal to innate, changes based on
          *  observed agent behaviour. This is what actually drives Bernoulli trials. */
         public double adaptedReciprocity;
+        
+        // ===== CFR PERSONALITY LEARNING EXTENSION =====
+        /** OCEAN personality traits (only for Carol in current version) */
+        public Map<String, Double> personality = new HashMap<>();
+        
+        /** Cumulative regret for each action (help, decline, reciprocate) */
+        public Map<String, Double> cumulativeRegret = new HashMap<>();
+        
+        /** Strategy sum for regret matching */
+        public Map<String, Double> strategySum = new HashMap<>();
+        
+        /** Action count for normalization */
+        public int actionCount = 0;
+        
+        /** CFR learning rate */
+        private static final double CFR_LEARNING_RATE = 0.01;
+        
+        /** Whether this agent learns via CFR (Carol = true, Bob/Dave = false) */
+        public boolean learnsViaCFR;
+        
+        /** List of decision traces for CFR updates */
+        public List<String> lastDecisionTrace = new ArrayList<>();
 
         public PersonMemory(String name, double reliability, double reciprocity) {
             this.name = name;
@@ -46,6 +75,42 @@ public class BehavioralMemory {
             this.reliability = reliability;
             this.reciprocity = reciprocity;  // Innate tendency (hidden, drives stochastic outcomes)
             this.adaptedReciprocity = reciprocity;
+            this.learnsViaCFR = false;  // Default: no CFR
+            
+            // Initialize CFR structures
+            this.cumulativeRegret.put("help", 0.0);
+            this.cumulativeRegret.put("decline", 0.0);
+            this.cumulativeRegret.put("reciprocate", 0.0);
+            this.strategySum.put("help", 1.0);
+            this.strategySum.put("decline", 1.0);
+            this.strategySum.put("reciprocate", 1.0);
+        }
+        
+        /**
+         * Constructor for Carol: includes OCEAN personality and CFR learning.
+         */
+        public PersonMemory(String name, double reliability, double reciprocity, 
+                           boolean learnsViaCFR, 
+                           double openness, double conscientiousness, double extraversion,
+                           double agreeableness, double neuroticism) {
+            this(name, reliability, reciprocity);
+            this.learnsViaCFR = learnsViaCFR;
+            
+            if (learnsViaCFR) {
+                // Initialize OCEAN personality traits
+                this.personality.put("openness", openness);
+                this.personality.put("conscientiousness", conscientiousness);
+                this.personality.put("extraversion", extraversion);
+                this.personality.put("agreeableness", agreeableness);
+                this.personality.put("neuroticism", neuroticism);
+                
+                System.out.println("[INIT] " + name + " initialized with personality: "
+                    + "O=" + String.format("%.2f", openness)
+                    + " C=" + String.format("%.2f", conscientiousness)
+                    + " E=" + String.format("%.2f", extraversion)
+                    + " A=" + String.format("%.2f", agreeableness)
+                    + " N=" + String.format("%.2f", neuroticism));
+            }
         }
 
         /**
@@ -87,7 +152,11 @@ public class BehavioralMemory {
          */
         public void adaptReciprocity(boolean agentDeclined) {
             if (agentDeclined) {
-                adaptedReciprocity = Math.min(0.85, adaptedReciprocity + 0.02);
+                // Proportional adaptation: increment scales with remaining capacity to cap.
+                // Creates smooth S-curve that asymptotically approaches 0.85 over full timeline.
+                // Base rate 0.012 allows faster learning than 0.008.
+                double remainingCapacity = 0.85 - adaptedReciprocity;
+                adaptedReciprocity += 0.012 * remainingCapacity;
             } else {
                 adaptedReciprocity = adaptedReciprocity
                     + 0.003 * (reciprocity - adaptedReciprocity);
@@ -97,11 +166,165 @@ public class BehavioralMemory {
                 + " (innate=" + String.format("%.2f", reciprocity) + ")"
                 + (agentDeclined ? " [agent declined]" : " [agent helped]"));
         }
+        
+        /**
+         * For CFR-learning colleagues like Carol:
+         * Select an action (help, decline, reciprocate) based on current personality
+         * and cumulative regret using regret matching.
+         * 
+         * Returns the selected action.
+         */
+        public String selectAction(Random dice) {
+            if (!learnsViaCFR) {
+                // Non-learning colleagues: probabilistic based on adaptedReciprocity
+                double r = dice.nextDouble();
+                if (r < adaptedReciprocity) {
+                    return "reciprocate";  // Help back
+                } else {
+                    return "decline";  // Don't help
+                }
+            }
+            
+            // CFR-learning colleagues (Carol): use regret matching
+            String[] actions = {"help", "decline", "reciprocate"};
+            
+            // Compute positive regrets
+            double[] positiveRegrets = new double[3];
+            double totalPositiveRegret = 0.0;
+            for (int i = 0; i < 3; i++) {
+                double regret = cumulativeRegret.get(actions[i]);
+                positiveRegrets[i] = Math.max(0.0, regret);
+                totalPositiveRegret += positiveRegrets[i];
+            }
+            
+            // Regret matching: normalize to probability distribution
+            double[] strategy = new double[3];
+            if (totalPositiveRegret > 0.0) {
+                for (int i = 0; i < 3; i++) {
+                    strategy[i] = positiveRegrets[i] / totalPositiveRegret;
+                }
+            } else {
+                // Uniform if no positive regret
+                for (int i = 0; i < 3; i++) {
+                    strategy[i] = 1.0 / 3.0;
+                }
+            }
+            
+            // Select action via multinomial sampling
+            double r = dice.nextDouble();
+            double cumulative = 0.0;
+            for (int i = 0; i < 3; i++) {
+                cumulative += strategy[i];
+                if (r < cumulative) {
+                    lastDecisionTrace.add(actions[i]);
+                    return actions[i];
+                }
+            }
+            
+            lastDecisionTrace.add("reciprocate");  // Fallback
+            return "reciprocate";
+        }
+        
+        /**
+         * Record the outcome of Carol's decision and compute regrets.
+         * Called at the end of each episode for CFR update (follows Alice's pattern).
+         * 
+         * @param actionTaken The action Carol chose this episode
+         * @param reward The reward Carol received
+         */
+        public void recordDecisionOutcome(String actionTaken, double reward) {
+            if (!learnsViaCFR) return;
+            
+            String[] actions = {"help", "decline", "reciprocate"};
+            
+            // For the action taken: direct reward
+            double currentRegret = cumulativeRegret.getOrDefault(actionTaken, 0.0);
+            cumulativeRegret.put(actionTaken, currentRegret + reward);
+            
+            // For actions NOT taken: counterfactual regret (opportunity cost)
+            // Assume untaken actions would have yielded ~60% of observed reward
+            for (String action : actions) {
+                if (!action.equals(actionTaken)) {
+                    double counterfactualReward = reward * 0.6;  // Conservative estimate
+                    double currentCounterfactual = cumulativeRegret.getOrDefault(action, 0.0);
+                    cumulativeRegret.put(action, currentCounterfactual + (counterfactualReward - reward));
+                }
+            }
+            
+            actionCount++;
+            
+            System.out.println("[CFR] " + name + " action=" + actionTaken 
+                + " reward=" + String.format("%.2f", reward)
+                + " cumRegret: help=" + String.format("%.2f", cumulativeRegret.get("help"))
+                + " decline=" + String.format("%.2f", cumulativeRegret.get("decline"))
+                + " reciprocate=" + String.format("%.2f", cumulativeRegret.get("reciprocate")));
+        }
+        
+        /**
+         * Update Carol's personality based on accumulated regrets.
+         * Called at the end of each episode (or every N episodes).
+         */
+        public void updatePersonalityFromRegret() {
+            if (!learnsViaCFR || personality.isEmpty()) return;
+            
+            // Map actions to personality traits they're associated with
+            // help_carol: high Agreeableness, high Conscientiousness
+            // decline_carol: high Conscientiousness, low Agreeableness  
+            // reciprocate: matches Alice's action (high Openness/Extraversion)
+            
+            double helpRegret = cumulativeRegret.get("help");
+            double declineRegret = cumulativeRegret.get("decline");
+            double reciprocateRegret = cumulativeRegret.get("reciprocate");
+            
+            // Normalize regrets to [-1, 1] range
+            double maxRegret = Math.max(Math.max(Math.abs(helpRegret), Math.abs(declineRegret)), 
+                                        Math.abs(reciprocateRegret));
+            if (maxRegret > 0) {
+                helpRegret /= maxRegret;
+                declineRegret /= maxRegret;
+                reciprocateRegret /= maxRegret;
+            }
+            
+            // Update personality traits based on regrets
+            // High positive regret for "help" → increase Agreeableness
+            double agreeUpdate = helpRegret * CFR_LEARNING_RATE;
+            personality.put("agreeableness", 
+                Math.max(0.0, Math.min(1.0, personality.get("agreeableness") + agreeUpdate)));
+            
+            // High positive regret for "reciprocate" → increase Extraversion
+            double extraUpdate = reciprocateRegret * CFR_LEARNING_RATE;
+            personality.put("extraversion",
+                Math.max(0.0, Math.min(1.0, personality.get("extraversion") + extraUpdate)));
+            
+            // Conscientiousness stays relatively stable (good trait for both help and decline)
+            double conscUpdate = (helpRegret + declineRegret) * CFR_LEARNING_RATE * 0.1;
+            personality.put("conscientiousness",
+                Math.max(0.0, Math.min(1.0, personality.get("conscientiousness") + conscUpdate)));
+            
+            System.out.println("[PERSONALITY UPDATE] " + name
+                + " O=" + String.format("%.3f", personality.get("openness"))
+                + " C=" + String.format("%.3f", personality.get("conscientiousness"))
+                + " E=" + String.format("%.3f", personality.get("extraversion"))
+                + " A=" + String.format("%.3f", personality.get("agreeableness"))
+                + " N=" + String.format("%.3f", personality.get("neuroticism"))
+                + " (help_regret=" + String.format("%.2f", helpRegret)
+                + " decline_regret=" + String.format("%.2f", declineRegret) + ")");
+        }
     }
 
     /** Add a person to the memory. */
     public void addPerson(String key, String name, double reliability, double reciprocity) {
         memory.put(key, new PersonMemory(name, reliability, reciprocity));
+    }
+    
+    /**
+     * Add a person with personality traits and CFR learning (for Carol).
+     */
+    public void addPersonWithPersonality(String key, String name, double reliability, double reciprocity,
+                                         double openness, double conscientiousness, double extraversion,
+                                         double agreeableness, double neuroticism) {
+        memory.put(key, new PersonMemory(name, reliability, reciprocity, true,
+                                         openness, conscientiousness, extraversion, agreeableness, neuroticism));
     }
 
     /** Update behavioral memory after an interaction. */

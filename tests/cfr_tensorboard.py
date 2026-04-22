@@ -221,6 +221,47 @@ class CSVMonitor:
         writer.close()
         print(f"[TensorBoard] Logged {len(df)} adapted-reciprocity entries")
 
+    def log_carol_data(self):
+        """Log Carol's personality and CFR regrets."""
+        carol_p_path = self.csv_dir / "carol_personality_evolution.csv"
+        carol_r_path = self.csv_dir / "carol_cfr_regrets.csv"
+
+        if carol_p_path.exists():
+            df = pd.read_csv(carol_p_path)
+            for c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors='coerce')
+            df = df.dropna(subset=['episode'])
+            df = df.drop_duplicates(subset=['episode'], keep='first')
+            df = df.sort_values('episode')
+            run_dir = self.log_dir / "run_001" / "carol_personality"
+            writer = SummaryWriter(run_dir)
+            for _, row in df.iterrows():
+                ep = int(row['episode'])
+                for col in df.columns:
+                    if col.startswith('carol_') and col != 'episode':
+                        trait = col.replace('carol_', '')
+                        writer.add_scalar(f'personality/{trait}', row[col], ep)
+            writer.close()
+            print(f"[TensorBoard] Logged {len(df)} Carol personality entries")
+
+        if carol_r_path.exists():
+            df = pd.read_csv(carol_r_path)
+            for c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors='coerce')
+            df = df.dropna(subset=['episode'])
+            df = df.drop_duplicates(subset=['episode'], keep='first')
+            df = df.sort_values('episode')
+            run_dir = self.log_dir / "run_001" / "carol_regrets"
+            writer = SummaryWriter(run_dir)
+            for _, row in df.iterrows():
+                ep = int(row['episode'])
+                for col in df.columns:
+                    if col.startswith('carol_'):
+                        action = col.replace('carol_', '').replace('_regret', '')
+                        writer.add_scalar(f'regrets/{action}', row[col], ep)
+            writer.close()
+            print(f"[TensorBoard] Logged {len(df)} Carol regret entries")
+
     def process_existing_data(self):
         personality_path, regret_path, adapt_path = self.get_csv_paths()
         print("\n=== Processing Existing Data ===")
@@ -245,6 +286,8 @@ class CSVMonitor:
             self.log_adapt_data(df)
         else:
             print(f"No adapted reciprocity data at {adapt_path}")
+
+        self.log_carol_data()
 
         print("=== Processing Complete ===\n")
 

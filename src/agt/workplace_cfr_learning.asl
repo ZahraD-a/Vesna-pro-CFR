@@ -19,7 +19,7 @@
    ========================================== */
 
 interactions_per_colleague(10).
-max_episodes(2000).
+max_episodes(1000).
 
 // ==========================================
 // INITIALIZATION
@@ -173,27 +173,27 @@ max_episodes(2000).
    ========================================== */
 
 +!carol_request
-    <-  -strategy(_); -outcome(_);
+    <-  -strategy(_); -outcome(_); -carol_cfr_choice(_);
         vesna.via.set_decision_context(carol);
         .print("[CAROL] 'Can you help me with this bug? I am stuck.'");
-        !choose_carol_response;
+        vesna.via.carol_cfr_decide(CarolAction);
+        +carol_cfr_choice(CarolAction);
+        .print("  [Carol CFR Decision] ", CarolAction);
+        !choose_carol_response(CarolAction);
         !execute_carol.
 
-// --- Carol plan options ---
+// --- Carol plan options (selected based on CFR decision) ---
 
 @help_carol[temper([agreeableness(0.9), neuroticism(0.8), conscientiousness(0.2), extraversion(0.5), openness(0.3)]), effects([stress(+0.1)[mood]])]
-+!choose_carol_response
-    :   true
++!choose_carol_response(help)
     <-  +strategy(help_carol).
 
 @decline_carol[temper([conscientiousness(0.9), agreeableness(0.1), extraversion(0.1), openness(0.3), neuroticism(0.05)]), effects([stress(-0.05)[mood]])]
-+!choose_carol_response
-    :   true
++!choose_carol_response(decline)
     <-  +strategy(decline_carol).
 
 @teach_carol[temper([openness(0.8), conscientiousness(0.6), agreeableness(0.4), extraversion(0.4), neuroticism(0.2)]), effects([satisfaction(+0.05)[mood]])]
-+!choose_carol_response
-    :   true
++!choose_carol_response(reciprocate)
     <-  +strategy(teach_carol).
 
 // --- Carol outcomes ---
@@ -208,7 +208,22 @@ max_episodes(2000).
     :   strategy(decline_carol)
     <-  .print("  [Alice] 'I am busy, maybe ask someone else.'");
         .print("  [Outcome] Carol: 'Oh... okay.' (NEUTRAL)");
-        vesna.via.record_outcome(neutral, 0.0, decline_carol, carol).
+        vesna.via.record_outcome(neutral, 0.0, decline_carol, carol);
+        !carol_cfr_after_decline.
+
++!carol_cfr_after_decline
+    :   carol_cfr_choice(help)
+    <-  .print("  [Carol CFR] Carol wanted to help but Alice declined - frustrating");
+        vesna.via.record_carol_cfr(help, -0.4).
+
++!carol_cfr_after_decline
+    :   carol_cfr_choice(reciprocate)
+    <-  .print("  [Carol CFR] Carol wanted to reciprocate but Alice declined - missed chance");
+        vesna.via.record_carol_cfr(reciprocate, -0.3).
+
++!carol_cfr_after_decline
+    <-  .print("  [Carol CFR] Carol's decline preference confirmed");
+        vesna.via.record_carol_cfr(decline, 0.2).
 
 +!execute_carol
     :   strategy(teach_carol)
@@ -217,24 +232,88 @@ max_episodes(2000).
         !carol_teach_result(R).
 
 +!carol_help_result(R) 
-    :   R < 0.5
-    <-  .print("  [Outcome] Bug fixed but Carol takes credit. (SUCCESS)");
-        vesna.via.record_outcome(success, 0.5, help_carol, carol).
+    :   R < 0.5 & carol_cfr_choice(help)
+    <-  .print("  [Outcome] Bug fixed! Carol reciprocates. (SUCCESS - MUTUAL COOPERATION)");
+        vesna.via.record_outcome(success, 0.5, help_carol, carol);
+        .print("  [Carol CFR] Help was reciprocated - excellent decision");
+        vesna.via.record_carol_cfr(help, 0.8).
+
++!carol_help_result(R) 
+    :   R < 0.5 & carol_cfr_choice(decline)
+    <-  .print("  [Outcome] Bug fixed but Carol takes credit, refuses to help back. (EXPLOITED)");
+        vesna.via.record_outcome(failure, -0.5, help_carol, carol);
+        .print("  [Carol CFR] Missed reciprocation opportunity - poor choice");
+        vesna.via.record_carol_cfr(decline, -0.8).
+
++!carol_help_result(R) 
+    :   R < 0.5 & carol_cfr_choice(reciprocate)
+    <-  .print("  [Outcome] Bug fixed! Carol offers to mentor Alice. (SUCCESS - MUTUAL GROWTH)");
+        vesna.via.record_outcome(success, 0.5, help_carol, carol);
+        .print("  [Carol CFR] Reciprocating with mentoring - good strategy");
+        vesna.via.record_carol_cfr(reciprocate, 0.6).
 
 +!carol_help_result(R)
-    :   R >= 0.5
-    <-  .print("  [Outcome] Bug too complex, time wasted. (FAILURE)");
-        vesna.via.record_outcome(failure, -0.3, help_carol, carol).
+    :   R >= 0.5 & carol_cfr_choice(help)
+    <-  .print("  [Outcome] Bug too complex, Alice wasted time. But Carol wants to help. (FAILURE - BUT GOOD INTENT)");
+        vesna.via.record_outcome(failure, -0.3, help_carol, carol);
+        .print("  [Carol CFR] Help intention was good, but task too hard");
+        vesna.via.record_carol_cfr(help, -0.2).
+
++!carol_help_result(R)
+    :   R >= 0.5 & carol_cfr_choice(decline)
+    <-  .print("  [Outcome] Bug too complex, Alice wasted time. Carol doesn't help. (FAILURE - EXPLOITATION)");
+        vesna.via.record_outcome(failure, -0.5, help_carol, carol);
+        .print("  [Carol CFR] Exploitation confirmed - penalizing");
+        vesna.via.record_carol_cfr(decline, -0.9).
+
++!carol_help_result(R)
+    :   R >= 0.5 & carol_cfr_choice(reciprocate)
+    <-  .print("  [Outcome] Bug too complex. Carol offers to mentor anyway. (PARTIAL SUCCESS)");
+        vesna.via.record_outcome(neutral, 0.0, help_carol, carol);
+        .print("  [Carol CFR] Mentoring despite failure - good character");
+        vesna.via.record_carol_cfr(reciprocate, 0.3).
 
 +!carol_teach_result(R)
-    :   R < 0.4
-    <-  .print("  [Outcome] Carol learns something! (SUCCESS)");
-        vesna.via.record_outcome(success, 0.5, teach_carol, carol).
+    :   R < 0.4 & carol_cfr_choice(reciprocate)
+    <-  .print("  [Outcome] Carol learns! She reciprocates with effort. (SUCCESS - MUTUAL LEARNING)");
+        vesna.via.record_outcome(success, 0.5, teach_carol, carol);
+        .print("  [Carol CFR] Learning and reciprocating - best outcome");
+        vesna.via.record_carol_cfr(reciprocate, 0.9).
 
 +!carol_teach_result(R)
-    :   R >= 0.4
-    <-  .print("  [Outcome] Carol: 'This is too complicated.' (FAILURE)");
-        vesna.via.record_outcome(failure, -0.3, teach_carol, carol).
+    :   R < 0.4 & carol_cfr_choice(help)
+    <-  .print("  [Outcome] Carol learns! She wants to help back. (SUCCESS - EAGER HELPER)");
+        vesna.via.record_outcome(success, 0.5, teach_carol, carol);
+        .print("  [Carol CFR] Learning motivates her to help");
+        vesna.via.record_carol_cfr(help, 0.7).
+
++!carol_teach_result(R)
+    :   R < 0.4 & carol_cfr_choice(decline)
+    <-  .print("  [Outcome] Carol learns something but refuses to reciprocate. (PARTIAL SUCCESS - SELFISH)");
+        vesna.via.record_outcome(neutral, 0.0, teach_carol, carol);
+        .print("  [Carol CFR] Learned but exploitative - penalizing");
+        vesna.via.record_carol_cfr(decline, -0.6).
+
++!carol_teach_result(R)
+    :   R >= 0.4 & carol_cfr_choice(reciprocate)
+    <-  .print("  [Outcome] Carol: 'This is hard but I will try!' (GOOD EFFORT - DIFFICULT)");
+        vesna.via.record_outcome(neutral, 0.0, teach_carol, carol);
+        .print("  [Carol CFR] Struggling but trying to reciprocate");
+        vesna.via.record_carol_cfr(reciprocate, 0.4).
+
++!carol_teach_result(R)
+    :   R >= 0.4 & carol_cfr_choice(help)
+    <-  .print("  [Outcome] Carol: 'Too complicated, but I want to help.' (GOOD INTENT - LIMITED)");
+        vesna.via.record_outcome(neutral, 0.0, teach_carol, carol);
+        .print("  [Carol CFR] Wants to help despite difficulty");
+        vesna.via.record_carol_cfr(help, 0.3).
+
++!carol_teach_result(R)
+    :   R >= 0.4 & carol_cfr_choice(decline)
+    <-  .print("  [Outcome] Carol: 'This is too complicated.' (FAILURE - GAVE UP)");
+        vesna.via.record_outcome(failure, -0.4, teach_carol, carol);
+        .print("  [Carol CFR] Refusing to try - penalizing");
+        vesna.via.record_carol_cfr(decline, -0.8).
 
 /* ==========================================
    DAVE'S REQUEST (Product Manager — Reciprocal)
@@ -312,3 +391,107 @@ max_episodes(2000).
     :   R >= 0.3
     <-  .print("  [Outcome] Dave: 'Great suggestion, thanks!' (SUCCESS)");
         vesna.via.record_outcome(success, 0.5, suggest_dave, dave).
+
+/* ==========================================
+   CAROL'S REQUEST (Junior Developer — Learning via Reciprocity)
+
+   Pattern: Asks Alice for help. Whether she reciprocates depends on:
+   - Carol's adapted reciprocity (starts 0.10, rises as Alice declines)
+   - Carol's learned OCEAN personality (via CFR)
+
+   Alice's response options (OCEAN-annotated):
+   - help_alice:    High A, high C (Alice helps Carol back)
+   - decline_alice: Low A, high C (Alice sets boundary)
+   - teach_alice:   High O, moderate A (Alice mentors Carol)
+
+   Carol's outcome reward shaping (symmetric):
+   - If Alice helps Carol back (help_alice) → Carol gets +bonus (reciprocity recognized)
+   - If Alice declines (decline_alice) → Carol gets -penalty (rejection)
+   - If Alice teaches (teach_alice) → Carol gets neutral (growth opportunity)
+   ========================================== */
+
++!carol_request
+    <-  -strategy(_); -outcome(_);
+        vesna.via.set_decision_context(carol);
+        .print("[CAROL] 'I have a problem with my code. Can you help me out?'");
+        !choose_alice_response_to_carol;
+        !execute_alice_response_to_carol.
+
+// --- Alice's response options to Carol (OCEAN-annotated) ---
+
+@help_alice[temper([agreeableness(0.9), conscientiousness(0.6), extraversion(0.5), openness(0.4), neuroticism(0.3)]), effects([satisfaction(+0.1)[mood]])]
++!choose_alice_response_to_carol
+    :   true
+    <-  +strategy(help_alice).
+
+@decline_alice[temper([conscientiousness(0.8), agreeableness(0.2), extraversion(0.2), openness(0.3), neuroticism(0.1)])]
++!choose_alice_response_to_carol
+    :   true
+    <-  +strategy(decline_alice).
+
+@teach_alice[temper([openness(0.8), conscientiousness(0.6), agreeableness(0.5), extraversion(0.4), neuroticism(0.2)]), effects([satisfaction(+0.05)[mood]])]
++!choose_alice_response_to_carol
+    :   true
+    <-  +strategy(teach_alice).
+
+// --- Alice's responses ---
+
++!execute_alice_response_to_carol
+    :   strategy(help_alice)
+    <-  .print("  [Alice] 'Sure, let me help you fix that.'");
+        .random(R);
+        !alice_help_carol_result(R).
+
++!execute_alice_response_to_carol
+    :   strategy(decline_alice)
+    <-  .print("  [Alice] 'I'm swamped right now. You should try to figure it out yourself.'");
+        .random(R);
+        !alice_decline_carol_result(R).
+
++!execute_alice_response_to_carol
+    :   strategy(teach_alice)
+    <-  .print("  [Alice] 'Let's work through this together. Here's how to debug it.'");
+        .random(R);
+        !alice_teach_carol_result(R).
+
+// --- Outcomes: Alice helps Carol ---
+
++!alice_help_carol_result(R)
+    :   R < 0.4
+    <-  .print("  [Outcome] Problem was harder than expected, takes time. (PARTIAL)");
+        vesna.via.record_outcome(neutral, 0.0, help_alice, carol);
+        vesna.via.record_carol_cfr(help_alice, 0.2).
+
++!alice_help_carol_result(R)
+    :   R >= 0.4
+    <-  .print("  [Outcome] Alice fixes Carol's bug. Carol: 'Thanks!' (SUCCESS)");
+        vesna.via.record_outcome(success, 0.5, help_alice, carol);
+        vesna.via.record_carol_cfr(help_alice, 0.5).
+
+// --- Outcomes: Alice declines Carol ---
+
++!alice_decline_carol_result(R)
+    :   R < 0.3
+    <-  .print("  [Outcome] Carol can't solve it alone, frustrated. (FAILURE)");
+        vesna.via.record_outcome(failure, -0.3, decline_alice, carol);
+        vesna.via.record_carol_cfr(decline_alice, -0.3).
+
++!alice_decline_carol_result(R)
+    :   R >= 0.3
+    <-  .print("  [Outcome] Carol struggles but eventually figures it out. (SUCCESS - GROWTH)");
+        vesna.via.record_outcome(success, 0.3, decline_alice, carol);
+        vesna.via.record_carol_cfr(decline_alice, 0.1).
+
+// --- Outcomes: Alice teaches Carol ---
+
++!alice_teach_carol_result(R)
+    :   R < 0.35
+    <-  .print("  [Outcome] Carol learns the debugging technique! (SUCCESS - LEARNING)");
+        vesna.via.record_outcome(success, 0.5, teach_alice, carol);
+        vesna.via.record_carol_cfr(teach_alice, 0.6).
+
++!alice_teach_carol_result(R)
+    :   R >= 0.35
+    <-  .print("  [Outcome] Carol: 'Interesting approach, but still confused.' (PARTIAL - EFFORT)");
+        vesna.via.record_outcome(neutral, 0.0, teach_alice, carol);
+        vesna.via.record_carol_cfr(teach_alice, 0.2).

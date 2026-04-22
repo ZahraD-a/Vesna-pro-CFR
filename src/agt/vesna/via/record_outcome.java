@@ -63,16 +63,29 @@ public class record_outcome extends DefaultInternalAction {
         double relationship = temper.getBehavioralValue(person, "relationship");
         double isExploitative = temper.getBehavioralValue(person, "is_exploitative");
 
-        if (helped) {
-            // Reciprocity shaping (Hughes et al. 2018, Zhou et al. 2024):
-            // bonus for helping reciprocal people, penalty for exploiters.
-            enhancedReward += (reciprocity - 0.5) * ALPHA;
-        }
-
-        if (action.contains("decline") && isExploitative > 0.5) {
-            // Defection/boycott bonus (Ren & Zeng 2024):
-            // reward for declining detected exploiters.
-            enhancedReward += BETA;
+        // ========== AGENT-SPECIFIC SHAPING ==========
+        // Alice's shaping: reward for helping reciprocal, declining exploiters
+        if (!action.contains("alice")) {  // Alice's actions toward others
+            if (helped) {
+                enhancedReward += (reciprocity - 0.5) * ALPHA;
+            }
+            if (action.contains("decline") && isExploitative > 0.5) {
+                enhancedReward += BETA;
+            }
+        } else {
+            // Carol's shaping: reward for reciprocating, helping (not exploiting)
+            // When Carol helps Alice (action = help_alice):
+            if (action.contains("help_alice")) {
+                // Bonus for reciprocating: +0.3 * (how much reciprocity Carol is showing)
+                // Carol's reciprocity is tracked via her agreeableness tendency
+                double reciprocityBonus = 0.3;
+                enhancedReward += reciprocityBonus;
+            }
+            // When Carol declines Alice: small penalty for prolonged exploitation
+            if (action.contains("decline_alice")) {
+                double exploitPenalty = -0.15;
+                enhancedReward += exploitPenalty;
+            }
         }
 
         // Potential-based shaping (Ng et al. 1999):

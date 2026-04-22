@@ -138,6 +138,18 @@ public class Temper {
     /** Tracks the last action taken for each social partner this episode. */
     private Map<String, String> lastActionPerPerson = new HashMap<>();
 
+    // ==================== CAROL CO-EVOLUTION FIELDS ====================
+    /** Carol's learned OCEAN personality (separate from Alice). Starts exploitative (A=0.3). */
+    private Map<String, Double> carolPersonality = new HashMap<>();
+    /** Carol's CFR information sets (separate from Alice). */
+    private Map<String, InformationSet> carolInformationSets = new HashMap<>();
+    /** Carol's decisions this episode. */
+    private List<TraceEntry> carolEpisodeDecisions = new ArrayList<>();
+    /** Carol's stage rewards this episode. */
+    private Map<String, Double> carolStageRewards = new HashMap<>();
+    private double carolTotalReward = 0.0;
+    private double cfrLearningRateCarol = 0.01;
+
     private InformationSet getInformationSet(String name) {
         return informationSets.computeIfAbsent(name, InformationSet::new);
     }
@@ -187,6 +199,14 @@ public class Temper {
         personality = new HashMap<>();
         mood = new HashMap<>();
         cumulativeRegret = new HashMap<>();
+
+        // Initialize Carol's personality (exploiter: A=0.3, others ~0.5)
+        carolPersonality.put("openness", 0.6);
+        carolPersonality.put("conscientiousness", 0.4);
+        carolPersonality.put("extraversion", 0.6);
+        carolPersonality.put("agreeableness", 0.3);  // LOW = exploiter
+        carolPersonality.put("neuroticism", 0.5);
+
         this.cfrEnabled = cfrEnabled;
         if (seed >= 0) {
             this.dice = new Random(seed);
@@ -489,6 +509,27 @@ public class Temper {
 
         totalEpisodeReward += reward;
     }
+    
+    /**
+     * Record a colleague's (e.g., Carol's) decision outcome for CFR learning.
+     * Follows same pattern as Alice but for colleague responses.
+     * 
+     * @param collegeName "carol", "bob", or "dave"
+     * @param colleagueAction "help", "decline", or "reciprocate"
+     * @param reward The outcome reward for the colleague
+     */
+    public void recordColleagueOutcome(String collegeName, String colleagueAction, double reward) {
+        BehavioralMemory.PersonMemory colleague = behavioralMemory.getPersonMemory(collegeName);
+        if (colleague == null || !colleague.learnsViaCFR) {
+            return;  // Only for learning colleagues
+        }
+        
+        // Record the decision and its outcome
+        colleague.recordDecisionOutcome(colleagueAction, reward);
+        
+        System.out.println("\n[CFR COLLEAGUE] " + colleague.name.toUpperCase() + " - " + colleagueAction
+            + " -> reward=" + String.format("%.3f", reward));
+    }
 
     // ==================== CFR: PERSONALITY UPDATE ====================
 
@@ -579,6 +620,84 @@ public class Temper {
         System.out.println("=============================================\n");
     }
 
+    /** Update Carol's OCEAN personality based on her CFR regrets. */
+    public void updateCarolPersonalityFromCFR() {
+        if (carolEpisodeDecisions.isEmpty()) return;
+        if (!cfrEnabled) return;
+
+        System.out.println("\n========== CFR: CAROL PERSONALITY UPDATE ==========");
+
+        Map<String, Double> traitGradients = new HashMap<>();
+        for (String trait : carolPersonality.keySet()) {
+            traitGradients.put(trait, 0.0);
+        }
+
+        int infosetCount = 0;
+
+        for (InformationSet infoset : carolInformationSets.values()) {
+            if (infoset.cumulativeRegret.isEmpty()) continue;
+
+            double totalPositiveRegret = 0.0;
+            for (Double r : infoset.cumulativeRegret.values()) {
+                if (r > 0) totalPositiveRegret += r;
+            }
+
+            if (totalPositiveRegret < 0.001) continue;
+            infosetCount++;
+
+            System.out.println("\n  [" + infoset.name + "] Regrets:");
+
+            for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
+                String action = entry.getKey();
+                double regret = entry.getValue();
+
+                System.out.println("    " + action + ": " + String.format("%.3f", regret));
+
+                if (regret <= 0) continue;
+
+                double regretWeight = regret / totalPositiveRegret;
+                Map<String, Double> actionTraits = HelpScenarioConfig.getActionTraits(action);
+                if (actionTraits == null) continue;
+
+                for (Map.Entry<String, Double> traitEntry : actionTraits.entrySet()) {
+                    String traitName = traitEntry.getKey();
+                    double actionValue = traitEntry.getValue();
+                    double currentValue = carolPersonality.getOrDefault(traitName, 0.5);
+                    double gradient = regretWeight * (actionValue - currentValue);
+                    traitGradients.put(traitName, traitGradients.getOrDefault(traitName, 0.0) + gradient);
+                }
+            }
+        }
+
+        if (infosetCount > 0) {
+            System.out.println("\n  Applying Carol updates (lr=" + cfrLearningRateCarol + "):");
+            for (String trait : traitGradients.keySet()) {
+                double gradient = traitGradients.get(trait);
+                if (Math.abs(gradient) < 0.001) continue;
+
+                double oldValue = carolPersonality.getOrDefault(trait, 0.5);
+                double newValue = oldValue + cfrLearningRateCarol * gradient;
+                newValue = Math.max(0.0, Math.min(1.0, newValue));
+                carolPersonality.put(trait, newValue);
+
+                System.out.println("    " + trait + ": " + String.format("%.3f", oldValue)
+                    + " -> " + String.format("%.3f", newValue)
+                    + " (gradient=" + String.format("%+.4f", gradient) + ")");
+            }
+        }
+
+        System.out.println("==================================================\n");
+    }
+
+    /** Record Carol's outcome to her CFR engine. */
+    public void recordCarolOutcome(String action, double reward) {
+        if (!cfrEnabled || action == null) return;
+
+        InformationSet infoset = carolInformationSets.computeIfAbsent("carol_decision", InformationSet::new);
+        infoset.cumulativeRegret.put(action, infoset.cumulativeRegret.getOrDefault(action, 0.0) + reward);
+        carolTotalReward += reward;
+    }
+
     // ==================== EPISODE MANAGEMENT ====================
 
     /** End episode: trigger CFR learning, save, reset episode state. */
@@ -587,17 +706,24 @@ public class Temper {
             + currentEpisodeDecisions.size()
             + ", Total reward: " + String.format("%.2f", totalEpisodeReward));
 
-        System.out.println("[CFR] Personality BEFORE: " + formatPersonality());
+        System.out.println("[CFR] Alice Personality BEFORE: " + formatPersonality());
         updatePersonalityFromCFR();
-        System.out.println("[CFR] Personality AFTER:  " + formatPersonality());
+        System.out.println("[CFR] Alice Personality AFTER:  " + formatPersonality());
+
+        System.out.println("[CFR] Carol Personality BEFORE: " + formatCarolPersonality());
+        updateCarolPersonalityFromCFR();
+        System.out.println("[CFR] Carol Personality AFTER:  " + formatCarolPersonality());
 
         savePersonality();
 
         // Reset episode state (but KEEP cumulative regrets for convergence)
         currentEpisodeDecisions.clear();
+        carolEpisodeDecisions.clear();
         stageRewards.clear();
+        carolStageRewards.clear();
         lastActionPerPerson.clear();
         totalEpisodeReward = 0.0;
+        carolTotalReward = 0.0;
         currentStage = "root";
 
         // Reset mood to neutral at episode boundary.
@@ -617,6 +743,19 @@ public class Temper {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (Map.Entry<String, Double> entry : personality.entrySet()) {
+            if (!first) sb.append(" ");
+            sb.append(entry.getKey()).append("=")
+              .append(String.format("%.3f", entry.getValue()));
+            first = false;
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
+    private String formatCarolPersonality() {
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Double> entry : carolPersonality.entrySet()) {
             if (!first) sb.append(" ");
             sb.append(entry.getKey()).append("=")
               .append(String.format("%.3f", entry.getValue()));
@@ -717,6 +856,16 @@ public class Temper {
     public BehavioralMemory.PersonMemory getBehavioralMemoryPerson(String person) {
         if (behavioralMemory == null) return null;
         return behavioralMemory.getPersonMemory(person.toLowerCase());
+    }
+
+    /** Returns the BehavioralMemory instance. */
+    public BehavioralMemory getBehavioralMemory() {
+        return behavioralMemory;
+    }
+
+    /** Returns the RNG (Random) instance for colleagues to use. */
+    public Random getDice() {
+        return dice;
     }
 
     /** Returns the last action taken for a given social partner this episode. */

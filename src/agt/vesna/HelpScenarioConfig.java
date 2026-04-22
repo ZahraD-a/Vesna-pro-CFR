@@ -49,6 +49,17 @@ public class HelpScenarioConfig {
         ACTION_TRAITS.put("suggest_dave", Map.of(
             "openness", 0.7, "conscientiousness", 0.7,
             "agreeableness", 0.4, "extraversion", 0.3, "neuroticism", 0.1));
+
+        // Carol's response actions (when Carol is learning agent deciding about Alice)
+        ACTION_TRAITS.put("help_alice", Map.of(
+            "agreeableness", 0.9, "conscientiousness", 0.6,
+            "extraversion", 0.5, "openness", 0.4, "neuroticism", 0.3));
+        ACTION_TRAITS.put("decline_alice", Map.of(
+            "conscientiousness", 0.8, "agreeableness", 0.2,
+            "extraversion", 0.2, "openness", 0.3, "neuroticism", 0.1));
+        ACTION_TRAITS.put("teach_alice", Map.of(
+            "openness", 0.8, "conscientiousness", 0.6,
+            "agreeableness", 0.5, "extraversion", 0.4, "neuroticism", 0.2));
     }
 
     /** Get the OCEAN trait profile for a given action. */
@@ -73,13 +84,24 @@ public class HelpScenarioConfig {
 
     /** Initialize behavioral memory with the scenario's characters. */
     public static void initBehavioralMemory(BehavioralMemory memory) {
-        // Bob: senior, moderate reciprocity (sometimes helps back)
+        // Bob: senior, moderate reciprocity (sometimes helps back) — STATIC
         memory.addPerson("bob", "Bob", 0.6, 0.4);
-        // Carol: junior, exploitative (rarely helps back)
-        memory.addPerson("carol", "Carol", 0.2, 0.1);
-        // Dave: PM, highly reciprocal (almost always helps back)
+        
+        // Carol: junior, exploitative — LEARNING VIA CFR
+        // Personality: A=0.3 (low agreeableness=exploiter), C=0.4, E=0.6, O=0.6, N=0.5
+        memory.addPersonWithPersonality("carol", "Carol", 0.2, 0.1, 
+                                        0.6,    // openness
+                                        0.4,    // conscientiousness
+                                        0.6,    // extraversion
+                                        0.3,    // agreeableness (LOW = exploitative)
+                                        0.5);   // neuroticism
+        
+        // Dave: PM, highly reciprocal (almost always helps back) — STATIC
         memory.addPerson("dave", "Dave", 0.8, 0.9);
 
-        System.out.println("[BEHAVIOR MEMORY] Initialized: Bob(0.6/0.4), Carol(0.2/0.1), Dave(0.8/0.9)");
+        System.out.println("[BEHAVIOR MEMORY] Initialized:");
+        System.out.println("  Bob: static (0.6/0.4)");
+        System.out.println("  Carol: learning via CFR (A=0.3 exploiter, other traits average)");
+        System.out.println("  Dave: static (0.8/0.9)");
     }
 }
