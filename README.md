@@ -27,12 +27,7 @@ This closes a full mutual-adaptation loop and produces a genuine emergent social
 
 ---
 
-## Key results
-
-### Figure 2 — Personality convergence (10 seeds, 400 episodes)
-
-![Figure 2](results/fig2_personality_regrets.png)
-
+## Key results 
 | Panel | Finding |
 |-------|---------|
 | **(a) Alice personality** | Converges by ep 100: C rises, N falls, A settles around 0.41 |
@@ -41,22 +36,8 @@ This closes a full mutual-adaptation loop and produces a genuine emergent social
 | **(d) Dave regrets** | Help dominates massively; decline heavily penalised |
 | **(e) Adaptive reciprocity** | Bob and Carol both rise toward 0.84 by ep 150; Dave hits cap |
 | **(f) Growth rate → 0** | Regret-gap growth rate reaches zero by ep 150 — social equilibrium |
-
-### Figure 3 — Standard CFR reversal (10 seeds, 2000 episodes)
-
-![Figure 3](results/fig3_reversal.png)
-
-Standard CFR with cumulative ratio estimation produces a conservative trust-recovery arc:
-
-| Panel | Finding |
-|-------|---------|
-| **(a) Carol adapted reciprocity** | Rises from 0.10 to ~0.82 by ep 150 and saturates |
-| **(b) Carol rho_observed** | Cumulative ratio slowly crosses threshold 0.20 at ep 38 ± 19 |
-| **(c) phi(Carol) flag** | Exploitation flag deactivates at ep 44 ± 19; boundary bonus removed |
-| **(d) Instantaneous regret** | Per-episode decline_carol regret changes sign after phi off |
-| **(e) Cumulative reversal** | decline_carol regret crosses zero at ep **910 ± 324** — social reversal confirmed |
-
-The 910-episode reversal timeline is a concrete, measurable property of standard CFR conservative estimation: early exploitation evidence leaves a lasting imprint that requires proportional cooperative evidence to overcome.
+ 
+  
 
 ---
 
