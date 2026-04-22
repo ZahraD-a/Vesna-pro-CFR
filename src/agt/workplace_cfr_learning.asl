@@ -19,7 +19,7 @@
    ========================================== */
 
 interactions_per_colleague(10).
-max_episodes(1000).
+max_episodes(50).
 
 // ==========================================
 // INITIALIZATION
@@ -172,11 +172,16 @@ max_episodes(1000).
    - teach_carol:   High O (mentoring) + moderate C + moderate A
    ========================================== */
 
-+!carol_request
-    <-  -strategy(_); -outcome(_); -carol_cfr_choice(_);
-        vesna.via.set_decision_context(carol);
-        .print("[CAROL] 'Can you help me with this bug? I am stuck.'");
-        vesna.via.carol_cfr_decide(CarolAction);
+// DEPRECATED OLD CAROL REQUEST - Disabled because carol_cfr_decide no longer exists
+// +!carol_request
+//     <-  -strategy(_); -outcome(_); -carol_cfr_choice(_);
+//         vesna.via.set_decision_context(carol);
+//         .print("[CAROL] 'Can you help me with this bug? I am stuck.'");
+//         vesna.via.carol_cfr_decide(CarolAction);
+//         +carol_cfr_choice(CarolAction);
+//         .print("  [Carol CFR Decision] ", CarolAction);
+//         !choose_carol_response(CarolAction);
+//         !execute_carol.
         +carol_cfr_choice(CarolAction);
         .print("  [Carol CFR Decision] ", CarolAction);
         !choose_carol_response(CarolAction);
