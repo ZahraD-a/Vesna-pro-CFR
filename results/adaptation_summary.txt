@@ -1,0 +1,20 @@
+ALICE'S PERSONALITY ADAPTATION SUMMARY
+
+Initial (Episode 0):
+  openness: 0.5000
+  conscientiousness: 0.5000
+  extraversion: 0.5000
+  agreeableness: 0.5000
+  neuroticism: 0.5000
+
+Final (Episode 999):
+  openness: 0.5199
+  conscientiousness: 0.6997
+  extraversion: 0.3644
+  agreeableness: 0.3958
+  neuroticism: 0.1144
+
+Key Changes:
+  Agreeableness: -0.1042 (LEARNING TO DECLINE CAROL)
+  Conscientiousness: +0.1997 (PROTECTING OWN WORK)
+  Neuroticism: -0.3856 (BUILDING RESILIENCE)
