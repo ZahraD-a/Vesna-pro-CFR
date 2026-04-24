@@ -33,11 +33,11 @@ public class print_personality extends DefaultInternalAction {
 
         Map<String, Double> personality = temper.getPersonality();
 
-        double O = personality.getOrDefault("openness", 0.5);
-        double C = personality.getOrDefault("conscientiousness", 0.5);
-        double E = personality.getOrDefault("extraversion", 0.5);
-        double A = personality.getOrDefault("agreeableness", 0.5);
-        double N = personality.getOrDefault("neuroticism", 0.5);
+        double O = personality.getOrDefault("openness", 0.0);
+        double C = personality.getOrDefault("conscientiousness", 0.0);
+        double E = personality.getOrDefault("extraversion", 0.0);
+        double A = personality.getOrDefault("agreeableness", 0.0);
+        double N = personality.getOrDefault("neuroticism", 0.0);
 
         System.out.println("\n========== PERSONALITY PROFILE (OCEAN) ==========");
         System.out.printf("  Openness:          %.3f %s%n", O, label(O, "Creative", "Traditional"));

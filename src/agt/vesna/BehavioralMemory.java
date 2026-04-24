@@ -58,8 +58,8 @@ public class BehavioralMemory {
         /** Action count for normalization */
         public int actionCount = 0;
         
-        /** CFR learning rate */
-        private static final double CFR_LEARNING_RATE = 0.01;
+        /** CFR step size for Carol's personality update (matches Alice's 0.005 on [-1,+1]). */
+        private static final double CFR_LEARNING_RATE = 0.005;
         
         /** Whether this agent learns via CFR (Carol = true, Bob/Dave = false) */
         public boolean learnsViaCFR;
@@ -264,51 +264,76 @@ public class BehavioralMemory {
          * Update Carol's personality based on accumulated regrets.
          * Called at the end of each episode (or every N episodes).
          */
+        /**
+         * Project Carol's cumulative regrets onto her OCEAN personality vector.
+         *
+         * <p>Identical in structure to Alice's CFR update in {@link Temper}:
+         * regret matching gives a weight sigma(a) on each action a, and the
+         * personality gradient for trait l is the sigma-weighted pull of each
+         * action's trait profile toward the current personality. Trait values
+         * stay in [-1, +1].</p>
+         *
+         * <p>Carol's three internal actions are "help" (reciprocate with help),
+         * "decline" (refuse), and "reciprocate" (mentor in return). Their trait
+         * profiles below mirror the corresponding plan annotations Alice uses
+         * for the same decisions, rescaled into [-1, +1].</p>
+         */
         public void updatePersonalityFromRegret() {
             if (!learnsViaCFR || personality.isEmpty()) return;
-            
-            // Map actions to personality traits they're associated with
-            // help_carol: high Agreeableness, high Conscientiousness
-            // decline_carol: high Conscientiousness, low Agreeableness  
-            // reciprocate: matches Alice's action (high Openness/Extraversion)
-            
-            double helpRegret = cumulativeRegret.get("help");
-            double declineRegret = cumulativeRegret.get("decline");
-            double reciprocateRegret = cumulativeRegret.get("reciprocate");
-            
-            // Normalize regrets to [-1, 1] range
-            double maxRegret = Math.max(Math.max(Math.abs(helpRegret), Math.abs(declineRegret)), 
-                                        Math.abs(reciprocateRegret));
-            if (maxRegret > 0) {
-                helpRegret /= maxRegret;
-                declineRegret /= maxRegret;
-                reciprocateRegret /= maxRegret;
+
+            // Action trait profiles in [-1, +1] for Carol's three decision options.
+            Map<String, Map<String, Double>> profiles = new HashMap<>();
+            profiles.put("help", Map.of(
+                "openness",         -0.2, "conscientiousness",  0.2,
+                "extraversion",      0.0, "agreeableness",      0.8, "neuroticism", -0.4));
+            profiles.put("decline", Map.of(
+                "openness",         -0.4, "conscientiousness",  0.6,
+                "extraversion",     -0.6, "agreeableness",     -0.6, "neuroticism", -0.8));
+            profiles.put("reciprocate", Map.of(
+                "openness",          0.6, "conscientiousness",  0.2,
+                "extraversion",     -0.2, "agreeableness",      0.0, "neuroticism", -0.6));
+
+            // Total positive cumulative regret (denominator of regret matching).
+            double totalPositive = 0.0;
+            for (double r : cumulativeRegret.values()) {
+                if (r > 0) totalPositive += r;
             }
-            
-            // Update personality traits based on regrets
-            // High positive regret for "help" → increase Agreeableness
-            double agreeUpdate = helpRegret * CFR_LEARNING_RATE;
-            personality.put("agreeableness", 
-                Math.max(0.0, Math.min(1.0, personality.get("agreeableness") + agreeUpdate)));
-            
-            // High positive regret for "reciprocate" → increase Extraversion
-            double extraUpdate = reciprocateRegret * CFR_LEARNING_RATE;
-            personality.put("extraversion",
-                Math.max(0.0, Math.min(1.0, personality.get("extraversion") + extraUpdate)));
-            
-            // Conscientiousness stays relatively stable (good trait for both help and decline)
-            double conscUpdate = (helpRegret + declineRegret) * CFR_LEARNING_RATE * 0.1;
-            personality.put("conscientiousness",
-                Math.max(0.0, Math.min(1.0, personality.get("conscientiousness") + conscUpdate)));
-            
+            if (totalPositive < 1e-6) return;
+
+            // Accumulate the regret-weighted gradient per trait.
+            Map<String, Double> gradients = new HashMap<>();
+            for (String trait : personality.keySet()) gradients.put(trait, 0.0);
+
+            for (Map.Entry<String, Double> entry : cumulativeRegret.entrySet()) {
+                double regret = entry.getValue();
+                if (regret <= 0) continue;
+                double weight = regret / totalPositive;
+                Map<String, Double> profile = profiles.get(entry.getKey());
+                if (profile == null) continue;
+                for (String trait : personality.keySet()) {
+                    double target  = profile.getOrDefault(trait, 0.0);
+                    double current = personality.get(trait);
+                    gradients.merge(trait, weight * (target - current), Double::sum);
+                }
+            }
+
+            // Apply gradient with clipping to [-1, +1].
+            for (String trait : personality.keySet()) {
+                double oldValue = personality.get(trait);
+                double newValue = oldValue + CFR_LEARNING_RATE * gradients.get(trait);
+                newValue = Math.max(-1.0, Math.min(1.0, newValue));
+                personality.put(trait, newValue);
+            }
+
             System.out.println("[PERSONALITY UPDATE] " + name
-                + " O=" + String.format("%.3f", personality.get("openness"))
-                + " C=" + String.format("%.3f", personality.get("conscientiousness"))
-                + " E=" + String.format("%.3f", personality.get("extraversion"))
-                + " A=" + String.format("%.3f", personality.get("agreeableness"))
-                + " N=" + String.format("%.3f", personality.get("neuroticism"))
-                + " (help_regret=" + String.format("%.2f", helpRegret)
-                + " decline_regret=" + String.format("%.2f", declineRegret) + ")");
+                + " O=" + String.format("%+.3f", personality.get("openness"))
+                + " C=" + String.format("%+.3f", personality.get("conscientiousness"))
+                + " E=" + String.format("%+.3f", personality.get("extraversion"))
+                + " A=" + String.format("%+.3f", personality.get("agreeableness"))
+                + " N=" + String.format("%+.3f", personality.get("neuroticism"))
+                + " (R_help=" + String.format("%+.2f", cumulativeRegret.getOrDefault("help", 0.0))
+                + " R_dec=" + String.format("%+.2f", cumulativeRegret.getOrDefault("decline", 0.0))
+                + " R_rec=" + String.format("%+.2f", cumulativeRegret.getOrDefault("reciprocate", 0.0)) + ")");
         }
     }
 

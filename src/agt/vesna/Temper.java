@@ -46,7 +46,7 @@ public class Temper {
 
     private enum DecisionStrategy { MOST_SIMILAR, RANDOM }
 
-    /** Personality: persistent traits [0.0, 1.0] */
+    /** Personality: persistent traits in [-1, +1], OCEAN model. */
     private Map<String, Double> personality;
     /** Mood: mutable traits [-1.0, 1.0] */
     private Map<String, Double> mood;
@@ -97,17 +97,10 @@ public class Temper {
 
     private List<TraceEntry> trace = new ArrayList<>();
     private Map<String, Double> cumulativeRegret = new HashMap<>();
-    /**
-     * Learning rate for CFR personality update.
-     * Set low (0.01) so personality evolves over ~100-150 episodes, matching
-     * psychological literature on Big Five stability (Roberts & Mroczek 2008):
-     * personality traits change over years, not minutes. At this rate, each
-     * episode represents one working week and 300 episodes span ~6 years of
-     * professional contact. The low value is needed because the gradient is
-     * summed across three information sets, giving an effective learning rate
-     * approximately 3x the raw value.
-     */
-    private double cfrLearningRate = 0.01;
+    /** CFR personality-update step size. The effective drift per episode is
+     *  eta * |gradient|; gradient magnitudes scale with the trait range,
+     *  so 0.005 on [-1,+1] gives a comparable drift to 0.01 on [0,1]. */
+    private double cfrLearningRate = 0.005;
     private double softmaxTemperature = 2.0;
     private static final double TEMPERATURE_DECAY = 0.995;
     private static final double MIN_TEMPERATURE = 0.5;
@@ -139,16 +132,18 @@ public class Temper {
     private Map<String, String> lastActionPerPerson = new HashMap<>();
 
     // ==================== CAROL CO-EVOLUTION FIELDS ====================
-    /** Carol's learned OCEAN personality (separate from Alice). Starts exploitative (A=0.3). */
+
+    /** Carol's learned OCEAN personality in [-1, +1]. Starts exploitative (A=-0.4). */
     private Map<String, Double> carolPersonality = new HashMap<>();
-    /** Carol's CFR information sets (separate from Alice). */
+    /** Carol's CFR information sets, independent of Alice's. */
     private Map<String, InformationSet> carolInformationSets = new HashMap<>();
-    /** Carol's decisions this episode. */
+    /** Carol's decisions within the current episode. */
     private List<TraceEntry> carolEpisodeDecisions = new ArrayList<>();
-    /** Carol's stage rewards this episode. */
+    /** Per-stage reward accumulation for Carol's current episode. */
     private Map<String, Double> carolStageRewards = new HashMap<>();
     private double carolTotalReward = 0.0;
-    private double cfrLearningRateCarol = 0.01;
+    /** Carol's CFR step size (matches Alice's, halved for the [-1,+1] range). */
+    private double cfrLearningRateCarol = 0.005;
 
     private InformationSet getInformationSet(String name) {
         return informationSets.computeIfAbsent(name, InformationSet::new);
@@ -200,12 +195,14 @@ public class Temper {
         mood = new HashMap<>();
         cumulativeRegret = new HashMap<>();
 
-        // Initialize Carol's personality (exploiter: A=0.3, others ~0.5)
-        carolPersonality.put("openness", 0.6);
-        carolPersonality.put("conscientiousness", 0.4);
-        carolPersonality.put("extraversion", 0.6);
-        carolPersonality.put("agreeableness", 0.3);  // LOW = exploiter
-        carolPersonality.put("neuroticism", 0.5);
+        // Carol's initial personality in [-1, +1]: exploitative (low A),
+        // otherwise around neutral. The CFR loop drives these values away
+        // from this starting point as interactions accumulate.
+        carolPersonality.put("openness",         0.2);
+        carolPersonality.put("conscientiousness", -0.2);
+        carolPersonality.put("extraversion",      0.2);
+        carolPersonality.put("agreeableness",    -0.4);
+        carolPersonality.put("neuroticism",       0.0);
 
         this.cfrEnabled = cfrEnabled;
         if (seed >= 0) {
@@ -540,7 +537,7 @@ public class Temper {
      *   1. Find actions with positive cumulative regret
      *   2. Compute regret weights: w(a) = R+(a) / sum(R+)
      *   3. Compute gradient: grad(trait) = sum_a[ w(a) * (action_trait - current) ]
-     *   4. Apply: new = old + learning_rate * gradient, clamped to [0, 1]
+     *   4. Apply: new = old + learning_rate * gradient, clamped to [-1, +1]
      */
     public void updatePersonalityFromCFR() {
         if (currentEpisodeDecisions.isEmpty()) return;
@@ -588,7 +585,7 @@ public class Temper {
                 for (Map.Entry<String, Double> traitEntry : actionTraits.entrySet()) {
                     String traitName = traitEntry.getKey();
                     double actionValue = traitEntry.getValue();
-                    double currentValue = personality.getOrDefault(traitName, 0.5);
+                    double currentValue = personality.getOrDefault(traitName, 0.0);
                     double gradient = regretWeight * (actionValue - currentValue);
 
                     traitGradients.put(traitName,
@@ -603,9 +600,9 @@ public class Temper {
                 double gradient = traitGradients.get(trait);
                 if (Math.abs(gradient) < 0.001) continue;
 
-                double oldValue = personality.getOrDefault(trait, 0.5);
+                double oldValue = personality.getOrDefault(trait, 0.0);
                 double newValue = oldValue + cfrLearningRate * gradient;
-                newValue = Math.max(0.0, Math.min(1.0, newValue));
+                newValue = Math.max(-1.0, Math.min(1.0, newValue));
                 personality.put(trait, newValue);
 
                 System.out.println("    " + trait + ": "
@@ -662,7 +659,7 @@ public class Temper {
                 for (Map.Entry<String, Double> traitEntry : actionTraits.entrySet()) {
                     String traitName = traitEntry.getKey();
                     double actionValue = traitEntry.getValue();
-                    double currentValue = carolPersonality.getOrDefault(traitName, 0.5);
+                    double currentValue = carolPersonality.getOrDefault(traitName, 0.0);
                     double gradient = regretWeight * (actionValue - currentValue);
                     traitGradients.put(traitName, traitGradients.getOrDefault(traitName, 0.0) + gradient);
                 }
@@ -675,9 +672,9 @@ public class Temper {
                 double gradient = traitGradients.get(trait);
                 if (Math.abs(gradient) < 0.001) continue;
 
-                double oldValue = carolPersonality.getOrDefault(trait, 0.5);
+                double oldValue = carolPersonality.getOrDefault(trait, 0.0);
                 double newValue = oldValue + cfrLearningRateCarol * gradient;
-                newValue = Math.max(0.0, Math.min(1.0, newValue));
+                newValue = Math.max(-1.0, Math.min(1.0, newValue));
                 carolPersonality.put(trait, newValue);
 
                 System.out.println("    " + trait + ": " + String.format("%.3f", oldValue)

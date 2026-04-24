@@ -6,102 +6,116 @@ import java.util.Map;
 /**
  * Configuration for the workplace help-seeking scenario.
  *
- * Contains OCEAN trait profiles for each action and the mapping
- * of persons to their available actions. This keeps scenario-specific
- * data out of the generic Temper class.
+ * <p>Declares, for each plan the scenario defines, a vector of OCEAN trait
+ * annotations in [-1, +1]. These annotations are used by Pro-AgentSpeak(L)'s
+ * compatibility measure for plan selection, and by the regret-to-propensity
+ * projection for personality learning.</p>
+ *
+ * <p>The OCEAN dimensions are Openness, Conscientiousness, Extraversion,
+ * Agreeableness, Neuroticism. A value of +1 means the plan strongly embodies
+ * that trait, -1 the opposite, 0 neutral. Dimensions that are semantically
+ * irrelevant for a plan are set to 0.</p>
  */
 public class HelpScenarioConfig {
 
-    /** OCEAN trait profiles for each action in the help scenario.
-     *  Must match the plan annotations in workplace_cfr_learning.asl exactly. */
+    /** Plan name -> OCEAN profile in [-1, +1]. */
     private static final Map<String, Map<String, Double>> ACTION_TRAITS = new HashMap<>();
 
     static {
-        // Bob actions (senior, moderate reciprocity)
+        // ----- Bob: senior developer, moderate reciprocity (static partner) -----
         ACTION_TRAITS.put("help_bob", Map.of(
-            "agreeableness", 0.8, "conscientiousness", 0.7,
-            "extraversion", 0.5, "openness", 0.4, "neuroticism", 0.3));
+            "agreeableness",  0.6, "conscientiousness",  0.4,
+            "extraversion",   0.0, "openness",          -0.2, "neuroticism", -0.4));
         ACTION_TRAITS.put("decline_bob", Map.of(
-            "conscientiousness", 0.8, "agreeableness", 0.2,
-            "extraversion", 0.2, "openness", 0.2, "neuroticism", 0.1));
+            "conscientiousness",  0.6, "agreeableness", -0.6,
+            "extraversion",      -0.6, "openness",      -0.6, "neuroticism", -0.8));
         ACTION_TRAITS.put("delay_bob", Map.of(
-            "openness", 0.7, "conscientiousness", 0.7,
-            "agreeableness", 0.4, "extraversion", 0.3, "neuroticism", 0.1));
+            "openness",        0.4, "conscientiousness",  0.4,
+            "agreeableness",  -0.2, "extraversion",      -0.4, "neuroticism", -0.8));
 
-        // Carol actions (exploitative junior)
+        // ----- Carol: junior developer, exploitative (CFR-learning partner) -----
         ACTION_TRAITS.put("help_carol", Map.of(
-            "agreeableness", 0.9, "neuroticism", 0.8,
-            "conscientiousness", 0.2, "extraversion", 0.5, "openness", 0.3));
+            "agreeableness",      0.8, "neuroticism",   0.6,
+            "conscientiousness", -0.6, "extraversion",  0.0, "openness", -0.4));
         ACTION_TRAITS.put("decline_carol", Map.of(
-            "conscientiousness", 0.9, "agreeableness", 0.1,
-            "extraversion", 0.1, "openness", 0.3, "neuroticism", 0.05));
+            "conscientiousness",  0.8, "agreeableness", -0.8,
+            "extraversion",      -0.8, "openness",      -0.4, "neuroticism", -0.9));
         ACTION_TRAITS.put("teach_carol", Map.of(
-            "openness", 0.8, "conscientiousness", 0.6,
-            "agreeableness", 0.4, "extraversion", 0.4, "neuroticism", 0.2));
+            "openness",        0.6, "conscientiousness",  0.2,
+            "agreeableness",  -0.2, "extraversion",      -0.2, "neuroticism", -0.6));
 
-        // Dave actions (reciprocal PM)
+        // ----- Dave: product manager, highly reciprocal (static partner) -----
         ACTION_TRAITS.put("help_dave", Map.of(
-            "openness", 0.7, "extraversion", 0.6,
-            "conscientiousness", 0.5, "agreeableness", 0.5, "neuroticism", 0.1));
+            "openness",           0.4, "extraversion",    0.2,
+            "conscientiousness",  0.0, "agreeableness",   0.0, "neuroticism", -0.8));
         ACTION_TRAITS.put("decline_dave", Map.of(
-            "conscientiousness", 0.6, "agreeableness", 0.2,
-            "extraversion", 0.1, "openness", 0.2, "neuroticism", 0.1));
+            "conscientiousness",  0.2, "agreeableness", -0.6,
+            "extraversion",      -0.8, "openness",      -0.6, "neuroticism", -0.8));
         ACTION_TRAITS.put("suggest_dave", Map.of(
-            "openness", 0.7, "conscientiousness", 0.7,
-            "agreeableness", 0.4, "extraversion", 0.3, "neuroticism", 0.1));
+            "openness",        0.4, "conscientiousness",  0.4,
+            "agreeableness",  -0.2, "extraversion",      -0.4, "neuroticism", -0.8));
 
-        // Carol's response actions (when Carol is learning agent deciding about Alice)
+        // ----- Alice's responses when Carol (the CFR agent) asks for help -----
         ACTION_TRAITS.put("help_alice", Map.of(
-            "agreeableness", 0.9, "conscientiousness", 0.6,
-            "extraversion", 0.5, "openness", 0.4, "neuroticism", 0.3));
+            "agreeableness",   0.8, "conscientiousness",  0.2,
+            "extraversion",    0.0, "openness",          -0.2, "neuroticism", -0.4));
         ACTION_TRAITS.put("decline_alice", Map.of(
-            "conscientiousness", 0.8, "agreeableness", 0.2,
-            "extraversion", 0.2, "openness", 0.3, "neuroticism", 0.1));
+            "conscientiousness",  0.6, "agreeableness", -0.6,
+            "extraversion",      -0.6, "openness",      -0.4, "neuroticism", -0.8));
         ACTION_TRAITS.put("teach_alice", Map.of(
-            "openness", 0.8, "conscientiousness", 0.6,
-            "agreeableness", 0.5, "extraversion", 0.4, "neuroticism", 0.2));
+            "openness",        0.6, "conscientiousness",  0.2,
+            "agreeableness",   0.0, "extraversion",      -0.2, "neuroticism", -0.6));
     }
 
-    /** Get the OCEAN trait profile for a given action. */
+    /** Returns the OCEAN annotation of a plan, or null if the plan is unknown. */
     public static Map<String, Double> getActionTraits(String action) {
         return ACTION_TRAITS.get(action);
     }
 
-    /** Get all action trait profiles. */
+    /** Returns all plan-trait annotations (unmodifiable view is not enforced). */
     public static Map<String, Map<String, Double>> getAllActionTraits() {
         return ACTION_TRAITS;
     }
 
-    /** Get possible actions for a person. */
+    /** Returns the plan names available to a given social partner. */
     public static String[] getActionsForPerson(String person) {
         switch (person.toLowerCase()) {
-            case "bob":   return new String[]{"help_bob", "decline_bob", "delay_bob"};
-            case "carol": return new String[]{"help_carol", "decline_carol", "teach_carol"};
-            case "dave":  return new String[]{"help_dave", "decline_dave", "suggest_dave"};
+            case "bob":   return new String[]{"help_bob",   "decline_bob",   "delay_bob"};
+            case "carol": return new String[]{"help_alice", "decline_alice", "teach_alice"};
+            case "dave":  return new String[]{"help_dave",  "decline_dave",  "suggest_dave"};
             default:      return new String[]{};
         }
     }
 
-    /** Initialize behavioral memory with the scenario's characters. */
+    /**
+     * Initialises the behavioural memory for the three colleagues.
+     * Bob and Dave are static (no CFR); Carol is CFR-learning with an
+     * initially exploitative profile.
+     */
     public static void initBehavioralMemory(BehavioralMemory memory) {
-        // Bob: senior, moderate reciprocity (sometimes helps back) — STATIC
+        // Bob: reliability 0.6, innate reciprocity 0.4.
         memory.addPerson("bob", "Bob", 0.6, 0.4);
-        
-        // Carol: junior, exploitative — LEARNING VIA CFR
-        // Personality: A=0.3 (low agreeableness=exploiter), C=0.4, E=0.6, O=0.6, N=0.5
-        memory.addPersonWithPersonality("carol", "Carol", 0.2, 0.1, 
-                                        0.6,    // openness
-                                        0.4,    // conscientiousness
-                                        0.6,    // extraversion
-                                        0.3,    // agreeableness (LOW = exploitative)
-                                        0.5);   // neuroticism
-        
-        // Dave: PM, highly reciprocal (almost always helps back) — STATIC
+
+        // Carol: exploitative (low A, low innate reciprocity). The CFR loop
+        // will drive her personality away from this starting point as Alice's
+        // declining behaviour trains her toward reciprocation.
+        //   Initial personality in [-1, +1]: O=+0.2, C=-0.2, E=+0.2, A=-0.4, N=0.0
+        memory.addPersonWithPersonality(
+            "carol", "Carol",
+            /* reliability */        0.2,
+            /* innate reciprocity */ 0.1,
+            /* openness */           0.2,
+            /* conscientiousness */ -0.2,
+            /* extraversion */       0.2,
+            /* agreeableness */     -0.4,
+            /* neuroticism */        0.0);
+
+        // Dave: reliability 0.8, innate reciprocity 0.9.
         memory.addPerson("dave", "Dave", 0.8, 0.9);
 
-        System.out.println("[BEHAVIOR MEMORY] Initialized:");
-        System.out.println("  Bob: static (0.6/0.4)");
-        System.out.println("  Carol: learning via CFR (A=0.3 exploiter, other traits average)");
-        System.out.println("  Dave: static (0.8/0.9)");
+        System.out.println("[BEHAVIORAL MEMORY] Initialised:");
+        System.out.println("  Bob:   static  (reliability=0.6, reciprocity=0.4)");
+        System.out.println("  Carol: CFR     (A=-0.4 exploitative, reciprocity=0.1)");
+        System.out.println("  Dave:  static  (reliability=0.8, reciprocity=0.9)");
     }
 }

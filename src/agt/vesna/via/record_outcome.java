@@ -63,33 +63,18 @@ public class record_outcome extends DefaultInternalAction {
         double relationship = temper.getBehavioralValue(person, "relationship");
         double isExploitative = temper.getBehavioralValue(person, "is_exploitative");
 
-        // ========== AGENT-SPECIFIC SHAPING ==========
-        // Alice's shaping: reward for helping reciprocal, declining exploiters
-        if (!action.contains("alice")) {  // Alice's actions toward others
-            if (helped) {
-                enhancedReward += (reciprocity - 0.5) * ALPHA;
-            }
-            if (action.contains("decline") && isExploitative > 0.5) {
-                enhancedReward += BETA;
-            }
-        } else {
-            // Carol's shaping: reward for reciprocating, helping (not exploiting)
-            // When Carol helps Alice (action = help_alice):
-            if (action.contains("help_alice")) {
-                // Bonus for reciprocating: +0.3 * (how much reciprocity Carol is showing)
-                // Carol's reciprocity is tracked via her agreeableness tendency
-                double reciprocityBonus = 0.3;
-                enhancedReward += reciprocityBonus;
-            }
-            // When Carol declines Alice: small penalty for prolonged exploitation
-            if (action.contains("decline_alice")) {
-                double exploitPenalty = -0.15;
-                enhancedReward += exploitPenalty;
-            }
+        // Alice's reward shaping (applied to all her plans, regardless of target).
+        // Helping an uncooperative partner is penalised; helping a reciprocator is
+        // rewarded. Declining a confirmed exploiter is rewarded.
+        if (helped) {
+            enhancedReward += (reciprocity - 0.5) * ALPHA;
+        }
+        if (action.contains("decline") && isExploitative > 0.5) {
+            enhancedReward += BETA;
         }
 
-        // Potential-based shaping (Ng et al. 1999):
-        // relationship score acts as a potential function.
+        // Potential-based shaping (Ng, Harada, Russell 1999):
+        // relationship score acts as a bounded potential function.
         enhancedReward += (relationship - 0.5) * GAMMA;
 
         ts.getLogger().info(String.format(

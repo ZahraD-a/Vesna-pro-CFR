@@ -2,7 +2,7 @@ mas vesna {
 
     agent alice:workplace_cfr_learning.asl {
         ag-class:   vesna.VesnaAgent
-        temper:     temper(openness(0.5), conscientiousness(0.5), extraversion(0.5), agreeableness(0.5), neuroticism(0.5), stress(0.0)[mood], satisfaction(0.0)[mood], social_energy(0.0)[mood])
+        temper:     temper(openness(0.0), conscientiousness(0.0), extraversion(0.0), agreeableness(0.0), neuroticism(0.0), stress(0.0)[mood], satisfaction(0.0)[mood], social_energy(0.0)[mood])
         strategy:   random
         seed:       0
         cfr_learning: true

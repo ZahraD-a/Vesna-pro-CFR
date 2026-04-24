@@ -32,10 +32,16 @@ public class PolicyLogger {
     };
 
     /** All help scenario actions in canonical order */
+    /**
+     * Alice's plan names per colleague, in CSV column order.
+     * Carol's slots use "help_alice / decline_alice / teach_alice" because
+     * Carol is the CFR partner: her requests elicit those plan names from
+     * Alice, and the corresponding infoset is keyed on those names.
+     */
     private static final String[] HELP_ACTIONS = {
-        "help_bob", "decline_bob", "delay_bob",
-        "help_carol", "decline_carol", "teach_carol",
-        "help_dave", "decline_dave", "suggest_dave"
+        "help_bob",    "decline_bob",    "delay_bob",
+        "help_alice",  "decline_alice",  "teach_alice",
+        "help_dave",   "decline_dave",   "suggest_dave"
     };
 
     /**
@@ -54,7 +60,7 @@ public class PolicyLogger {
             row.append(LocalDateTime.now().format(TIME_FORMAT)).append(",");
             row.append(episode).append(",");
             for (String trait : OCEAN_TRAITS) {
-                row.append(personality.getOrDefault(trait, 0.5)).append(",");
+                row.append(personality.getOrDefault(trait, 0.0)).append(",");
             }
             for (String m : MOOD_TRAITS) {
                 row.append(String.format("%.4f", mood.getOrDefault(m, 0.0))).append(",");
@@ -153,7 +159,7 @@ public class PolicyLogger {
             row.append(LocalDateTime.now().format(TIME_FORMAT)).append(",");
             row.append(episode).append(",");
             for (String trait : OCEAN_TRAITS) {
-                row.append(String.format("%.4f", carolPersonality.getOrDefault(trait, 0.5))).append(",");
+                row.append(String.format("%.4f", carolPersonality.getOrDefault(trait, 0.0))).append(",");
             }
             // Remove trailing comma
             String rowStr = row.toString();
