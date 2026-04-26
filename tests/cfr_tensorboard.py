@@ -38,7 +38,7 @@ OCEAN_TRAITS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness'
 # Help scenario actions (must match PolicyLogger.java)
 HELP_ACTIONS = [
     'help_bob', 'decline_bob', 'delay_bob',
-    'help_carol', 'decline_carol', 'teach_carol',
+    'help_alice', 'decline_alice', 'teach_alice',
     'help_dave', 'decline_dave', 'suggest_dave',
 ]
 
@@ -159,7 +159,7 @@ class CSVMonitor:
         # Group actions by person
         persons = {
             'Bob': ['help_bob', 'decline_bob', 'delay_bob'],
-            'Carol': ['help_carol', 'decline_carol', 'teach_carol'],
+            'Carol': ['help_alice', 'decline_alice', 'teach_alice'],
             'Dave': ['help_dave', 'decline_dave', 'suggest_dave'],
         }
 

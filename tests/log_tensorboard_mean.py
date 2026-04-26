@@ -30,7 +30,7 @@ N_SEEDS     = 10
 OCEAN  = ["openness","conscientiousness","extraversion","agreeableness","neuroticism"]
 REGRETS = {
     "Bob":   ["help_bob",   "decline_bob",   "delay_bob"],
-    "Carol": ["help_carol", "decline_carol", "teach_carol"],
+    "Carol": ["help_alice", "decline_alice", "teach_alice"],
     "Dave":  ["help_dave",  "decline_dave",  "suggest_dave"],
 }
 ADAPT_COLS = ["carol_adapted","bob_adapted","dave_adapted"]
@@ -109,7 +109,7 @@ def main():
         # Carol regret gap growth rate (smoothed)
         window = 20
         gap_stack = np.array([
-            r["decline_carol"].values - r["help_carol"].values
+            r["decline_alice"].values - r["help_alice"].values
             for r in regs
         ])
         rate_stack = np.diff(gap_stack, axis=1)   # (n_seeds, 299)

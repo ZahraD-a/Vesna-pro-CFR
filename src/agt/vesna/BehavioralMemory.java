@@ -51,6 +51,11 @@ public class BehavioralMemory {
         
         /** Cumulative regret for each action (help, decline, reciprocate) */
         public Map<String, Double> cumulativeRegret = new HashMap<>();
+        // Per-action running totals used to estimate the COMA-style
+        // counterfactual baseline for unchosen actions (mirrors the
+        // historical-mean baseline in Temper.getHistoricalAverage).
+        public Map<String, Double>  historicalRewardSum   = new HashMap<>();
+        public Map<String, Integer> historicalRewardCount = new HashMap<>();
         
         /** Strategy sum for regret matching */
         public Map<String, Double> strategySum = new HashMap<>();
@@ -232,25 +237,34 @@ public class BehavioralMemory {
          * @param actionTaken The action Carol chose this episode
          * @param reward The reward Carol received
          */
+        /** Mean reward observed historically for an action; 0.0 if never tried. */
+        public double getHistoricalReward(String action) {
+            int n = historicalRewardCount.getOrDefault(action, 0);
+            if (n == 0) return 0.0;
+            return historicalRewardSum.getOrDefault(action, 0.0) / n;
+        }
+
         public void recordDecisionOutcome(String actionTaken, double reward) {
             if (!learnsViaCFR) return;
-            
+
             String[] actions = {"help", "decline", "reciprocate"};
-            
-            // For the action taken: direct reward
-            double currentRegret = cumulativeRegret.getOrDefault(actionTaken, 0.0);
-            cumulativeRegret.put(actionTaken, currentRegret + reward);
-            
-            // For actions NOT taken: counterfactual regret (opportunity cost)
-            // Assume untaken actions would have yielded ~60% of observed reward
+
+            // Update the running mean reward of the chosen action.
+            historicalRewardSum.merge(actionTaken, reward, Double::sum);
+            historicalRewardCount.merge(actionTaken, 1, Integer::sum);
+
+            // Counterfactual regret with COMA-style historical-mean baseline
+            // (mirrors Temper.recordHelpOutcome). For each action a:
+            //   r_t(a) = E_hist[r | a] - reward          if a != actionTaken
+            //   r_t(a) = 0                               if a == actionTaken
+            // Cumulative regret accumulator follows Hart & Mas-Colell (2000).
             for (String action : actions) {
-                if (!action.equals(actionTaken)) {
-                    double counterfactualReward = reward * 0.6;  // Conservative estimate
-                    double currentCounterfactual = cumulativeRegret.getOrDefault(action, 0.0);
-                    cumulativeRegret.put(action, currentCounterfactual + (counterfactualReward - reward));
-                }
+                if (action.equals(actionTaken)) continue;
+                double counterfactualReward = getHistoricalReward(action);
+                double instantRegret = counterfactualReward - reward;
+                cumulativeRegret.merge(action, instantRegret, Double::sum);
             }
-            
+
             actionCount++;
             
             System.out.println("[CFR] " + name + " action=" + actionTaken 

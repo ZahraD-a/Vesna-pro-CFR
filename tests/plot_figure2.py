@@ -37,9 +37,9 @@ MARKERS = ["o", "s", "^", "D", "v"]
 BOB_STYLE   = {"help_bob":    ("#1565C0","s","Help"),
                "decline_bob": ("#C62828","^","Decline"),
                "delay_bob":   ("#2E7D32","D","Delay")}
-CAROL_STYLE = {"help_carol":    ("#1565C0","s","Help"),
-               "decline_carol": ("#C62828","^","Decline"),
-               "teach_carol":   ("#2E7D32","D","Teach")}
+CAROL_STYLE = {"help_alice":    ("#1565C0","s","Help"),
+               "decline_alice": ("#C62828","^","Decline"),
+               "teach_alice":   ("#2E7D32","D","Teach")}
 DAVE_STYLE  = {"help_dave":    ("#1565C0","s","Help"),
                "decline_dave": ("#C62828","^","Decline"),
                "suggest_dave": ("#2E7D32","D","Suggest")}
@@ -178,7 +178,7 @@ def main():
     kernel = np.ones(WINDOW) / WINDOW
     all_rates = []
     for rr in regs:
-        gap   = rr["decline_carol"].values - rr["help_carol"].values
+        gap   = rr["decline_alice"].values - rr["help_alice"].values
         rate  = np.diff(gap)
         smoothed = np.convolve(rate, kernel, mode="valid")
         all_rates.append(smoothed)

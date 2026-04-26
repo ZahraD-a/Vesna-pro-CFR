@@ -166,10 +166,10 @@ max_episodes(2000).
    Takes credit for your help. Never helps you back.
    Over time, behavioral memory detects exploitation → penalizes helping.
 
-   Actions and their OCEAN profiles:
-   - help_carol:    High A (very helpful) + High N (empathetic)
-   - decline_carol: High C (focus) + Low A (boundary)
-   - teach_carol:   High O (mentoring) + moderate C + moderate A
+   Actions and their OCEAN profiles (plan annotations live below):
+   - help_alice:    High A (very helpful) + Low N (calm under pressure)
+   - decline_alice: High C (focus) + Low A (boundary)
+   - teach_alice:   High O (mentoring) + moderate C + neutral A
    ========================================== */
 
 /* ==========================================

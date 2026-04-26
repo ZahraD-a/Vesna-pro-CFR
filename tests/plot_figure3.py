@@ -3,8 +3,8 @@ Figure 3 — Standard CFR reversal: 10 seeds, 2000 episodes.
 5-panel layout (2 rows x 3 cols, last cell empty):
 
   (a) Carol adapted reciprocity    (b) Carol rho_observed
-  (c) phi(Carol) exploitation flag (d) Instantaneous decline_carol
-  (e) Cumulative decline_carol -> zero-crossing
+  (c) phi(Carol) exploitation flag (d) Instantaneous decline_alice
+  (e) Cumulative decline_alice -> zero-crossing
 
 Output: results/fig3_reversal.png
 
@@ -98,7 +98,7 @@ def main():
     # compute key milestones
     phi_series  = [a["carol_phi"].values for a in adapts]
     rho_series  = [a["carol_observed_ratio"].values for a in adapts]
-    dc_series   = [r["decline_carol"].values for r in regs]
+    dc_series   = [r["decline_alice"].values for r in regs]
 
     # last episode phi=1 per seed
     phi_off_eps = []
@@ -111,7 +111,7 @@ def main():
     # rho crosses 0.20 upward (after initial dip below 0.20)
     rho_cross_mean, rho_cross_std = find_crossing(ep_a, rho_series, threshold=0.20)
 
-    # decline_carol cumulative zero-crossing (from positive to zero/negative)
+    # decline_alice cumulative zero-crossing (from positive to zero/negative)
     dc_series_neg = [(-v) for v in dc_series]  # flip so we find downward cross at 0
     zc_mean, zc_std = find_crossing(ep_r, dc_series_neg, threshold=0.0)
 
@@ -181,15 +181,15 @@ def main():
     ax.set_ylabel("phi(Carol) — exploitation active", fontsize=10)
     style(ax, ylim=(-0.05, 1.15), legend_loc="upper right")
 
-    # ── (d) Instantaneous decline_carol ─────────────────────────────────────
+    # ── (d) Instantaneous decline_alice ─────────────────────────────────────
     ax = axes[1, 0]
-    ax.set_title("(d)  Instantaneous Delta decline_carol per Episode",
+    ax.set_title("(d)  Instantaneous Delta decline_alice per Episode",
                  fontsize=11, fontweight="bold")
     WINDOW = 30
     kernel = np.ones(WINDOW) / WINDOW
     inst_list = []
     for rr in regs:
-        dc = rr["decline_carol"].values
+        dc = rr["decline_alice"].values
         diff = np.diff(dc)
         smooth = np.convolve(diff, kernel, mode="valid")
         inst_list.append(smooth)
@@ -199,7 +199,7 @@ def main():
     ep_inst = ep_r[WINDOW:]
 
     ax.plot(ep_inst, m_inst, color="#C62828", lw=2.2,
-            label=f"Delta decline_carol (smoothed w={WINDOW})")
+            label=f"Delta decline_alice (smoothed w={WINDOW})")
     ax.fill_between(ep_inst, m_inst - s_inst, m_inst + s_inst,
                     color="#C62828", alpha=0.15)
     ax.axhline(0, color="black", lw=1.0, alpha=0.6)
@@ -218,18 +218,18 @@ def main():
     if phi_off_mean:
         ax.axvline(phi_off_mean, color="#C62828", lw=0.9, ls=":", alpha=0.5,
                    label=f"phi off (ep {phi_off_mean:.0f})")
-    style(ax, ylabel="Delta decline_carol / episode", legend_loc="upper right")
+    style(ax, ylabel="Delta decline_alice / episode", legend_loc="upper right")
 
-    # ── (e) Cumulative decline_carol ─────────────────────────────────────────
+    # ── (e) Cumulative decline_alice ─────────────────────────────────────────
     ax = axes[1, 1]
     title_zc = f"ep {zc_mean:.0f} +/- {zc_std:.0f}" if zc_mean else "> 2000 ep"
-    ax.set_title(f"(e)  Cumulative decline_carol  ->  zero-crossing {title_zc}",
+    ax.set_title(f"(e)  Cumulative decline_alice  ->  zero-crossing {title_zc}",
                  fontsize=11, fontweight="bold")
-    dc_m, dc_s = ms(regs, "decline_carol")
-    hc_m, hc_s = ms(regs, "help_carol")
-    band(ax, ep_r, dc_m, dc_s, "#C62828", "decline_carol regret",
+    dc_m, dc_s = ms(regs, "decline_alice")
+    hc_m, hc_s = ms(regs, "help_alice")
+    band(ax, ep_r, dc_m, dc_s, "#C62828", "decline_alice regret",
          lw=2.4, marker="s", every=200)
-    band(ax, ep_r, hc_m, hc_s, "#1565C0", "help_carol regret",
+    band(ax, ep_r, hc_m, hc_s, "#1565C0", "help_alice regret",
          lw=2.0, marker="o", every=200)
     ax.axhline(0, color="black", lw=1.0, alpha=0.6)
     if zc_mean:
@@ -259,9 +259,9 @@ def main():
     if rho_cross_mean:
         print(f"  rho crosses 0.20:          ep {rho_cross_mean:.0f} +/- {rho_cross_std:.0f}")
     if zc_mean:
-        print(f"  decline_carol zero-cross:  ep {zc_mean:.0f} +/- {zc_std:.0f}")
+        print(f"  decline_alice zero-cross:  ep {zc_mean:.0f} +/- {zc_std:.0f}")
     else:
-        print(f"  decline_carol still positive at ep {n_ep}: {dc_m[-1]:.0f}")
+        print(f"  decline_alice still positive at ep {n_ep}: {dc_m[-1]:.0f}")
     print(f"  Carol rho_observed at ep{n_ep}: {ms(adapts, 'carol_observed_ratio')[0][-1]:.4f}")
     print(f"  Carol adapted recip at ep{n_ep}: {ms(adapts, 'carol_adapted')[0][-1]:.4f}")
 
