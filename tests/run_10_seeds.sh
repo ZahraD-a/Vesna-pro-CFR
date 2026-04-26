@@ -61,24 +61,25 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
     sed -i.bak "s/seed: *[0-9]\+/seed:       $SEED/" "$JCM_FILE"
     rm -f "$JCM_FILE.bak"
 
-    # Clean previous single-run artifacts so we start fresh
-    rm -f personality_evolution.csv cfr_regrets.csv personality.json adapted_reciprocity.csv
+    # Clean every artefact left from the previous run so seed N starts fresh.
+    rm -f personality_evolution.csv carol_personality_evolution.csv \
+          cfr_regrets.csv carol_cfr_regrets.csv \
+          adapted_reciprocity.csv personality.json
 
-    # Run gradle (quiet mode, errors still shown)
-    "$GRADLE" run --quiet 2>&1 | tail -5
+    "$GRADLE" run --quiet 2>&1 | tail -3
 
-    # Save outputs to per-seed directory
     SEED_DIR="$RESULTS_DIR/seed_$SEED"
     mkdir -p "$SEED_DIR"
 
     if [ -f personality_evolution.csv ]; then
-        cp personality_evolution.csv "$SEED_DIR/"
-        cp cfr_regrets.csv "$SEED_DIR/"
-        if [ -f personality.json ]; then cp personality.json "$SEED_DIR/"; fi
-        if [ -f adapted_reciprocity.csv ]; then cp adapted_reciprocity.csv "$SEED_DIR/"; fi
-        echo "  Saved to $SEED_DIR/"
+        for f in personality_evolution.csv carol_personality_evolution.csv \
+                 cfr_regrets.csv carol_cfr_regrets.csv \
+                 adapted_reciprocity.csv personality.json; do
+            [ -f "$f" ] && cp "$f" "$SEED_DIR/"
+        done
+        echo "  saved -> $SEED_DIR/"
     else
-        echo "  ERROR: No CSV files generated for seed $SEED"
+        echo "  ERROR: no CSV produced for seed $SEED"
     fi
 done
 

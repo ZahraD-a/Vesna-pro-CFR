@@ -19,7 +19,7 @@
    ========================================== */
 
 interactions_per_colleague(10).
-max_episodes(1000).
+max_episodes(2000).
 
 // ==========================================
 // INITIALIZATION
@@ -104,17 +104,17 @@ max_episodes(1000).
 
 // --- Bob plan options (OCEAN-annotated, selected by Temper.select) ------
 
-@help_bob[temper([agreeableness(0.8), conscientiousness(0.7), extraversion(0.5), openness(0.4), neuroticism(0.3)]), effects([satisfaction(+0.1)[mood]])]
+@help_bob[temper([agreeableness(0.6), conscientiousness(0.4), extraversion(0.0), openness(-0.2), neuroticism(-0.4)]), effects([satisfaction(+0.1)[mood]])]
 +!choose_bob_response
     :   true
     <-  +strategy(help_bob).
 
-@decline_bob[temper([conscientiousness(0.8), agreeableness(0.2), extraversion(0.2), openness(0.2), neuroticism(0.1)])]
+@decline_bob[temper([conscientiousness(0.6), agreeableness(-0.6), extraversion(-0.6), openness(-0.6), neuroticism(-0.8)])]
 +!choose_bob_response
     :   true
     <-  +strategy(decline_bob).
 
-@delay_bob[temper([openness(0.7), conscientiousness(0.7), agreeableness(0.4), extraversion(0.3), neuroticism(0.1)]), effects([social_energy(-0.05)[mood]])]
+@delay_bob[temper([openness(0.4), conscientiousness(0.4), agreeableness(-0.2), extraversion(-0.4), neuroticism(-0.8)]), effects([social_energy(-0.05)[mood]])]
 +!choose_bob_response
     :   true
     <-  +strategy(delay_bob).
@@ -194,17 +194,17 @@ max_episodes(1000).
 
 // --- Dave plan options ---
 
-@help_dave[temper([openness(0.7), extraversion(0.6), conscientiousness(0.5), agreeableness(0.5), neuroticism(0.1)]), effects([social_energy(+0.1)[mood], satisfaction(+0.1)[mood]])]
+@help_dave[temper([openness(0.4), extraversion(0.2), conscientiousness(0.0), agreeableness(0.0), neuroticism(-0.8)]), effects([social_energy(+0.1)[mood], satisfaction(+0.1)[mood]])]
 +!choose_dave_response
     :   true
     <-  +strategy(help_dave).
 
-@decline_dave[temper([conscientiousness(0.6), agreeableness(0.2), extraversion(0.1), openness(0.2), neuroticism(0.1)])]
+@decline_dave[temper([conscientiousness(0.2), agreeableness(-0.6), extraversion(-0.8), openness(-0.6), neuroticism(-0.8)])]
 +!choose_dave_response
     :   true
     <-  +strategy(decline_dave).
 
-@suggest_dave[temper([openness(0.7), conscientiousness(0.7), agreeableness(0.4), extraversion(0.3), neuroticism(0.1)]), effects([satisfaction(+0.05)[mood]])]
+@suggest_dave[temper([openness(0.4), conscientiousness(0.4), agreeableness(-0.2), extraversion(-0.4), neuroticism(-0.8)]), effects([satisfaction(+0.05)[mood]])]
 +!choose_dave_response
     :   true
     <-  +strategy(suggest_dave).
@@ -276,17 +276,17 @@ max_episodes(1000).
 
 // --- Alice's response options to Carol (OCEAN-annotated) ---
 
-@help_alice[temper([agreeableness(0.9), conscientiousness(0.6), extraversion(0.5), openness(0.4), neuroticism(0.3)]), effects([satisfaction(+0.1)[mood]])]
+@help_alice[temper([agreeableness(0.8), conscientiousness(0.2), extraversion(0.0), openness(-0.2), neuroticism(-0.4)]), effects([satisfaction(+0.1)[mood]])]
 +!choose_alice_response_to_carol
     :   true
     <-  +strategy(help_alice).
 
-@decline_alice[temper([conscientiousness(0.8), agreeableness(0.2), extraversion(0.2), openness(0.3), neuroticism(0.1)])]
+@decline_alice[temper([conscientiousness(0.6), agreeableness(-0.6), extraversion(-0.6), openness(-0.4), neuroticism(-0.8)])]
 +!choose_alice_response_to_carol
     :   true
     <-  +strategy(decline_alice).
 
-@teach_alice[temper([openness(0.8), conscientiousness(0.6), agreeableness(0.5), extraversion(0.4), neuroticism(0.2)]), effects([satisfaction(+0.05)[mood]])]
+@teach_alice[temper([openness(0.6), conscientiousness(0.2), agreeableness(0.0), extraversion(-0.2), neuroticism(-0.6)]), effects([satisfaction(+0.05)[mood]])]
 +!choose_alice_response_to_carol
     :   true
     <-  +strategy(teach_alice).

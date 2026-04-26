@@ -169,12 +169,13 @@ public class Temper {
 
     /**
      * Get historical average reward for a plan.
-     * Uses optimistic initialisation (0.5) for unseen actions
-     * following Auer et al. 2002 to prevent zero-initialisation bias.
+     * Uses neutral initialisation (0.0) for unseen actions on the
+     * [-1, +1] personality range (Pro-AgentSpeak(L) convention, where
+     * personality and mood share the same signed range).
      */
     private double getHistoricalAverage(String plan) {
         int attempts = planAttempts.getOrDefault(plan, 0);
-        if (attempts == 0) return 0.5;
+        if (attempts == 0) return 0.0;
         return planTotalReward.getOrDefault(plan, 0.0) / attempts;
     }
 
@@ -221,9 +222,9 @@ public class Temper {
                             "Mood value must be in [-1, 1], found: " + trait);
                     mood.put(trait.getFunctor().toString(), value);
                 } else {
-                    if (value < 0.0 || value > 1.0)
+                    if (value < -1.0 || value > 1.0)
                         throw new IllegalArgumentException(
-                            "Personality value must be in [0, 1], found: " + trait);
+                            "Personality value must be in [-1, 1], found: " + trait);
                     personality.put(trait.getFunctor().toString(), value);
                 }
             }
@@ -478,7 +479,35 @@ public class Temper {
         System.out.println("\n[CFR] " + person.toUpperCase() + " - " + action
             + " -> reward=" + String.format("%.3f", reward));
 
-        // Standard CFR: compute regrets for all actions
+        // Counterfactual regret update with historical-mean baselines.
+        //
+        // For each unchosen action a, the instantaneous regret is the gap
+        // between the historical mean reward of a and the historical mean
+        // reward of the chosen action:
+        //     r_t(a) = E_hist[r | a]  -  E_hist[r | chosen],     a != chosen
+        //     r_t(chosen) = 0
+        //
+        // This is NOT canonical CFR (Zinkevich et al. 2008), which targets
+        // Nash equilibria in stationary two-player zero-sum games via
+        //     r_t(a) = v(a) - v(sigma_t).
+        // We instead use action-conditional historical means as the
+        // counterfactual baseline, in the spirit of the counterfactual
+        // advantage of Foerster et al. (COMA, AAAI 2018), Eq. 5:
+        //     A^a(s, u) = Q(s, u) - sum_u' pi(u' | tau) Q(s, u'),
+        // where the second term is the COMA baseline. Our formula is the
+        // bandit-stable approximation: in place of Q-values we use the
+        // running mean of observed rewards conditional on each action.
+        // This keeps the baseline stable under non-stationarity introduced
+        // by the partner's adapting reciprocity, where v(sigma_t) in
+        // Zinkevich (2008) would be ill-defined.
+        //
+        // The cumulative regret accumulator follows Hart & Mas-Colell (2000)
+        // regret matching; the projection from cumulative regrets onto OCEAN
+        // trait space (see updatePersonalityFromCFR) is the novel contribution
+        // and the operational core of the personality-learning loop.
+        //
+        // Convergence claim: no-regret stationarity / stable mutual
+        // best-response in personality space, NOT Nash equilibrium.
         String[] allActions = HelpScenarioConfig.getActionsForPerson(person);
         double expectedChosen = getHistoricalAverage(action);
 
