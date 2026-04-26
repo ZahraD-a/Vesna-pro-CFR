@@ -88,10 +88,10 @@ CONTEXT_DECLINE = {"Alice vs Bob":   "decline_bob",
                    "Alice vs Carol": "decline_alice",
                    "Alice vs Dave":  "decline_dave",
                    "Carol vs Alice": "carol_decline_regret"}
-CONTEXT_CSV = {"Alice vs Bob":   "alice_reg",
-               "Alice vs Carol": "alice_reg",
-               "Alice vs Dave":  "alice_reg",
-               "Carol vs Alice": "carol_reg"}
+CONTEXT_CSV = {"Alice vs Bob":   "alice_trace",
+               "Alice vs Carol": "alice_trace",
+               "Alice vs Dave":  "alice_trace",
+               "Carol vs Alice": "carol_trace"}
 
 
 def collect_seeds():
@@ -107,10 +107,12 @@ def collect_seeds():
 
 def load_seed(seed_dir):
     files = {
-        "alice":     "personality_evolution.csv",
-        "carol":     "carol_personality_evolution.csv",
-        "alice_reg": "cfr_regrets.csv",
-        "carol_reg": "carol_cfr_regrets.csv",
+        "alice":       "personality_evolution.csv",
+        "carol":       "carol_personality_evolution.csv",
+        "alice_reg":   "cfr_regrets.csv",
+        "carol_reg":   "carol_cfr_regrets.csv",
+        "alice_trace": "cfr_trace.csv",
+        "carol_trace": "carol_cfr_trace.csv",
     }
     out = {}
     for k, f in files.items():
@@ -122,6 +124,11 @@ def load_seed(seed_dir):
                                               errors="coerce")
                 df = df.dropna(subset=["episode"]).astype({"episode": int})
                 df = df.sort_values("episode")
+            if "iteration" in df.columns:
+                df["iteration"] = pd.to_numeric(df["iteration"],
+                                                errors="coerce")
+                df = df.dropna(subset=["iteration"]).astype({"iteration": int})
+                df = df.sort_values("iteration")
             out[k] = df
     return out
 
@@ -246,11 +253,15 @@ def regret_matching_prob(R_actions):
     return pos / total
 
 
-def avg_regret_curve(per_seed, csv_key, action_cols, grid):
-    """Average per-info-set regret max_a max(R_a, 0) / t across seeds."""
+def avg_regret_curve(per_seed, trace_key, action_cols, t_grid):
+    """Average per-info-set regret max_a max(R_a, 0) / t across seeds.
+
+    Reads the per-iteration trace (cfr_trace.csv / carol_cfr_trace.csv)
+    so the x-axis is the CFR iteration count t, not the episode count.
+    """
     rows = []
     for d in per_seed.values():
-        df = d.get(csv_key)
+        df = d.get(trace_key)
         if df is None:
             continue
         cols = [c for c in action_cols if c in df.columns]
@@ -258,19 +269,19 @@ def avg_regret_curve(per_seed, csv_key, action_cols, grid):
             continue
         R = df[cols].to_numpy(dtype=float)
         worst = np.maximum(R, 0.0).max(axis=1)
-        eps = df["episode"].to_numpy(dtype=float)
-        eps_safe = np.maximum(eps, 1.0)
-        avg = worst / eps_safe
-        rows.append(np.interp(grid, eps, avg))
+        t = df["iteration"].to_numpy(dtype=float)
+        t_safe = np.maximum(t, 1.0)
+        avg = worst / t_safe
+        rows.append(np.interp(t_grid, t, avg))
     if not rows:
         return None
     return np.vstack(rows)
 
 
-def decline_prob_curve(per_seed, csv_key, action_cols, decline_col, grid):
+def decline_prob_curve(per_seed, trace_key, action_cols, decline_col, t_grid):
     rows = []
     for d in per_seed.values():
-        df = d.get(csv_key)
+        df = d.get(trace_key)
         if df is None or decline_col not in df.columns:
             continue
         cols = [c for c in action_cols if c in df.columns]
@@ -280,14 +291,14 @@ def decline_prob_curve(per_seed, csv_key, action_cols, decline_col, grid):
         probs = np.array([regret_matching_prob(r) for r in R])
         decline_idx = cols.index(decline_col)
         p_decline = probs[:, decline_idx]
-        eps = df["episode"].to_numpy(dtype=float)
-        rows.append(np.interp(grid, eps, p_decline))
+        t = df["iteration"].to_numpy(dtype=float)
+        rows.append(np.interp(t_grid, t, p_decline))
     if not rows:
         return None
     return np.vstack(rows)
 
 
-def fig_convergence_behavior(per_seed, grid):
+def fig_convergence_behavior(per_seed, t_grid):
     fig, axes = plt.subplots(1, 2, figsize=(14.0, 6.0))
     fig.suptitle("No-regret stationarity and behavioural outcome per decision context "
                  f"(mean $\\pm$ std across {len(per_seed)} seeds)",
@@ -312,24 +323,24 @@ def fig_convergence_behavior(per_seed, grid):
         s = avg_regret_curve(per_seed,
                              CONTEXT_CSV[ctx],
                              CONTEXT_ACTIONS[ctx],
-                             grid)
+                             t_grid)
         if s is None:
             continue
         m  = smooth(s.mean(axis=0))
         sd = smooth(s.std(axis=0))
         valid = m > 1e-6
-        ax.plot(grid[valid], m[valid], color=color, linewidth=2.0,
+        ax.plot(t_grid[valid], m[valid], color=color, linewidth=2.0,
                 marker=CONTEXT_MARKER[ctx], markersize=4,
-                markevery=max(1, len(grid) // 33), label=ctx)
-        ax.fill_between(grid[valid],
+                markevery=max(1, len(t_grid) // 33), label=ctx)
+        ax.fill_between(t_grid[valid],
                         np.maximum(m[valid] - sd[valid], 1e-6),
                         m[valid] + sd[valid],
                         color=color, alpha=0.15)
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("Episode (log scale)")
+    ax.set_xlabel("CFR iteration  $t$  (log scale)")
     ax.set_ylabel("Average per-info-set regret  $\\bar R(t)/t$")
-    ax.set_title("Convergence:  $\\bar R(t)/t \\to 0$",
+    ax.set_title("No-regret stationarity:  $\\bar R(t)/t \\to 0$",
                  fontsize=12, fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -344,15 +355,15 @@ def fig_convergence_behavior(per_seed, grid):
                                CONTEXT_CSV[ctx],
                                CONTEXT_ACTIONS[ctx],
                                CONTEXT_DECLINE[ctx],
-                               grid)
+                               t_grid)
         if s is None:
             continue
         m  = smooth(s.mean(axis=0))
         sd = smooth(s.std(axis=0))
-        ax.plot(grid, m, color=color, linewidth=2.0,
+        ax.plot(t_grid, m, color=color, linewidth=2.0,
                 marker=CONTEXT_MARKER[ctx], markersize=4,
-                markevery=max(1, len(grid) // 33), label=ctx)
-        ax.fill_between(grid, m - sd, m + sd, color=color, alpha=0.18)
+                markevery=max(1, len(t_grid) // 33), label=ctx)
+        ax.fill_between(t_grid, m - sd, m + sd, color=color, alpha=0.18)
         if ctx == "Alice vs Carol":
             carol_start_end = (m[0], m[-1])
     ax.axhline(1.0/3.0, color="grey", linewidth=0.7, linestyle="--",
@@ -360,15 +371,15 @@ def fig_convergence_behavior(per_seed, grid):
 
     peaks = []
     for d in per_seed.values():
-        df = d.get("alice_reg")
+        df = d.get("alice_trace")
         if df is not None and "decline_alice" in df.columns:
-            peaks.append(int(df.loc[df["decline_alice"].idxmax(), "episode"]))
+            peaks.append(int(df.loc[df["decline_alice"].idxmax(), "iteration"]))
     if peaks:
-        phase_ep = int(np.mean(peaks))
-        ax.axvline(phase_ep, color="#7F1D1D", linewidth=1.2,
+        phase_t = int(np.mean(peaks))
+        ax.axvline(phase_t, color="#7F1D1D", linewidth=1.2,
                    linestyle=":", alpha=0.85)
-        ax.text(phase_ep + 30, 0.92,
-                f"phase transition\n(ep $\\approx${phase_ep})",
+        ax.text(phase_t * 1.05, 0.92,
+                f"phase transition\n($t \\approx ${phase_t})",
                 fontsize=9, color="#7F1D1D", va="top", ha="left")
 
     if carol_start_end is not None:
@@ -383,7 +394,7 @@ def fig_convergence_behavior(per_seed, grid):
                           facecolor="white", edgecolor="grey",
                           alpha=0.92))
 
-    ax.set_xlabel("Episode")
+    ax.set_xlabel("CFR iteration  $t$")
     ax.set_ylabel(r"$P(\mathit{decline} \mid \mathrm{context})$")
     ax.set_ylim(-0.02, 1.02)
     ax.set_title("Behavioural outcome:  P(decline)",
@@ -414,10 +425,25 @@ def main():
                 max_eps.append(int(df["episode"].max()))
     n_eps = min(max_eps) if max_eps else 0
     grid = np.arange(1, n_eps + 1)
-    print(f"Loaded {len(per_seed)} seeds, common grid 1..{n_eps}")
+
+    # Iteration grid for fig2 (CFR x-axis convention).
+    max_iters = []
+    for d in per_seed.values():
+        df = d.get("alice_trace")
+        if df is not None and "iteration" in df.columns and len(df):
+            max_iters.append(int(df["iteration"].max()))
+    n_iter = min(max_iters) if max_iters else 0
+    if n_iter > 0:
+        # Subsample to ~2000 points for plot speed (full trace is 60k).
+        step = max(1, n_iter // 2000)
+        t_grid = np.arange(1, n_iter + 1, step)
+    else:
+        t_grid = grid
+    print(f"Loaded {len(per_seed)} seeds: {n_eps} episodes, "
+          f"{n_iter} CFR iterations.")
 
     fig_4agent_personality(per_seed, grid)
-    fig_convergence_behavior(per_seed, grid)
+    fig_convergence_behavior(per_seed, t_grid)
     return 0
 
 

@@ -266,7 +266,14 @@ public class BehavioralMemory {
             }
 
             actionCount++;
-            
+
+            // Per-interaction trace (one row per Carol CFR iteration).
+            try {
+                int episode = vesna.via.cfr_episode.getCurrentEpisode();
+                vesna.personality.PolicyLogger.logCarolTrace(
+                    episode, actionTaken, reward, cumulativeRegret);
+            } catch (Throwable ignored) { /* logging must never break sim */ }
+
             System.out.println("[CFR] " + name + " action=" + actionTaken 
                 + " reward=" + String.format("%.2f", reward)
                 + " cumRegret: help=" + String.format("%.2f", cumulativeRegret.get("help"))

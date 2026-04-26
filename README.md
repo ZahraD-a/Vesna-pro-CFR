@@ -6,7 +6,7 @@ Extension of the Pro-AgentSpeak(L) BDI agent framework with **regret-matching pe
 
 ## What this does
 
-A BDI agent (Alice) and a peer agent (Carol) work together in a simulated office over 2000 episodes. Both agents update their **OCEAN personality vectors** through the regret-matching loop; both observe each other's actions and adjust. The remaining colleagues (Bob, Dave) are static partners that provide reward context.
+A BDI agent (Alice) and a peer agent (Carol) work together in a simulated office over **2000 episodes**. Each episode contains 30 plan-decision interactions for Alice (10 per colleague), so Alice's total **CFR iteration count $T = 60{,}000$**. Carol's CFR fires once per Carol-context interaction (10 per episode → $T_{\text{Carol}} = 20{,}000$). Cumulative regret is updated once per iteration; the plot scripts use iteration $t$ as the time axis. Both agents update their **OCEAN personality vectors** through the regret-matching loop; both observe each other's actions and adjust. The remaining colleagues (Bob, Dave) are static partners that provide reward context.
 
 | Agent | Type | Initial OCEAN | Reciprocity |
 |---|---|---|---|
@@ -84,7 +84,7 @@ r_enhanced = r_base
            + gamma * (relationship  - 0.5)              [Ng et al. ICML 1999]
 ```
 
-Defaults: `alpha=1.0`, `beta=0.3`, `gamma=0.2` (override at run time via `-Palpha=X`).
+Defaults: `alpha=0.6`, `beta=0.3`, `gamma=0.2` (override at run time via `-Palpha=X`). The 10-seed × 2000-episode results below were produced at these defaults.
 
 The α coefficient sweep `{0.4, 0.6, 1.0, 1.5}` is reported in `figD_alpha_sensitivity.png` and `figE_OCEAN_alpha_sensitivity.png` — phase-transition timing scales with α (≈ 233 → 672 across the range), but the equilibrium location in trait space is α-invariant.
 
@@ -124,13 +124,15 @@ tensorboard --logdir runs/multiseed --port 6006
 
 **Output CSVs written per seed:**
 
-| File | Contents |
-|---|---|
-| `personality_evolution.csv` | Alice OCEAN + mood + total reward per episode |
-| `carol_personality_evolution.csv` | Carol OCEAN per episode |
-| `cfr_regrets.csv` | Alice cumulative regrets for all 9 actions (3 per colleague) |
-| `carol_cfr_regrets.csv` | Carol cumulative regrets for help / decline / reciprocate |
-| `adapted_reciprocity.csv` | Bob / Carol / Dave adapted + innate ratios, Carol observed ratio, Carol exploitation flag |
+| File | Resolution | Contents |
+|---|---|---|
+| `personality_evolution.csv` | per-episode | Alice OCEAN + mood + total reward |
+| `carol_personality_evolution.csv` | per-episode | Carol OCEAN |
+| `cfr_regrets.csv` | per-episode | Alice cumulative regrets (9 actions) |
+| `carol_cfr_regrets.csv` | per-episode | Carol cumulative regrets (help / decline / reciprocate) |
+| `cfr_trace.csv` | **per-iteration** | Alice's full CFR trace: $t$, episode, person, action, reward, all 9 cumulative regrets — one row per CFR iteration |
+| `carol_cfr_trace.csv` | **per-iteration** | Carol's full CFR trace: $t$, episode, action, reward, 3 cumulative regrets |
+| `adapted_reciprocity.csv` | per-episode | Bob / Carol / Dave adapted + innate ratios, Carol observed ratio, Carol exploitation flag |
 
 ---
 
@@ -144,13 +146,11 @@ vesna-pro/
     plot_paper_figures.py                          fig1 (4-agent OCEAN) + fig2 (no-regret + behavior)
     plot_phase_portrait.py                         fig3 (Carol A vs Alice A, headline)
     plot_reciprocity.py                            fig4 (per-colleague reciprocity + consistency)
-    plot_cfr_per_agent.py                          per-agent regret panels (diagnostic)
     plot_alpha_sweep.py                            figD + figE (alpha sensitivity)
-    plot_multiseed.py                              alternative multi-seed view (diagnostic)
     log_multiseed_tensorboard.py                   writes runs/multiseed/{seed_NN, mean, std}/
     run_alpha_sweep.sh                             4 alphas x 5 seeds, 2000 ep each
   tests/
-    run_10_seeds.sh                                10-seed batch runner (seeds 0..9)
+    run_10_seeds.sh                                10-seed batch runner (seeds 0..9, 2000 ep)
   results/
     seed_0..9/                                     per-seed CSV outputs of the 10-seed run
     alpha_0_4/, alpha_0_6/, alpha_1_0/, alpha_1_5/ alpha-sweep outputs

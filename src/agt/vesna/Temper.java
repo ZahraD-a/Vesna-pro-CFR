@@ -534,8 +534,16 @@ public class Temper {
         }
 
         totalEpisodeReward += reward;
+
+        // Per-interaction trace (one row per CFR iteration t = 1..T).
+        try {
+            int currentEpisode = vesna.via.cfr_episode.getCurrentEpisode();
+            vesna.personality.PolicyLogger.logAliceTrace(
+                currentEpisode, person, action, reward,
+                getHelpCumulativeRegrets());
+        } catch (Throwable ignored) { /* logging must never break sim */ }
     }
-    
+
     /**
      * Record a colleague's (e.g., Carol's) decision outcome for CFR learning.
      * Follows same pattern as Alice but for colleague responses.

@@ -63,6 +63,7 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
 
     # Clean every artefact left from the previous run so seed N starts fresh.
     rm -f personality_evolution.csv carol_personality_evolution.csv \
+          cfr_trace.csv carol_cfr_trace.csv \
           cfr_regrets.csv carol_cfr_regrets.csv \
           adapted_reciprocity.csv personality.json
 
@@ -73,6 +74,7 @@ for SEED in 0 1 2 3 4 5 6 7 8 9; do
 
     if [ -f personality_evolution.csv ]; then
         for f in personality_evolution.csv carol_personality_evolution.csv \
+                 cfr_trace.csv carol_cfr_trace.csv \
                  cfr_regrets.csv carol_cfr_regrets.csv \
                  adapted_reciprocity.csv personality.json; do
             [ -f "$f" ] && cp "$f" "$SEED_DIR/"

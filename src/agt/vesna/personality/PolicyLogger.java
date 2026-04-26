@@ -44,6 +44,14 @@ public class PolicyLogger {
         "help_dave",   "decline_dave",   "suggest_dave"
     };
 
+    /** Per-interaction trace files. Each row is one CFR iteration. */
+    private static final String ALICE_TRACE_FILE = "cfr_trace.csv";
+    private static final String CAROL_TRACE_FILE = "carol_cfr_trace.csv";
+
+    /** Global iteration counters; reset by reset() at run start. */
+    private static long aliceIterationCounter = 0;
+    private static long carolIterationCounter = 0;
+
     /**
      * Log personality and mood state at end of episode.
      */
@@ -134,12 +142,103 @@ public class PolicyLogger {
             StandardOpenOption.CREATE);
     }
 
+    // ---------------------------------------------------------------------
+    // Per-interaction trace logging (one row per CFR iteration t = 1..T).
+    // T = total interactions = episodes x interactions_per_episode.
+    // ---------------------------------------------------------------------
+
+    /**
+     * Append one row to cfr_trace.csv per Alice CFR update. Returns the
+     * monotonically-increasing iteration index t assigned to this row.
+     */
+    public static long logAliceTrace(int episode, String person, String action,
+                                     double reward, Map<String, Double> regrets) {
+        aliceIterationCounter++;
+        try {
+            if (!Files.exists(Paths.get(ALICE_TRACE_FILE))) {
+                writeAliceTraceHeader();
+            }
+            StringBuilder row = new StringBuilder();
+            row.append(aliceIterationCounter).append(",")
+               .append(episode).append(",")
+               .append(person).append(",")
+               .append(action).append(",")
+               .append(String.format("%.4f", reward));
+            for (String a : HELP_ACTIONS) {
+                row.append(",").append(String.format("%.4f",
+                    regrets.getOrDefault(a, 0.0)));
+            }
+            Files.write(Paths.get(ALICE_TRACE_FILE),
+                (row.toString() + System.lineSeparator()).getBytes(),
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            System.err.println("[POLICY] Failed to log alice trace: "
+                + e.getMessage());
+        }
+        return aliceIterationCounter;
+    }
+
+    private static void writeAliceTraceHeader() throws IOException {
+        StringBuilder header = new StringBuilder(
+            "iteration,episode,person,action,reward");
+        for (String a : HELP_ACTIONS) {
+            header.append(",").append(a);
+        }
+        Files.write(Paths.get(ALICE_TRACE_FILE),
+            (header.toString() + System.lineSeparator()).getBytes(),
+            StandardOpenOption.CREATE);
+    }
+
+    /**
+     * Append one row to carol_cfr_trace.csv per Carol CFR update.
+     * Carol has only one decision context (interactions with Alice), with
+     * three actions: help, decline, reciprocate.
+     */
+    public static long logCarolTrace(int episode, String action, double reward,
+                                     Map<String, Double> regrets) {
+        carolIterationCounter++;
+        try {
+            if (!Files.exists(Paths.get(CAROL_TRACE_FILE))) {
+                writeCarolTraceHeader();
+            }
+            String[] carolActions = {"help", "decline", "reciprocate"};
+            StringBuilder row = new StringBuilder();
+            row.append(carolIterationCounter).append(",")
+               .append(episode).append(",")
+               .append(action).append(",")
+               .append(String.format("%.4f", reward));
+            for (String a : carolActions) {
+                row.append(",").append(String.format("%.4f",
+                    regrets.getOrDefault(a, 0.0)));
+            }
+            Files.write(Paths.get(CAROL_TRACE_FILE),
+                (row.toString() + System.lineSeparator()).getBytes(),
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            System.err.println("[CAROL POLICY] Failed to log carol trace: "
+                + e.getMessage());
+        }
+        return carolIterationCounter;
+    }
+
+    private static void writeCarolTraceHeader() throws IOException {
+        Files.write(Paths.get(CAROL_TRACE_FILE),
+            ("iteration,episode,action,reward,"
+             + "carol_help_regret,carol_decline_regret,carol_reciprocate_regret"
+             + System.lineSeparator()).getBytes(),
+            StandardOpenOption.CREATE);
+    }
+
     public static void reset() {
         try {
             Files.deleteIfExists(Paths.get(POLICY_LOG_FILE));
             Files.deleteIfExists(Paths.get(REGRET_LOG_FILE));
             Files.deleteIfExists(Paths.get("carol_personality_evolution.csv"));
             Files.deleteIfExists(Paths.get("carol_cfr_regrets.csv"));
+            Files.deleteIfExists(Paths.get(ALICE_TRACE_FILE));
+            Files.deleteIfExists(Paths.get(CAROL_TRACE_FILE));
+            aliceIterationCounter = 0;
+            carolIterationCounter = 0;
         } catch (IOException e) {
             System.err.println("[POLICY] Failed to reset: " + e.getMessage());
         }

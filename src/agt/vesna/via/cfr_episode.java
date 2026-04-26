@@ -25,6 +25,9 @@ import java.util.Map;
 public class cfr_episode extends DefaultInternalAction {
 
     private static int episodeCounter = 0;
+
+    /** 1-indexed episode currently in progress (incremented at episode end). */
+    public static int getCurrentEpisode() { return episodeCounter + 1; }
     private static final String ADAPT_LOG = "adapted_reciprocity.csv";
     private static boolean adaptHeaderWritten = false;
 
