@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sensitivity figures for the reciprocity-shaping coefficient alpha.
 
-Reads results/alpha_<v>/seed_<n>/* directories produced by
+Reads results/alpha/alpha_<v>/seed_<n>/* directories produced by
 scripts/run_alpha_sweep.sh and produces two complementary figures:
 
   figD_alpha_sensitivity.png     CFR-level outcomes vs alpha
@@ -26,7 +26,9 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
-OUT = RESULTS
+ALPHA_RESULTS = RESULTS / "alpha"
+OUT = ALPHA_RESULTS
+OUT.mkdir(parents=True, exist_ok=True)
 
 ALPHA_DIR_RE = re.compile(r"^alpha_(\d+(?:_\d+)?)$")
 
@@ -50,7 +52,7 @@ OCEAN_COLORS = {
 
 def collect_alpha_runs():
     found = {}
-    for child in sorted(RESULTS.iterdir()):
+    for child in sorted(ALPHA_RESULTS.iterdir()):
         if not child.is_dir():
             continue
         m = ALPHA_DIR_RE.match(child.name)
@@ -172,7 +174,7 @@ def main():
     runs = collect_alpha_runs()
     if not runs:
         sys.stderr.write(
-            "No results/alpha_*/seed_*/ directories found.\n"
+            "No results/alpha/alpha_*/seed_*/ directories found.\n"
             "Run scripts/run_alpha_sweep.sh first.\n")
         return 1
 

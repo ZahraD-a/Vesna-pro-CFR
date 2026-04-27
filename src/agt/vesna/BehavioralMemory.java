@@ -13,7 +13,20 @@ import java.util.List;
  * and relationship quality. These values are used by record_outcome
  * to compute enhanced rewards that create reward divergence from
  * initially uniform base rewards.
- * 
+ *
+ * <h3>Carol's CFR state lives here (not in Temper)</h3>
+ * Carol is an <i>observational-CFR</i> learner: her regret is over the action
+ * she attributes to Alice, with a fixed-ratio counterfactual on Alice's
+ * untaken actions (see {@link PersonMemory#recordDecisionOutcome}). At episode
+ * end, {@link PersonMemory#updatePersonalityFromRegret} projects the regret
+ * vector onto Carol's OCEAN traits via the same regret-matching kernel Alice
+ * uses in {@code Temper.updatePersonalityFromCFR}, but with action-trait
+ * profiles defined locally for Carol's three internal actions
+ * ({help, decline, reciprocate}).
+ *
+ * <p>This is the single source of truth for Carol's personality; the previous
+ * Temper-side scaffolding has been removed.
+ *
  * EXTENSION: Carol (and optionally other colleagues) now have:
  * - OCEAN personality traits that evolve via CFR
  * - Response plans: help_colleague, decline_colleague, reciprocate_colleague

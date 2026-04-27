@@ -35,21 +35,26 @@ The novel mechanism is the projection from cumulative regrets onto OCEAN trait s
 
 ---
 
-## Key results — 10 seeds × 2000 episodes
+## Key results — 10 seeds × 2000 episodes (60 000 CFR iterations)
 
-| Quantity | Start | End (mean ± std) |
+All paper figures use **CFR iteration `t`** as the X-axis (Leduc convention; `t = episode × 30 record_outcome calls/episode`).
+
+| Quantity | Start ($t=0$) | End ($t=60{,}000$, mean ± std) |
 |---|---|---|
-| Alice Agreeableness | −0.01 | **+0.28 ± 0.12** |
-| Alice Neuroticism | 0.0 | −0.62 ± 0.04 |
-| Carol Agreeableness | −0.38 (init) | **+0.55 ± 0.09** |
-| Carol Neuroticism | 0.0 | −0.46 ± 0.02 |
-| Carol adapted reciprocity | 0.10 (innate) | 0.59 ± 0.06 |
-| Bob adapted reciprocity | 0.40 (innate) | 0.67 ± 0.02 |
-| Dave adapted reciprocity | 0.90 (innate) | 0.87 ± 0.00 (saturates near cap) |
-| Phase-transition episode (peak `decline_alice` regret) | — | 398 ± 172 |
-| Alice `P(decline | Carol)` | ≈ 0.85 | ≈ 0.05 |
+| Alice Agreeableness | −0.01 | **+0.26 ± 0.10** |
+| Alice Neuroticism | 0.00 | −0.62 ± 0.03 |
+| Carol Agreeableness | −0.40 (init) | **+0.36 ± 0.009** |
+| Carol Neuroticism | 0.00 | −0.51 ± 0.002 |
+| Carol Conscientiousness | −0.20 (init) | +0.20 ± 0.000 (saturates at action-profile fixed point) |
+| Carol adapted reciprocity | 0.10 (innate) | 0.61 ± 0.07 |
+| Bob adapted reciprocity | 0.40 (innate) | 0.69 ± 0.04 |
+| Dave adapted reciprocity | 0.90 (innate) | 0.87 ± 0.00 (saturates near 0.85 cap) |
+| Carol exploitative flag `φ` deactivation iteration | — | **`t ≈ 1410 ± 1260`** ($\sim$ ep 47 ± 42, range 1–116) |
+| Carol observed help-rate from Alice | 0.00 | 0.62 ± 0.03 |
 
-**Headline finding (Figure 3, phase portrait).** The joint trajectory in `(Carol Agreeableness, Alice Agreeableness)` space starts in the non-cooperative lower-left quadrant `(−0.38, −0.01)` and converges to a tight cooperative cluster in the upper-right `(+0.55±0.09, +0.28±0.12)`. The closed loop of regret-matching personality projection × adaptive reciprocity produces this mutual best-response **with no explicit coordination signal**.
+**Two-agent CFR design (asymmetric by intent).** Alice's CFR state lives in `Temper`; Carol's in `BehavioralMemory.PersonMemory`. Alice optimises her own utility over her plan space; Carol's regret tracks the action she attributes to Alice's behaviour (`help_alice → reciprocate`, `decline_alice → decline`, `teach_alice → help`). The asymmetry is intentional: Carol's role is observational reciprocity, not independent utility maximisation. See `record_carol_cfr.java` for the mapping and the per-iteration regret stream.
+
+**Note on Bob/Dave reciprocity adaptation (fig4).** Bob and Dave do *not* run CFR. Their `adaptedReciprocity` is updated by a hand-coded rule in `BehavioralMemory.adaptReciprocity` — when Alice declines, the colleague raises reciprocity proportional to remaining capacity; when Alice helps, it drifts back toward innate. This is a *separate mechanism* from the CFR personality learning that runs on Alice and Carol. fig4 shows this rule-based dynamic; CFR-driven personality learning is shown in fig1 (OCEAN traits) and fig2 (cumulative regret).
 
 ---
 
@@ -84,9 +89,9 @@ r_enhanced = r_base
            + gamma * (relationship  - 0.5)              [Ng et al. ICML 1999]
 ```
 
-Defaults: `alpha=0.6`, `beta=0.3`, `gamma=0.2` (override at run time via `-Palpha=X`). The 10-seed × 2000-episode results below were produced at these defaults.
+Defaults: `alpha=0.6`, `beta=0.3`, `gamma=0.2` (override at run time via `-Palpha=X`). The 10-seed × 2000-episode results above were produced at these defaults.
 
-The α coefficient sweep `{0.4, 0.6, 1.0, 1.5}` is reported in `figD_alpha_sensitivity.png` and `figE_OCEAN_alpha_sensitivity.png` — phase-transition timing scales with α (≈ 233 → 672 across the range), but the equilibrium location in trait space is α-invariant.
+The α coefficient sweep `{0.4, 0.6, 1.0, 1.5}` is reported in `results/alpha/figD_alpha_sensitivity.png` and `results/alpha/figE_OCEAN_alpha_sensitivity.png` — phase-transition timing scales with α, but the equilibrium location in trait space is α-invariant.
 
 ---
 
@@ -105,14 +110,16 @@ bash tests/run_10_seeds.sh
 bash scripts/run_alpha_sweep.sh
 ```
 
-**Generate the four publication figures** (each reads from `results/seed_*/` and writes to `results/`):
+**Generate the four publication figures** (each reads from `results/seed_*/` and writes into themed subfolders):
 
 ```bash
-python scripts/plot_paper_figures.py     # fig1 + fig2
-python scripts/plot_phase_portrait.py    # fig3 (headline)
-python scripts/plot_reciprocity.py       # fig4
-python scripts/plot_alpha_sweep.py       # figD + figE  (alpha sensitivity)
+python scripts/plot_paper_figures.py     # fig1 (OCEAN x4 agents) -> results/ocean/
+                                          # fig2 (per-agent x per-context regret) -> results/regret/
+python scripts/plot_reciprocity.py       # fig4 (rule-based reciprocity) -> results/reciprocity/
+python scripts/plot_alpha_sweep.py       # figD + figE -> results/alpha/
 ```
+
+All scripts use the **CFR iteration** convention on the X-axis (`t = episode × 30`).
 
 **TensorBoard view** (per-seed traces + cross-seed mean/std):
 
@@ -143,9 +150,8 @@ vesna-pro/
   src/agt/                                         BDI sources (Java + AgentSpeak)
   src/env/                                         JaCaMo environment artifacts
   scripts/
-    plot_paper_figures.py                          fig1 (4-agent OCEAN) + fig2 (no-regret + behavior)
-    plot_phase_portrait.py                         fig3 (Carol A vs Alice A, headline)
-    plot_reciprocity.py                            fig4 (per-colleague reciprocity + consistency)
+    plot_paper_figures.py                          fig1 (4-agent OCEAN) + fig2 (per-agent regret)
+    plot_reciprocity.py                            fig4 (rule-based reciprocity, non-CFR)
     plot_alpha_sweep.py                            figD + figE (alpha sensitivity)
     log_multiseed_tensorboard.py                   writes runs/multiseed/{seed_NN, mean, std}/
     run_alpha_sweep.sh                             4 alphas x 5 seeds, 2000 ep each
@@ -153,13 +159,16 @@ vesna-pro/
     run_10_seeds.sh                                10-seed batch runner (seeds 0..9, 2000 ep)
   results/
     seed_0..9/                                     per-seed CSV outputs of the 10-seed run
-    alpha_0_4/, alpha_0_6/, alpha_1_0/, alpha_1_5/ alpha-sweep outputs
-    fig1_personality_4agents.png
-    fig2_convergence_behavior.png
-    fig3_phase_portrait.png                        (headline figure)
-    fig4_adaptive_reciprocity.png
-    figD_alpha_sensitivity.png
-    figE_OCEAN_alpha_sensitivity.png
+    ocean/                                         OCEAN trait figures
+      fig1_personality_4agents.png                 (4-agent OCEAN over 60 000 iterations)
+    regret/                                        per-agent, per-context cumulative CFR regret
+      fig2_regret_per_agent.png                    2x2: Alice vs Bob/Carol/Dave + Carol vs Alice
+    reciprocity/                                   rule-based reciprocity (non-CFR mechanism)
+      fig4_adaptive_reciprocity.png
+    alpha/                                         alpha sensitivity sweep
+      alpha_0_4/, alpha_0_6/, alpha_1_0/, alpha_1_5/   per-alpha CSV outputs
+      figD_alpha_sensitivity.png
+      figE_OCEAN_alpha_sensitivity.png
   runs/multiseed/                                  TensorBoard event files (per-seed + mean + std)
   vesna.jcm                                        JaCaMo project (agent definition, seed)
   build.gradle                                     Gradle build (Java 21, JaCaMo 1.2)

@@ -27,8 +27,18 @@ import vesna.VesnaAgent;
  * <p>The reward is added to Carol's cumulative regret for the mapped action
  * in her {@link BehavioralMemory.PersonMemory}; this is the regret stream
  * that {@link BehavioralMemory.PersonMemory#updatePersonalityFromRegret()}
- * reads at episode end. The same reward is also forwarded to Temper's
- * diagnostic regret table for logging purposes.</p>
+ * reads at episode end.</p>
+ *
+ * <h3>Carol = observational CFR (asymmetric with Alice)</h3>
+ * <p>Alice runs <i>self-CFR</i>: her regret is computed against her own plans'
+ * historical mean payoffs (see {@link Temper#updatePersonalityFromCFR}).
+ * Carol runs <i>observational CFR</i>: her regret is over the action she
+ * attributes to Alice's behaviour, with an instantaneous-counterfactual
+ * recipe inside {@link BehavioralMemory.PersonMemory#recordDecisionOutcome}.
+ * This asymmetry is intentional — Carol's role is to <i>react to Alice</i>,
+ * not to optimise her own utility independently. It is what produces the
+ * social-trust-reversal dynamic reported in the paper (φ(Carol) deactivation
+ * once Alice's perceived help-rate drops past threshold).</p>
  */
 public class record_carol_cfr extends DefaultInternalAction {
 
@@ -57,13 +67,12 @@ public class record_carol_cfr extends DefaultInternalAction {
             carolAction = aliceAction;
         }
 
+        // Single source of truth for Carol's CFR state: BehavioralMemory.PersonMemory.
+        // (The previous Temper-side mirror was unwired and has been removed.)
         BehavioralMemory.PersonMemory carolMem = temper.getBehavioralMemoryPerson("carol");
         if (carolMem != null && carolMem.learnsViaCFR) {
             carolMem.recordDecisionOutcome(carolAction, reward);
         }
-
-        // Secondary diagnostic channel: keep Temper's carolInformationSets in sync.
-        temper.recordCarolOutcome(aliceAction, reward);
 
         ts.getLogger().info(String.format(
             "[Carol CFR] alice=%s -> carol=%s reward=%+.3f",

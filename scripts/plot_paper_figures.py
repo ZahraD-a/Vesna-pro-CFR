@@ -36,6 +36,18 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
+OUT_OCEAN  = RESULTS / "ocean"
+OUT_REGRET = RESULTS / "regret"
+OUT_OCEAN.mkdir(parents=True, exist_ok=True)
+OUT_REGRET.mkdir(parents=True, exist_ok=True)
+
+# CFR iterations per episode in our experiment loop. record_outcome is
+# fired ~30 times per episode by workplace_cfr_learning.asl, which is
+# what populates cfr_trace.csv / carol_cfr_trace.csv. We use this ratio
+# to project the per-episode personality CSVs onto a per-iteration
+# x-axis so all paper figures share the Leduc-style "CFR iteration t"
+# convention (Zinkevich et al., 2008).
+ITER_PER_EP = 30
 
 OCEAN = ["openness", "conscientiousness", "extraversion",
          "agreeableness", "neuroticism"]
@@ -50,6 +62,16 @@ OCEAN_COLORS = {
     "agreeableness":     "#1F3A93",   # navy
     "neuroticism":       "#B22222",   # firebrick
 }
+# One marker shape per trait, Leduc-style sparse markers along each curve.
+OCEAN_MARKERS = {
+    "openness":          "^",   # triangle up
+    "conscientiousness": "o",   # circle
+    "extraversion":      "s",   # square
+    "agreeableness":     "D",   # diamond
+    "neuroticism":       "v",   # triangle down
+}
+# Number of markers placed along each curve (Leduc figures use ~10–11).
+N_MARKERS = 11
 
 
 def style_ax(ax):
@@ -67,31 +89,6 @@ DAVE_HELP_STANCE = {"openness":  0.4, "conscientiousness":  0.0,
                     "extraversion":  0.2, "agreeableness":   0.0,
                     "neuroticism":  -0.8}
 
-# Leduc-style colour-per-context (locked across paired panels).
-CONTEXT_COLOR  = {"Alice vs Bob":   "#1f77b4",
-                  "Alice vs Carol": "#d62728",
-                  "Alice vs Dave":  "#2ca02c",
-                  "Carol vs Alice": "#9467bd"}
-CONTEXT_MARKER = {"Alice vs Bob":   "s",
-                  "Alice vs Carol": "o",
-                  "Alice vs Dave":  "^",
-                  "Carol vs Alice": "D"}
-CONTEXT_ACTIONS = {
-    "Alice vs Bob":   ("help_bob",   "decline_bob",   "delay_bob"),
-    "Alice vs Carol": ("help_alice", "decline_alice", "teach_alice"),
-    "Alice vs Dave":  ("help_dave",  "decline_dave",  "suggest_dave"),
-    "Carol vs Alice": ("carol_help_regret",
-                       "carol_decline_regret",
-                       "carol_reciprocate_regret"),
-}
-CONTEXT_DECLINE = {"Alice vs Bob":   "decline_bob",
-                   "Alice vs Carol": "decline_alice",
-                   "Alice vs Dave":  "decline_dave",
-                   "Carol vs Alice": "carol_decline_regret"}
-CONTEXT_CSV = {"Alice vs Bob":   "alice_trace",
-               "Alice vs Carol": "alice_trace",
-               "Alice vs Dave":  "alice_trace",
-               "Carol vs Alice": "carol_trace"}
 
 
 def collect_seeds():
@@ -159,6 +156,11 @@ def smooth(arr, window=21):
 # ---------------------------------------------------------------------------
 
 def _ocean_panel_dynamic(ax, per_seed, df_key, col_for, grid, title):
+    # X axis is CFR iteration t = episode * ITER_PER_EP. Leduc-style
+    # styling: thin line, sparse filled markers (one shape per trait),
+    # faint cross-seed std band.
+    x = grid * ITER_PER_EP
+    markevery = max(1, len(x) // N_MARKERS)
     for trait in OCEAN:
         s = stack_on_grid(per_seed, df_key, col_for(trait), grid)
         if s is None:
@@ -166,36 +168,36 @@ def _ocean_panel_dynamic(ax, per_seed, df_key, col_for, grid, title):
         m  = smooth(s.mean(axis=0))
         sd = smooth(s.std(axis=0))
         c  = OCEAN_COLORS[trait]
-        ax.plot(grid, m, color=c, linewidth=2.0, label=OCEAN_LABELS[trait])
-        ax.fill_between(grid, m - sd, m + sd, color=c, alpha=0.18)
-    ax.axhline(0.0, color="grey", linewidth=0.7, linestyle="--")
-    ax.set_xlabel("Episode")
+        ax.plot(x, m, color=c, linewidth=1.4,
+                marker=OCEAN_MARKERS[trait], markersize=6,
+                markevery=markevery, markerfacecolor=c,
+                markeredgecolor=c, label=OCEAN_LABELS[trait])
+        ax.fill_between(x, m - sd, m + sd, color=c, alpha=0.10, linewidth=0)
+    ax.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+    ax.set_xlabel(r"CFR iteration  $t$")
     ax.set_ylabel("Trait value")
     ax.set_ylim(-1.05, 1.05)
-    ax.set_title(title, fontsize=12, fontweight="bold")
+    ax.set_title(title, fontsize=12)
     style_ax(ax)
-    ax.legend(loc="lower right", fontsize=9, frameon=False, ncol=5,
-              columnspacing=0.9, handlelength=1.2)
 
 
 def _ocean_panel_static(ax, stance, grid, title, subtitle):
+    x = grid * ITER_PER_EP
+    markevery = max(1, len(x) // N_MARKERS)
     for trait in OCEAN:
         v = stance[trait]
         c = OCEAN_COLORS[trait]
-        ax.plot(grid, np.full_like(grid, v, dtype=float),
-                color=c, linewidth=2.4, label=OCEAN_LABELS[trait])
-    ax.axhline(0.0, color="grey", linewidth=0.7, linestyle="--")
-    ax.set_xlabel("Episode")
+        ax.plot(x, np.full_like(x, v, dtype=float),
+                color=c, linewidth=1.4,
+                marker=OCEAN_MARKERS[trait], markersize=6,
+                markevery=markevery, markerfacecolor=c,
+                markeredgecolor=c, label=OCEAN_LABELS[trait])
+    ax.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+    ax.set_xlabel(r"CFR iteration  $t$")
     ax.set_ylabel("Trait value")
     ax.set_ylim(-1.05, 1.05)
-    ax.set_title(title, fontsize=12, fontweight="bold")
-    ax.text(0.02, 0.96, subtitle, transform=ax.transAxes,
-            fontsize=9, va="top", ha="left",
-            bbox=dict(boxstyle="round,pad=0.3",
-                      facecolor="white", edgecolor="grey", alpha=0.85))
+    ax.set_title(title, fontsize=12)
     style_ax(ax)
-    ax.legend(loc="lower right", fontsize=9, frameon=False, ncol=5,
-              columnspacing=0.9, handlelength=1.2)
 
 
 def fig_4agent_personality(per_seed, grid):
@@ -203,18 +205,8 @@ def fig_4agent_personality(per_seed, grid):
                              sharex=True, sharey=True)
     fig.suptitle("Per-agent OCEAN personality "
                  f"(mean $\\pm$ std across {len(per_seed)} seeds, "
-                 f"{grid[-1]} episodes)",
+                 f"{grid[-1] * ITER_PER_EP} CFR iterations)",
                  fontsize=14, fontweight="bold")
-    fig.text(0.5, 0.005,
-             "Carol initialised at A=$-$0.4, N=0, O=+0.2, C=$-$0.2, E=+0.2 "
-             "(moderately exploitative starting profile). "
-             "Alice's late-episode A and E recovery (ep $\\sim$1500+) "
-             "reflects closed-loop adaptation to Carol's rising reciprocity. "
-             "Bob and Dave are static partners: their flat lines show the "
-             "OCEAN profile of their cooperative (help_*) action; their "
-             "reliability and reciprocity values drive reward dynamics in "
-             "their contexts but their personality is not learned.",
-             ha="center", fontsize=9, style="italic", wrap=True)
 
     _ocean_panel_dynamic(axes[0, 0], per_seed, "alice",
                          lambda t: t, grid,
@@ -229,181 +221,152 @@ def fig_4agent_personality(per_seed, grid):
                          "Dave (static partner)",
                          "reliability=0.8\nreciprocity=0.9")
 
-    plt.tight_layout()
-    out = RESULTS / "fig1_personality_4agents.png"
+    # Shared legend at the bottom (Leduc-style), one entry per OCEAN trait.
+    handles = []
+    for trait in OCEAN:
+        handles.append(plt.Line2D(
+            [0], [0], color=OCEAN_COLORS[trait], linewidth=1.4,
+            marker=OCEAN_MARKERS[trait], markersize=7,
+            markerfacecolor=OCEAN_COLORS[trait],
+            markeredgecolor=OCEAN_COLORS[trait],
+            label=OCEAN_LABELS[trait]))
+    fig.legend(handles=handles, loc="lower center", ncol=5,
+               frameon=False, fontsize=11, columnspacing=2.4,
+               handlelength=2.0, bbox_to_anchor=(0.5, -0.01))
+
+    plt.tight_layout(rect=(0, 0.04, 1, 1))
+    out = OUT_OCEAN / "fig1_personality_4agents.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
-# FIGURE 2 -- Leduc-style: log-log avg regret + decline probability
+# FIGURE 2 -- Per-agent, per-context cumulative CFR regret
 # ---------------------------------------------------------------------------
 
-def regret_matching_prob(R_actions):
-    """Return regret-matching probabilities for one row of regrets.
+def _trace_t_grid(per_seed, trace_key, target_points=2000):
+    """Build a per-trace iteration grid clipped to the shortest trace
+    across seeds. Avoids np.interp's edge-extrapolation artefact when
+    Alice (60 000 iter) and Carol (20 000 iter) traces have different
+    lengths in the same experiment."""
+    max_iters = []
+    for d in per_seed.values():
+        df = d.get(trace_key)
+        if df is not None and "iteration" in df.columns and len(df):
+            max_iters.append(int(df["iteration"].max()))
+    if not max_iters:
+        return None
+    n = min(max_iters)
+    step = max(1, n // target_points)
+    return np.arange(1, n + 1, step)
 
-    R_actions: array of shape (n_actions,). Returns probabilities where
-    sigma(a) = max(R(a), 0) / sum_b max(R(b), 0). Uniform if all <= 0.
-    """
-    pos = np.maximum(R_actions, 0.0)
-    total = pos.sum()
-    if total <= 0:
-        return np.ones_like(R_actions) / len(R_actions)
-    return pos / total
 
+def _stack_regret_per_action(per_seed, trace_key, action_cols, t_grid):
+    """For each action in `action_cols`, return an array of shape
+    (n_seeds, len(t_grid)) of cumulative regret values, interpolated onto
+    the iteration grid. Returns dict {action: stacked_array}.
 
-def avg_regret_curve(per_seed, trace_key, action_cols, t_grid):
-    """Average per-info-set regret max_a max(R_a, 0) / t across seeds.
-
-    Reads the per-iteration trace (cfr_trace.csv / carol_cfr_trace.csv)
-    so the x-axis is the CFR iteration count t, not the episode count.
-    """
-    rows = []
+    The caller is responsible for passing a t_grid clipped to the
+    actual range of `trace_key` — we no longer fall back to
+    extrapolation past the last logged iteration."""
+    out = {a: [] for a in action_cols}
     for d in per_seed.values():
         df = d.get(trace_key)
         if df is None:
             continue
-        cols = [c for c in action_cols if c in df.columns]
-        if not cols:
-            continue
-        R = df[cols].to_numpy(dtype=float)
-        worst = np.maximum(R, 0.0).max(axis=1)
         t = df["iteration"].to_numpy(dtype=float)
-        t_safe = np.maximum(t, 1.0)
-        avg = worst / t_safe
-        rows.append(np.interp(t_grid, t, avg))
-    if not rows:
-        return None
-    return np.vstack(rows)
+        for a in action_cols:
+            if a not in df.columns:
+                continue
+            r = df[a].to_numpy(dtype=float)
+            # Clip the grid to this trace's actual range so np.interp
+            # never extends a flat tail past the last logged iteration.
+            mask = t_grid <= t.max()
+            row = np.full_like(t_grid, np.nan, dtype=float)
+            row[mask] = np.interp(t_grid[mask], t, r)
+            out[a].append(row)
+    return {a: np.vstack(rows) for a, rows in out.items() if rows}
 
 
-def decline_prob_curve(per_seed, trace_key, action_cols, decline_col, t_grid):
-    rows = []
-    for d in per_seed.values():
-        df = d.get(trace_key)
-        if df is None or decline_col not in df.columns:
-            continue
-        cols = [c for c in action_cols if c in df.columns]
-        if not cols:
-            continue
-        R = df[cols].to_numpy(dtype=float)
-        probs = np.array([regret_matching_prob(r) for r in R])
-        decline_idx = cols.index(decline_col)
-        p_decline = probs[:, decline_idx]
-        t = df["iteration"].to_numpy(dtype=float)
-        rows.append(np.interp(t_grid, t, p_decline))
-    if not rows:
-        return None
-    return np.vstack(rows)
+def fig_convergence_behavior(per_seed):
+    """Per-agent, per-context cumulative CFR regret over iterations.
 
-
-def fig_convergence_behavior(per_seed, t_grid):
-    fig, axes = plt.subplots(1, 2, figsize=(14.0, 6.0))
-    fig.suptitle("No-regret stationarity and behavioural outcome per decision context "
+    Each panel uses its own iteration grid built from the trace it
+    reads:
+      - Alice panels: alice_trace iterations (~60 000 = 30 per episode)
+      - Carol panel:  carol_trace iterations (~20 000 = 10 per episode)
+    No interpolation past the last logged iteration — Carol's curve
+    stops at her real iteration count, no flat extrapolation tail.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(14.0, 9.0))
+    fig.suptitle("Per-agent CFR cumulative regret "
                  f"(mean $\\pm$ std across {len(per_seed)} seeds)",
                  fontsize=13, fontweight="bold")
-    fig.text(0.5, 0.005,
-             "Contested context (Alice $\\leftrightarrow$ Carol, red) shows "
-             "a clear V-shape: regret rises during Carol's exploitation phase "
-             "then descends as Alice and Carol's adaptive reciprocity reach a "
-             "stable mutual best-response. Uncontested contexts (Bob, Dave, "
-             "Carol-internal) settle to constant low regret early. The "
-             "convergence target is no-regret stationarity in personality "
-             "space -- a stable mutual best-response between two adaptive "
-             "agents under non-stationary reciprocity dynamics -- which is "
-             "distinct from the Nash equilibrium target of canonical CFR "
-             "(Zinkevich et al., 2008) since neither stationarity nor "
-             "zero-sum payoffs hold in our setting.",
-             ha="center", fontsize=9, style="italic", wrap=True)
 
-    # --- Left: log-log average regret ---
-    ax = axes[0]
-    for ctx, color in CONTEXT_COLOR.items():
-        s = avg_regret_curve(per_seed,
-                             CONTEXT_CSV[ctx],
-                             CONTEXT_ACTIONS[ctx],
-                             t_grid)
-        if s is None:
+    ACTION_COLOR = {
+        # cooperative actions in green, declining in red, third in orange
+        "help": "#27AE60", "decline": "#C0392B", "third": "#E67E22",
+    }
+    # Leduc-style: one marker per action role (consistent across panels).
+    ACTION_MARKER = {"help": "^", "decline": "o", "third": "s"}
+
+    alice_grid = _trace_t_grid(per_seed, "alice_trace")
+    carol_grid = _trace_t_grid(per_seed, "carol_trace")
+
+    # (panel_title, csv_key, t_grid, [(col, role, label), ...])
+    PANELS = [
+        ("Alice vs Bob   (self-CFR)",
+         "alice_trace", alice_grid,
+         [("help_bob",     "help",    "help"),
+          ("decline_bob",  "decline", "decline"),
+          ("delay_bob",    "third",   "delay")]),
+        ("Alice vs Carol  (self-CFR)",
+         "alice_trace", alice_grid,
+         [("help_alice",    "help",    "help"),
+          ("decline_alice", "decline", "decline"),
+          ("teach_alice",   "third",   "teach")]),
+        ("Alice vs Dave   (self-CFR)",
+         "alice_trace", alice_grid,
+         [("help_dave",     "help",    "help"),
+          ("decline_dave",  "decline", "decline"),
+          ("suggest_dave",  "third",   "suggest")]),
+        ("Carol vs Alice  (observational CFR)",
+         "carol_trace", carol_grid,
+         [("carol_help_regret",        "help",    "help"),
+          ("carol_decline_regret",     "decline", "decline"),
+          ("carol_reciprocate_regret", "third",   "reciprocate")]),
+    ]
+
+    for ax, (title, key, panel_grid, actions) in zip(axes.flat, PANELS):
+        if panel_grid is None:
             continue
-        m  = smooth(s.mean(axis=0))
-        sd = smooth(s.std(axis=0))
-        valid = m > 1e-6
-        ax.plot(t_grid[valid], m[valid], color=color, linewidth=2.0,
-                marker=CONTEXT_MARKER[ctx], markersize=4,
-                markevery=max(1, len(t_grid) // 33), label=ctx)
-        ax.fill_between(t_grid[valid],
-                        np.maximum(m[valid] - sd[valid], 1e-6),
-                        m[valid] + sd[valid],
-                        color=color, alpha=0.15)
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("CFR iteration  $t$  (log scale)")
-    ax.set_ylabel("Average per-info-set regret  $\\bar R(t)/t$")
-    ax.set_title("No-regret stationarity:  $\\bar R(t)/t \\to 0$",
-                 fontsize=12, fontweight="bold")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.25, which="both")
-    ax.legend(loc="lower left", fontsize=9, frameon=False)
-
-    # --- Right: decline probability over training ---
-    ax = axes[1]
-    carol_start_end = None
-    for ctx, color in CONTEXT_COLOR.items():
-        s = decline_prob_curve(per_seed,
-                               CONTEXT_CSV[ctx],
-                               CONTEXT_ACTIONS[ctx],
-                               CONTEXT_DECLINE[ctx],
-                               t_grid)
-        if s is None:
-            continue
-        m  = smooth(s.mean(axis=0))
-        sd = smooth(s.std(axis=0))
-        ax.plot(t_grid, m, color=color, linewidth=2.0,
-                marker=CONTEXT_MARKER[ctx], markersize=4,
-                markevery=max(1, len(t_grid) // 33), label=ctx)
-        ax.fill_between(t_grid, m - sd, m + sd, color=color, alpha=0.18)
-        if ctx == "Alice vs Carol":
-            carol_start_end = (m[0], m[-1])
-    ax.axhline(1.0/3.0, color="grey", linewidth=0.7, linestyle="--",
-               label="uniform 1/3")
-
-    peaks = []
-    for d in per_seed.values():
-        df = d.get("alice_trace")
-        if df is not None and "decline_alice" in df.columns:
-            peaks.append(int(df.loc[df["decline_alice"].idxmax(), "iteration"]))
-    if peaks:
-        phase_t = int(np.mean(peaks))
-        ax.axvline(phase_t, color="#7F1D1D", linewidth=1.2,
-                   linestyle=":", alpha=0.85)
-        ax.text(phase_t * 1.05, 0.92,
-                f"phase transition\n($t \\approx ${phase_t})",
-                fontsize=9, color="#7F1D1D", va="top", ha="left")
-
-    if carol_start_end is not None:
-        s0, s1 = carol_start_end
-        ax.text(0.98, 0.05,
-                f"Alice vs Carol  P(decline):\n"
-                f"   start = {s0:.2f}\n"
-                f"   end   = {s1:.2f}",
-                transform=ax.transAxes,
-                fontsize=9, va="bottom", ha="right",
-                bbox=dict(boxstyle="round,pad=0.35",
-                          facecolor="white", edgecolor="grey",
-                          alpha=0.92))
-
-    ax.set_xlabel("CFR iteration  $t$")
-    ax.set_ylabel(r"$P(\mathit{decline} \mid \mathrm{context})$")
-    ax.set_ylim(-0.02, 1.02)
-    ax.set_title("Behavioural outcome:  P(decline)",
-                 fontsize=12, fontweight="bold")
-    style_ax(ax)
-    ax.legend(loc="upper left", fontsize=9, frameon=False)
+        markevery = max(1, len(panel_grid) // N_MARKERS)
+        cols = [a[0] for a in actions]
+        stacks = _stack_regret_per_action(per_seed, key, cols, panel_grid)
+        for col, role, label in actions:
+            s = stacks.get(col)
+            if s is None:
+                continue
+            color  = ACTION_COLOR[role]
+            marker = ACTION_MARKER[role]
+            m  = smooth(np.nanmean(s, axis=0))
+            sd = smooth(np.nanstd(s, axis=0))
+            ax.plot(panel_grid, m, color=color, linewidth=1.4,
+                    marker=marker, markersize=6, markevery=markevery,
+                    markerfacecolor=color, markeredgecolor=color,
+                    label=label)
+            ax.fill_between(panel_grid, m - sd, m + sd,
+                            color=color, alpha=0.10, linewidth=0)
+        ax.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+        ax.set_xlabel(rf"CFR iteration  $t$  (max {panel_grid[-1]})")
+        ax.set_ylabel("Cumulative regret  $R_t(a)$")
+        ax.set_title(title, fontsize=12)
+        style_ax(ax)
+        ax.legend(loc="best", fontsize=9, frameon=False, handlelength=2.0)
 
     plt.tight_layout()
-    out = RESULTS / "fig2_convergence_behavior.png"
+    out = OUT_REGRET / "fig2_regret_per_agent.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)
@@ -426,24 +389,22 @@ def main():
     n_eps = min(max_eps) if max_eps else 0
     grid = np.arange(1, n_eps + 1)
 
-    # Iteration grid for fig2 (CFR x-axis convention).
-    max_iters = []
-    for d in per_seed.values():
-        df = d.get("alice_trace")
-        if df is not None and "iteration" in df.columns and len(df):
-            max_iters.append(int(df["iteration"].max()))
-    n_iter = min(max_iters) if max_iters else 0
-    if n_iter > 0:
-        # Subsample to ~2000 points for plot speed (full trace is 60k).
-        step = max(1, n_iter // 2000)
-        t_grid = np.arange(1, n_iter + 1, step)
-    else:
-        t_grid = grid
+    # Per-trace iteration grids are built inside fig_convergence_behavior
+    # so Alice (max ~60 000) and Carol (max ~20 000) each plot against
+    # their own range — no flat-tail extrapolation past the shorter trace.
+    max_alice = max(int(d["alice_trace"]["iteration"].max())
+                    for d in per_seed.values()
+                    if d.get("alice_trace") is not None
+                    and "iteration" in d["alice_trace"].columns)
+    max_carol = max(int(d["carol_trace"]["iteration"].max())
+                    for d in per_seed.values()
+                    if d.get("carol_trace") is not None
+                    and "iteration" in d["carol_trace"].columns)
     print(f"Loaded {len(per_seed)} seeds: {n_eps} episodes, "
-          f"{n_iter} CFR iterations.")
+          f"Alice trace max iter {max_alice}, Carol trace max iter {max_carol}.")
 
     fig_4agent_personality(per_seed, grid)
-    fig_convergence_behavior(per_seed, t_grid)
+    fig_convergence_behavior(per_seed)
     return 0
 
 

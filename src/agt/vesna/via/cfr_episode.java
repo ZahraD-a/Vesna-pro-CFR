@@ -14,10 +14,29 @@ import java.util.Map;
 /**
  * Internal action: vesna.via.cfr_episode
  *
- * Signals end of an episode. Triggers:
- *   1. CFR personality update (regret matching)
- *   2. Personality evolution logging to CSV
- *   3. Regret logging to CSV
+ * Signals end of an episode. This is the central per-episode learning hook.
+ * Triggers, in order:
+ *   1. Alice's CFR update — regret matching against historical-mean payoffs,
+ *      delegated to {@link Temper#startNewEpisode()}.
+ *   2. Per-colleague reciprocity adaptation (Carol/Bob/Dave observe Alice's
+ *      last action and update their cumulative reciprocity ratio).
+ *   3. Carol's CFR update — observational regret matching over the action she
+ *      attributes to Alice. This is the asymmetric counterpart to Alice's
+ *      self-CFR; see {@code record_carol_cfr.java} and
+ *      {@link vesna.BehavioralMemory.PersonMemory#updatePersonalityFromRegret()}.
+ *   4. CSV logging of personality, regrets, and adapted reciprocity for the
+ *      figures used in the paper.
+ *
+ * <p>Note on the two CFR variants:
+ * <ul>
+ *   <li>Alice ({@link Temper}): regret of plan a = u(a) − historicalMean(a),
+ *       summed across plans she actually selected.</li>
+ *   <li>Carol ({@link vesna.BehavioralMemory.PersonMemory}): instantaneous regret
+ *       of the action she attributes to Alice, with a fixed-ratio counterfactual
+ *       on the actions Alice did not take.</li>
+ * </ul>
+ * The asymmetry is intentional: Carol's role is observational reciprocity, not
+ * independent utility maximisation.
  *
  * Usage in ASL:
  *   vesna.via.cfr_episode.
@@ -92,8 +111,11 @@ public class cfr_episode extends DefaultInternalAction {
             if (carolMem != null) carolMem.adaptReciprocity(lastCarolAction.contains("decline"));
             if (bobMem   != null) bobMem.adaptReciprocity(lastBobAction.contains("decline"));
             if (daveMem  != null) daveMem.adaptReciprocity(lastDaveAction.contains("decline"));
-            
-            // Carol's personality update (CFR-based learning)
+
+            // Carol's CFR personality update — observational variant.
+            // Reads the regret stream populated by record_carol_cfr.java
+            // throughout the episode and projects it onto Carol's OCEAN
+            // traits. This is the only place Carol's personality is mutated.
             if (carolMem != null && carolMem.learnsViaCFR) {
                 carolMem.updatePersonalityFromRegret();
             }

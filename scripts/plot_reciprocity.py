@@ -92,19 +92,14 @@ def main():
     print(f"Loaded {len(dfs)} seeds, common grid 0..{n_eps}")
 
     fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.6))
-    fig.suptitle("Adaptive reciprocity across colleagues "
-                 f"(mean $\\pm$ std across {len(dfs)} seeds)",
-                 fontsize=13, fontweight="bold")
-    fig.text(0.5, 0.005,
-             "Each colleague's adapted reciprocity (solid) is compared to "
-             "their innate baseline (dotted). Dave (innate 0.9) saturates at "
-             "the soft adaptation cap (0.85, dashed). Carol (innate 0.1, "
-             "exploitative starting type) climbs furthest in absolute terms, "
-             "from $\\sim$0.10 to $\\sim$0.59, evidencing closed-loop "
-             "adaptation triggered by Alice's actions. Right panel verifies "
-             "that Alice's internal estimate (Adapted) tracks the empirical "
-             "ratio Carol actually exhibits (Observed).",
-             ha="center", fontsize=9, style="italic", wrap=True)
+    ITER_PER_EP = 30  # see plot_paper_figures.py
+    x = grid * ITER_PER_EP
+    fig.suptitle("Rule-based adaptive reciprocity across colleagues "
+                 r"(non-CFR mechanism — see $\mathit{adaptReciprocity}$ in BehavioralMemory.java)"
+                 "\n"
+                 f"mean $\\pm$ std across {len(dfs)} seeds, "
+                 f"{x[-1]} CFR iterations",
+                 fontsize=12, fontweight="bold")
 
     # --- Left: 3 colleagues' adapted reciprocity ---
     ax = axes[0]
@@ -116,11 +111,12 @@ def main():
         m  = smooth(adapted.mean(axis=0))
         sd = smooth(adapted.std(axis=0))
         c  = COLLEAGUE_COLOR[k]
-        ax.plot(grid, m, color=c, linewidth=2.0,
-                marker=COLLEAGUE_MARKER[k], markersize=4,
-                markevery=max(1, len(grid) // 33),
+        ax.plot(x, m, color=c, linewidth=1.4,
+                marker=COLLEAGUE_MARKER[k], markersize=6,
+                markevery=max(1, len(x) // 11),
+                markerfacecolor=c, markeredgecolor=c,
                 label=f"{COLLEAGUE_LABEL[k]} adapted")
-        ax.fill_between(grid, m - sd, m + sd, color=c, alpha=0.18)
+        ax.fill_between(x, m - sd, m + sd, color=c, alpha=0.10, linewidth=0)
         if innate is not None:
             innate_value = float(innate.mean(axis=0)[0])
             ax.axhline(innate_value, color=c, linewidth=1.0,
@@ -130,14 +126,14 @@ def main():
     ax.axhline(ADAPTATION_CAP, color="grey", linewidth=1.0,
                linestyle="--",
                label=f"adaptation cap ({ADAPTATION_CAP:.2f})")
-    ax.set_xlabel("Episode")
+    ax.set_xlabel(r"CFR iteration  $t$")
     ax.set_ylabel("Reciprocity ratio")
     ax.set_ylim(-0.02, 1.02)
     ax.set_title("Adapted reciprocity per colleague",
-                 fontsize=12, fontweight="bold")
+                 fontsize=12)
     style_ax(ax)
-    ax.legend(loc="lower right", fontsize=8, frameon=False, ncol=2,
-              columnspacing=1.2, handlelength=1.6)
+    ax.legend(loc="lower right", fontsize=9, frameon=False, ncol=2,
+              columnspacing=1.6, handlelength=2.0)
 
     # --- Right: Carol adapted vs observed (consistency check) ---
     ax = axes[1]
@@ -148,11 +144,13 @@ def main():
             continue
         m  = smooth(s.mean(axis=0))
         sd = smooth(s.std(axis=0))
-        ax.plot(grid, m, color=color, linewidth=2.0,
-                marker="o" if "adapted" in col else "s",
-                markersize=4, markevery=max(1, len(grid) // 33),
+        marker = "o" if "adapted" in col else "s"
+        ax.plot(x, m, color=color, linewidth=1.4,
+                marker=marker, markersize=6,
+                markevery=max(1, len(x) // 11),
+                markerfacecolor=color, markeredgecolor=color,
                 label=label)
-        ax.fill_between(grid, m - sd, m + sd, color=color, alpha=0.18)
+        ax.fill_between(x, m - sd, m + sd, color=color, alpha=0.10, linewidth=0)
 
     final_adapted = stack(dfs, "carol_adapted", grid)
     final_observed = stack(dfs, "carol_observed_ratio", grid)
@@ -170,16 +168,18 @@ def main():
                 bbox=dict(boxstyle="round,pad=0.35",
                           facecolor="white", edgecolor="grey", alpha=0.92))
 
-    ax.set_xlabel("Episode")
+    ax.set_xlabel(r"CFR iteration  $t$")
     ax.set_ylabel("Reciprocity ratio")
     ax.set_ylim(-0.02, 1.02)
     ax.set_title("Carol: adapted vs observed",
-                 fontsize=12, fontweight="bold")
+                 fontsize=12)
     style_ax(ax)
-    ax.legend(loc="upper left", fontsize=9, frameon=False)
+    ax.legend(loc="upper left", fontsize=9, frameon=False, handlelength=2.0)
 
     plt.tight_layout()
-    out = RESULTS / "fig4_adaptive_reciprocity.png"
+    out_dir = RESULTS / "reciprocity"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "fig4_adaptive_reciprocity.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"Saved: {out}")
     plt.close(fig)

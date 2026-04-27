@@ -2,7 +2,7 @@
 # Sensitivity sweep over the reciprocity-shaping coefficient ALPHA in
 # record_outcome.java. For each ALPHA value, we run SEEDS_PER_VALUE seeds
 # of the 1000-episode CFR experiment and save outputs to
-# results/alpha_<value>/seed_<n>/.
+# results/alpha/alpha_<value>/seed_<n>/.
 #
 # Usage (from project root):
 #   bash scripts/run_alpha_sweep.sh
@@ -33,7 +33,7 @@ echo "==========================================================="
 
 for ALPHA in "${ALPHAS[@]}"; do
     SAFE=$(echo "$ALPHA" | tr '.' '_')
-    OUT_BASE="results/alpha_${SAFE}"
+    OUT_BASE="results/alpha/alpha_${SAFE}"
     mkdir -p "$OUT_BASE"
 
     for SEED in $(seq 0 $((SEEDS_PER_VALUE - 1))); do
@@ -68,6 +68,6 @@ rm -f "$JCM_FILE.bak"
 
 echo
 echo "==========================================================="
-echo "Alpha sweep complete. Outputs under results/alpha_*/"
+echo "Alpha sweep complete. Outputs under results/alpha/alpha_*/"
 echo "Next: python3 scripts/plot_alpha_sweep.py"
 echo "==========================================================="

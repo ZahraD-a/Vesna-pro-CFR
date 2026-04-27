@@ -37,6 +37,20 @@ import jason.NoValueException;
  * <p>When CFR learning is enabled, regret matching (adapted from Zinkevich et al. 2008)
  * drives personality evolution at episode boundaries.
  *
+ * <h3>Two-agent design (Alice + Carol)</h3>
+ * <p>This class hosts <b>Alice's</b> CFR state only. Alice is a <i>self-CFR</i> learner:
+ * her regret is computed against her own plans' historical mean payoffs (see
+ * {@link #recordHelpOutcome} and {@link #updatePersonalityFromCFR}).
+ *
+ * <p>Carol is an <i>observational-CFR</i> learner — she does not optimise her own
+ * utility, she tracks Alice's behaviour so her reciprocity (φ) and OCEAN traits
+ * react to what Alice does. Carol's state therefore lives in
+ * {@link BehavioralMemory.PersonMemory}, not here. The Carol-side scaffolding
+ * that previously lived in this file (carolPersonality, carolInformationSets,
+ * recordCarolOutcome, updateCarolPersonalityFromCFR) was unwired and has been
+ * removed; everything Carol-related now flows through
+ * {@code carolMem.recordDecisionOutcome} / {@code carolMem.updatePersonalityFromRegret}.
+ *
  * @author Andrea Gatti (original temper system)
  * @author Zahra Daoui (CFR personality learning extension)
  */
@@ -131,19 +145,13 @@ public class Temper {
     /** Tracks the last action taken for each social partner this episode. */
     private Map<String, String> lastActionPerPerson = new HashMap<>();
 
-    // ==================== CAROL CO-EVOLUTION FIELDS ====================
-
-    /** Carol's learned OCEAN personality in [-1, +1]. Starts exploitative (A=-0.4). */
-    private Map<String, Double> carolPersonality = new HashMap<>();
-    /** Carol's CFR information sets, independent of Alice's. */
-    private Map<String, InformationSet> carolInformationSets = new HashMap<>();
-    /** Carol's decisions within the current episode. */
-    private List<TraceEntry> carolEpisodeDecisions = new ArrayList<>();
-    /** Per-stage reward accumulation for Carol's current episode. */
-    private Map<String, Double> carolStageRewards = new HashMap<>();
-    private double carolTotalReward = 0.0;
-    /** Carol's CFR step size (matches Alice's, halved for the [-1,+1] range). */
-    private double cfrLearningRateCarol = 0.005;
+    // ==================== CAROL: see BehavioralMemory.PersonMemory ====================
+    // Carol's CFR state intentionally does NOT live here. She is an
+    // observational-CFR learner whose regret is computed over the action she
+    // attributes to Alice (help / decline / teach), so her state is co-located
+    // with the per-colleague reciprocity counters in BehavioralMemory.
+    // See cfr_episode.java for where carolMem.updatePersonalityFromRegret is
+    // called, and record_carol_cfr.java for where her observations are fed in.
 
     private InformationSet getInformationSet(String name) {
         return informationSets.computeIfAbsent(name, InformationSet::new);
@@ -196,14 +204,8 @@ public class Temper {
         mood = new HashMap<>();
         cumulativeRegret = new HashMap<>();
 
-        // Carol's initial personality in [-1, +1]: exploitative (low A),
-        // otherwise around neutral. The CFR loop drives these values away
-        // from this starting point as interactions accumulate.
-        carolPersonality.put("openness",         0.2);
-        carolPersonality.put("conscientiousness", -0.2);
-        carolPersonality.put("extraversion",      0.2);
-        carolPersonality.put("agreeableness",    -0.4);
-        carolPersonality.put("neuroticism",       0.0);
+        // NOTE: Carol's initial personality is set inside
+        // BehavioralMemory.PersonMemory (the active home of Carol's CFR state).
 
         this.cfrEnabled = cfrEnabled;
         if (seed >= 0) {
@@ -654,83 +656,12 @@ public class Temper {
         System.out.println("=============================================\n");
     }
 
-    /** Update Carol's OCEAN personality based on her CFR regrets. */
-    public void updateCarolPersonalityFromCFR() {
-        if (carolEpisodeDecisions.isEmpty()) return;
-        if (!cfrEnabled) return;
-
-        System.out.println("\n========== CFR: CAROL PERSONALITY UPDATE ==========");
-
-        Map<String, Double> traitGradients = new HashMap<>();
-        for (String trait : carolPersonality.keySet()) {
-            traitGradients.put(trait, 0.0);
-        }
-
-        int infosetCount = 0;
-
-        for (InformationSet infoset : carolInformationSets.values()) {
-            if (infoset.cumulativeRegret.isEmpty()) continue;
-
-            double totalPositiveRegret = 0.0;
-            for (Double r : infoset.cumulativeRegret.values()) {
-                if (r > 0) totalPositiveRegret += r;
-            }
-
-            if (totalPositiveRegret < 0.001) continue;
-            infosetCount++;
-
-            System.out.println("\n  [" + infoset.name + "] Regrets:");
-
-            for (Map.Entry<String, Double> entry : infoset.cumulativeRegret.entrySet()) {
-                String action = entry.getKey();
-                double regret = entry.getValue();
-
-                System.out.println("    " + action + ": " + String.format("%.3f", regret));
-
-                if (regret <= 0) continue;
-
-                double regretWeight = regret / totalPositiveRegret;
-                Map<String, Double> actionTraits = HelpScenarioConfig.getActionTraits(action);
-                if (actionTraits == null) continue;
-
-                for (Map.Entry<String, Double> traitEntry : actionTraits.entrySet()) {
-                    String traitName = traitEntry.getKey();
-                    double actionValue = traitEntry.getValue();
-                    double currentValue = carolPersonality.getOrDefault(traitName, 0.0);
-                    double gradient = regretWeight * (actionValue - currentValue);
-                    traitGradients.put(traitName, traitGradients.getOrDefault(traitName, 0.0) + gradient);
-                }
-            }
-        }
-
-        if (infosetCount > 0) {
-            System.out.println("\n  Applying Carol updates (lr=" + cfrLearningRateCarol + "):");
-            for (String trait : traitGradients.keySet()) {
-                double gradient = traitGradients.get(trait);
-                if (Math.abs(gradient) < 0.001) continue;
-
-                double oldValue = carolPersonality.getOrDefault(trait, 0.0);
-                double newValue = oldValue + cfrLearningRateCarol * gradient;
-                newValue = Math.max(-1.0, Math.min(1.0, newValue));
-                carolPersonality.put(trait, newValue);
-
-                System.out.println("    " + trait + ": " + String.format("%.3f", oldValue)
-                    + " -> " + String.format("%.3f", newValue)
-                    + " (gradient=" + String.format("%+.4f", gradient) + ")");
-            }
-        }
-
-        System.out.println("==================================================\n");
-    }
-
-    /** Record Carol's outcome to her CFR engine. */
-    public void recordCarolOutcome(String action, double reward) {
-        if (!cfrEnabled || action == null) return;
-
-        InformationSet infoset = carolInformationSets.computeIfAbsent("carol_decision", InformationSet::new);
-        infoset.cumulativeRegret.put(action, infoset.cumulativeRegret.getOrDefault(action, 0.0) + reward);
-        carolTotalReward += reward;
-    }
+    // NOTE: Carol's personality update was previously implemented here
+    // (updateCarolPersonalityFromCFR + recordCarolOutcome), but those methods
+    // duplicated state with BehavioralMemory.PersonMemory and were never wired
+    // into the experiment loop (carolEpisodeDecisions was never written).
+    // The single source of truth for Carol's CFR state is now
+    // BehavioralMemory.PersonMemory, updated from cfr_episode.java each episode.
 
     // ==================== EPISODE MANAGEMENT ====================
 
@@ -744,20 +675,16 @@ public class Temper {
         updatePersonalityFromCFR();
         System.out.println("[CFR] Alice Personality AFTER:  " + formatPersonality());
 
-        System.out.println("[CFR] Carol Personality BEFORE: " + formatCarolPersonality());
-        updateCarolPersonalityFromCFR();
-        System.out.println("[CFR] Carol Personality AFTER:  " + formatCarolPersonality());
+        // Carol's per-episode update is performed by cfr_episode.java
+        // (carolMem.updatePersonalityFromRegret) — no Carol bookkeeping here.
 
         savePersonality();
 
         // Reset episode state (but KEEP cumulative regrets for convergence)
         currentEpisodeDecisions.clear();
-        carolEpisodeDecisions.clear();
         stageRewards.clear();
-        carolStageRewards.clear();
         lastActionPerPerson.clear();
         totalEpisodeReward = 0.0;
-        carolTotalReward = 0.0;
         currentStage = "root";
 
         // Reset mood to neutral at episode boundary.
@@ -777,19 +704,6 @@ public class Temper {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
         for (Map.Entry<String, Double> entry : personality.entrySet()) {
-            if (!first) sb.append(" ");
-            sb.append(entry.getKey()).append("=")
-              .append(String.format("%.3f", entry.getValue()));
-            first = false;
-        }
-        sb.append("}");
-        return sb.toString();
-    }
-
-    private String formatCarolPersonality() {
-        StringBuilder sb = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, Double> entry : carolPersonality.entrySet()) {
             if (!first) sb.append(" ");
             sb.append(entry.getKey()).append("=")
               .append(String.format("%.3f", entry.getValue()));
