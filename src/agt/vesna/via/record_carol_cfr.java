@@ -13,14 +13,14 @@ import vesna.VesnaAgent;
  * state, driving Carol's own personality update at the next learning
  * boundary.</p>
  *
- * <p>Carol's internal action space is <code>{help, decline, reciprocate}</code>.
+ * <p>Carol's internal action space is <code>{carol_help_alice, carol_decline_alice, carol_reciprocate_alice}</code>.
  * Alice's observed action is mapped as follows:</p>
  * <ul>
- *   <li><code>help_alice</code>    &rarr; <code>reciprocate</code>
+ *   <li><code>alice_help_carol</code>    &rarr; <code>carol_reciprocate_alice</code>
  *       (Alice helps her, so she reciprocates in turn)</li>
- *   <li><code>decline_alice</code> &rarr; <code>decline</code>
+ *   <li><code>alice_decline_carol</code> &rarr; <code>carol_decline_alice</code>
  *       (Alice declines, so Carol learns boundary-setting pays)</li>
- *   <li><code>teach_alice</code>   &rarr; <code>help</code>
+ *   <li><code>alice_teach_carol</code>   &rarr; <code>carol_help_alice</code>
  *       (Alice mentors, so Carol learns helping pays)</li>
  * </ul>
  *
@@ -57,12 +57,12 @@ public class record_carol_cfr extends DefaultInternalAction {
         double reward = ((NumberTerm) args[1]).solve();
 
         String carolAction;
-        if (aliceAction.contains("help_alice")) {
-            carolAction = "reciprocate";
-        } else if (aliceAction.contains("decline_alice")) {
-            carolAction = "decline";
-        } else if (aliceAction.contains("teach_alice")) {
-            carolAction = "help";
+        if (aliceAction.contains("alice_help_carol")) {
+            carolAction = "carol_reciprocate_alice";
+        } else if (aliceAction.contains("alice_decline_carol")) {
+            carolAction = "carol_decline_alice";
+        } else if (aliceAction.contains("alice_teach_carol")) {
+            carolAction = "carol_help_alice";
         } else {
             carolAction = aliceAction;
         }

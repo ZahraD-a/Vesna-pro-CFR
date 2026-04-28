@@ -41,6 +41,20 @@ task run (type: JavaExec, dependsOn: 'classes') {
     if (project.hasProperty('gamma'))  systemProperty 'gamma',  project.getProperty('gamma')
 }
 
+task debugRun (type: JavaExec, dependsOn: 'classes') {
+    description 'runs suspended on port 5005, waiting for debugger'
+    group ' JaCaMo'
+    mainClass = 'jacamo.infra.JaCaMoLauncher'
+    args 'vesna.jcm'
+    classpath sourceSets.main.runtimeClasspath
+    executable = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }.get().executablePath
+    standardOutput = System.out
+    errorOutput = System.err
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+}
+
 javadoc {
     destinationDir = file( "$buildDir/docs/javadoc" )
     options.memberLevel = JavadocMemberLevel.PRIVATE

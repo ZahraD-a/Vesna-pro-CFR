@@ -94,15 +94,24 @@ public class BehavioralMemory {
             this.reciprocity = reciprocity;  // Innate tendency (hidden, drives stochastic outcomes)
             this.adaptedReciprocity = reciprocity;
             this.learnsViaCFR = false;  // Default: no CFR
-            
-            // Initialize CFR structures
-            this.cumulativeRegret.put("help", 0.0);
-            this.cumulativeRegret.put("decline", 0.0);
-            this.cumulativeRegret.put("reciprocate", 0.0);
-            this.strategySum.put("help", 1.0);
-            this.strategySum.put("decline", 1.0);
-            this.strategySum.put("reciprocate", 1.0);
+
+            // Initialize CFR structures with colleague-specific action names.
+            // Action names follow actor_verb_recipient convention so any colleague
+            // can become adaptive just by setting learnsViaCFR = true.
+            this.cumulativeRegret.put(helpAction(), 0.0);
+            this.cumulativeRegret.put(declineAction(), 0.0);
+            this.cumulativeRegret.put(reciprocateAction(), 0.0);
+            this.strategySum.put(helpAction(), 1.0);
+            this.strategySum.put(declineAction(), 1.0);
+            this.strategySum.put(reciprocateAction(), 1.0);
         }
+
+        // ── Action name helpers ──────────────────────────────────────────────
+        // Derive action names from colleague name so any colleague can participate
+        // in CFR without hardcoding. Bob → "bob_help_alice", Dave → "dave_help_alice", etc.
+        public String helpAction()        { return name.toLowerCase() + "_help_alice"; }
+        public String declineAction()     { return name.toLowerCase() + "_decline_alice"; }
+        public String reciprocateAction() { return name.toLowerCase() + "_reciprocate_alice"; }
         
         /**
          * Constructor for Carol: includes OCEAN personality and CFR learning.
@@ -186,25 +195,31 @@ public class BehavioralMemory {
         }
         
         /**
-         * For CFR-learning colleagues like Carol:
-         * Select an action (help, decline, reciprocate) based on current personality
-         * and cumulative regret using regret matching.
-         * 
-         * Returns the selected action.
+         * Select this colleague's response action toward Alice.
+         *
+         * Static colleagues (learnsViaCFR = false): probabilistic selection
+         * based on adaptedReciprocity — no named actions needed until they
+         * become adaptive.
+         *
+         * Adaptive colleagues (learnsViaCFR = true): regret-matching selection
+         * over named actions derived from the colleague's name. Making Bob or
+         * Dave adaptive only requires setting learnsViaCFR = true in their
+         * constructor call — this method and all CFR machinery work generically.
          */
         public String selectAction(Random dice) {
+            String[] actions = {helpAction(), declineAction(), reciprocateAction()};
+
             if (!learnsViaCFR) {
-                // Non-learning colleagues: probabilistic based on adaptedReciprocity
+                // Static colleague: binary probabilistic reciprocation.
+                // Returns a properly named action so callers always get a
+                // consistent actor_verb_recipient string regardless of CFR mode.
                 double r = dice.nextDouble();
-                if (r < adaptedReciprocity) {
-                    return "reciprocate";  // Help back
-                } else {
-                    return "decline";  // Don't help
-                }
+                String chosen = r < adaptedReciprocity ? reciprocateAction() : declineAction();
+                lastDecisionTrace.add(chosen);
+                return chosen;
             }
-            
-            // CFR-learning colleagues (Carol): use regret matching
-            String[] actions = {"help", "decline", "reciprocate"};
+
+            // Adaptive colleague: use regret matching over full action space.
             
             // Compute positive regrets
             double[] positiveRegrets = new double[3];
@@ -239,8 +254,8 @@ public class BehavioralMemory {
                 }
             }
             
-            lastDecisionTrace.add("reciprocate");  // Fallback
-            return "reciprocate";
+            lastDecisionTrace.add(reciprocateAction());  // Fallback
+            return reciprocateAction();
         }
         
         /**
@@ -260,7 +275,7 @@ public class BehavioralMemory {
         public void recordDecisionOutcome(String actionTaken, double reward) {
             if (!learnsViaCFR) return;
 
-            String[] actions = {"help", "decline", "reciprocate"};
+            String[] actions = {helpAction(), declineAction(), reciprocateAction()};
 
             // Update the running mean reward of the chosen action.
             historicalRewardSum.merge(actionTaken, reward, Double::sum);
@@ -287,11 +302,11 @@ public class BehavioralMemory {
                     episode, actionTaken, reward, cumulativeRegret);
             } catch (Throwable ignored) { /* logging must never break sim */ }
 
-            System.out.println("[CFR] " + name + " action=" + actionTaken 
+            System.out.println("[CFR] " + name + " action=" + actionTaken
                 + " reward=" + String.format("%.2f", reward)
-                + " cumRegret: help=" + String.format("%.2f", cumulativeRegret.get("help"))
-                + " decline=" + String.format("%.2f", cumulativeRegret.get("decline"))
-                + " reciprocate=" + String.format("%.2f", cumulativeRegret.get("reciprocate")));
+                + " cumRegret: " + helpAction() + "=" + String.format("%.2f", cumulativeRegret.get(helpAction()))
+                + " " + declineAction() + "=" + String.format("%.2f", cumulativeRegret.get(declineAction()))
+                + " " + reciprocateAction() + "=" + String.format("%.2f", cumulativeRegret.get(reciprocateAction())));
         }
         
         /**
@@ -299,7 +314,7 @@ public class BehavioralMemory {
          * Called at the end of each episode (or every N episodes).
          */
         /**
-         * Project Carol's cumulative regrets onto her OCEAN personality vector.
+         * Project this colleague's cumulative regrets onto their OCEAN personality vector.
          *
          * <p>Identical in structure to Alice's CFR update in {@link Temper}:
          * regret matching gives a weight sigma(a) on each action a, and the
@@ -307,23 +322,26 @@ public class BehavioralMemory {
          * action's trait profile toward the current personality. Trait values
          * stay in [-1, +1].</p>
          *
-         * <p>Carol's three internal actions are "help" (reciprocate with help),
-         * "decline" (refuse), and "reciprocate" (mentor in return). Their trait
-         * profiles below mirror the corresponding plan annotations Alice uses
-         * for the same decisions, rescaled into [-1, +1].</p>
+         * <p>Works generically for any colleague whose learnsViaCFR = true.
+         * Action trait profiles use the colleague's dynamic action names so
+         * Bob, Carol, or Dave all go through the same update logic.</p>
          */
         public void updatePersonalityFromRegret() {
             if (!learnsViaCFR || personality.isEmpty()) return;
 
-            // Action trait profiles in [-1, +1] for Carol's three decision options.
+            // Action trait profiles in [-1, +1]: domain-general social behaviour stances.
+            // help      = agreeable, cooperative stance
+            // decline   = conscientious, boundary-setting stance
+            // reciprocate = open, mentoring stance
+            // These apply to any colleague and are keyed by dynamic action names.
             Map<String, Map<String, Double>> profiles = new HashMap<>();
-            profiles.put("help", Map.of(
+            profiles.put(helpAction(), Map.of(
                 "openness",         -0.2, "conscientiousness",  0.2,
                 "extraversion",      0.0, "agreeableness",      0.8, "neuroticism", -0.4));
-            profiles.put("decline", Map.of(
+            profiles.put(declineAction(), Map.of(
                 "openness",         -0.4, "conscientiousness",  0.6,
                 "extraversion",     -0.6, "agreeableness",     -0.6, "neuroticism", -0.8));
-            profiles.put("reciprocate", Map.of(
+            profiles.put(reciprocateAction(), Map.of(
                 "openness",          0.6, "conscientiousness",  0.2,
                 "extraversion",     -0.2, "agreeableness",      0.0, "neuroticism", -0.6));
 
@@ -365,9 +383,9 @@ public class BehavioralMemory {
                 + " E=" + String.format("%+.3f", personality.get("extraversion"))
                 + " A=" + String.format("%+.3f", personality.get("agreeableness"))
                 + " N=" + String.format("%+.3f", personality.get("neuroticism"))
-                + " (R_help=" + String.format("%+.2f", cumulativeRegret.getOrDefault("help", 0.0))
-                + " R_dec=" + String.format("%+.2f", cumulativeRegret.getOrDefault("decline", 0.0))
-                + " R_rec=" + String.format("%+.2f", cumulativeRegret.getOrDefault("reciprocate", 0.0)) + ")");
+                + " (R_" + helpAction() + "=" + String.format("%+.2f", cumulativeRegret.getOrDefault(helpAction(), 0.0))
+                + " R_" + declineAction() + "=" + String.format("%+.2f", cumulativeRegret.getOrDefault(declineAction(), 0.0))
+                + " R_" + reciprocateAction() + "=" + String.format("%+.2f", cumulativeRegret.getOrDefault(reciprocateAction(), 0.0)) + ")");
         }
     }
 

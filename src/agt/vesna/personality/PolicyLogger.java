@@ -34,14 +34,14 @@ public class PolicyLogger {
     /** All help scenario actions in canonical order */
     /**
      * Alice's plan names per colleague, in CSV column order.
-     * Carol's slots use "help_alice / decline_alice / teach_alice" because
+     * Carol's slots use "alice_help_carol / alice_decline_carol / alice_teach_carol" because
      * Carol is the CFR partner: her requests elicit those plan names from
      * Alice, and the corresponding infoset is keyed on those names.
      */
     private static final String[] HELP_ACTIONS = {
-        "help_bob",    "decline_bob",    "delay_bob",
-        "help_alice",  "decline_alice",  "teach_alice",
-        "help_dave",   "decline_dave",   "suggest_dave"
+        "alice_help_bob",    "alice_decline_bob",    "alice_delay_bob",
+        "alice_help_carol",  "alice_decline_carol",  "alice_teach_carol",
+        "alice_help_dave",   "alice_decline_dave",   "alice_suggest_dave"
     };
 
     /** Per-interaction trace files. Each row is one CFR iteration. */
@@ -201,7 +201,7 @@ public class PolicyLogger {
             if (!Files.exists(Paths.get(CAROL_TRACE_FILE))) {
                 writeCarolTraceHeader();
             }
-            String[] carolActions = {"help", "decline", "reciprocate"};
+            String[] carolActions = {"carol_help_alice", "carol_decline_alice", "carol_reciprocate_alice"};
             StringBuilder row = new StringBuilder();
             row.append(carolIterationCounter).append(",")
                .append(episode).append(",")
@@ -224,7 +224,7 @@ public class PolicyLogger {
     private static void writeCarolTraceHeader() throws IOException {
         Files.write(Paths.get(CAROL_TRACE_FILE),
             ("iteration,episode,action,reward,"
-             + "carol_help_regret,carol_decline_regret,carol_reciprocate_regret"
+             + "carol_help_alice_regret,carol_decline_alice_regret,carol_reciprocate_alice_regret"
              + System.lineSeparator()).getBytes(),
             StandardOpenOption.CREATE);
     }
@@ -299,7 +299,7 @@ public class PolicyLogger {
             StringBuilder row = new StringBuilder();
             row.append(LocalDateTime.now().format(TIME_FORMAT)).append(",");
             row.append(episode).append(",");
-            String[] carolActions = {"help", "decline", "reciprocate"};
+            String[] carolActions = {"carol_help_alice", "carol_decline_alice", "carol_reciprocate_alice"};
             for (String action : carolActions) {
                 row.append(String.format("%.4f", carolRegrets.getOrDefault(action, 0.0))).append(",");
             }
@@ -319,7 +319,7 @@ public class PolicyLogger {
     }
 
     private static void writeCarolRegretHeader() throws IOException {
-        StringBuilder header = new StringBuilder("timestamp,episode,carol_help_regret,carol_decline_regret,carol_reciprocate_regret");
+        StringBuilder header = new StringBuilder("timestamp,episode,carol_help_alice_regret,carol_decline_alice_regret,carol_reciprocate_alice_regret");
 
         Files.write(Paths.get("carol_cfr_regrets.csv"),
             (header.toString() + System.lineSeparator()).getBytes(),

@@ -55,3 +55,6 @@ ClaudePrism
 
 docs/CFR_PERSONALITY_LEARNING.md
 papers/
+
+pyrightconfig.json
+.venv

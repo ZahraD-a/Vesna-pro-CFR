@@ -13,7 +13,7 @@
 
 set -e
 
-GRADLE=./gradle-8.5/bin/gradle
+GRADLE=./gradlew
 JCM_FILE=vesna.jcm
 
 MODE="${1:-cfr}"
@@ -33,7 +33,7 @@ fi
 
 # Verify gradle
 if [ ! -x "$GRADLE" ]; then
-    echo "ERROR: Gradle not found at $GRADLE"
+    echo "ERROR: gradlew not found. Run: gradle wrapper first."
     exit 1
 fi
 

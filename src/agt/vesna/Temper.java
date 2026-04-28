@@ -449,7 +449,7 @@ public class Temper {
     /**
      * Record outcome using regret matching adapted from CFR.
      *
-     * @param action The action taken (e.g., "help_bob")
+     * @param action The action taken (e.g., "alice_help_bob")
      * @param reward The actual reward received (after behavioral memory adjustment)
      * @param person The person involved (bob, carol, dave)
      */

@@ -23,13 +23,13 @@ public class HelpScenarioConfig {
 
     static {
         // ----- Bob: senior developer, moderate reciprocity (static partner) -----
-        ACTION_TRAITS.put("help_bob", Map.of(
+        ACTION_TRAITS.put("alice_help_bob", Map.of(
             "agreeableness",  0.6, "conscientiousness",  0.4,
             "extraversion",   0.0, "openness",          -0.2, "neuroticism", -0.4));
-        ACTION_TRAITS.put("decline_bob", Map.of(
+        ACTION_TRAITS.put("alice_decline_bob", Map.of(
             "conscientiousness",  0.6, "agreeableness", -0.6,
             "extraversion",      -0.6, "openness",      -0.6, "neuroticism", -0.8));
-        ACTION_TRAITS.put("delay_bob", Map.of(
+        ACTION_TRAITS.put("alice_delay_bob", Map.of(
             "openness",        0.4, "conscientiousness",  0.4,
             "agreeableness",  -0.2, "extraversion",      -0.4, "neuroticism", -0.8));
 
@@ -45,24 +45,24 @@ public class HelpScenarioConfig {
             "agreeableness",  -0.2, "extraversion",      -0.2, "neuroticism", -0.6));
 
         // ----- Dave: product manager, highly reciprocal (static partner) -----
-        ACTION_TRAITS.put("help_dave", Map.of(
+        ACTION_TRAITS.put("alice_help_dave", Map.of(
             "openness",           0.4, "extraversion",    0.2,
             "conscientiousness",  0.0, "agreeableness",   0.0, "neuroticism", -0.8));
-        ACTION_TRAITS.put("decline_dave", Map.of(
+        ACTION_TRAITS.put("alice_decline_dave", Map.of(
             "conscientiousness",  0.2, "agreeableness", -0.6,
             "extraversion",      -0.8, "openness",      -0.6, "neuroticism", -0.8));
-        ACTION_TRAITS.put("suggest_dave", Map.of(
+        ACTION_TRAITS.put("alice_suggest_dave", Map.of(
             "openness",        0.4, "conscientiousness",  0.4,
             "agreeableness",  -0.2, "extraversion",      -0.4, "neuroticism", -0.8));
 
         // ----- Alice's responses when Carol (the CFR agent) asks for help -----
-        ACTION_TRAITS.put("help_alice", Map.of(
+        ACTION_TRAITS.put("alice_help_carol", Map.of(
             "agreeableness",   0.8, "conscientiousness",  0.2,
             "extraversion",    0.0, "openness",          -0.2, "neuroticism", -0.4));
-        ACTION_TRAITS.put("decline_alice", Map.of(
+        ACTION_TRAITS.put("alice_decline_carol", Map.of(
             "conscientiousness",  0.6, "agreeableness", -0.6,
             "extraversion",      -0.6, "openness",      -0.4, "neuroticism", -0.8));
-        ACTION_TRAITS.put("teach_alice", Map.of(
+        ACTION_TRAITS.put("alice_teach_carol", Map.of(
             "openness",        0.6, "conscientiousness",  0.2,
             "agreeableness",   0.0, "extraversion",      -0.2, "neuroticism", -0.6));
     }
@@ -80,9 +80,9 @@ public class HelpScenarioConfig {
     /** Returns the plan names available to a given social partner. */
     public static String[] getActionsForPerson(String person) {
         switch (person.toLowerCase()) {
-            case "bob":   return new String[]{"help_bob",   "decline_bob",   "delay_bob"};
-            case "carol": return new String[]{"help_alice", "decline_alice", "teach_alice"};
-            case "dave":  return new String[]{"help_dave",  "decline_dave",  "suggest_dave"};
+            case "bob":   return new String[]{"alice_help_bob",   "alice_decline_bob",   "alice_delay_bob"};
+            case "carol": return new String[]{"alice_help_carol", "alice_decline_carol", "alice_teach_carol"};
+            case "dave":  return new String[]{"alice_help_dave",  "alice_decline_dave",  "alice_suggest_dave"};
             default:      return new String[]{};
         }
     }

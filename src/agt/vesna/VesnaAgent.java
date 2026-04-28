@@ -115,7 +115,9 @@ public class VesnaAgent extends Agent{
 		Map<String, Object> persisted = Temper.loadPersonalityFromFile();
 		if ( persisted != null ) {
 			// Merge persisted values with the configuration
+			@SuppressWarnings("unchecked")
 			Map<String, Double> savedPersonality = (Map<String, Double>) persisted.get( "personality" );
+			@SuppressWarnings("unchecked")
 			Map<String, Double> savedMood = (Map<String, Double>) persisted.get( "mood" );
 
 			// Build new temper string with saved values
