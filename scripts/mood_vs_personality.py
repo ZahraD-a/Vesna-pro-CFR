@@ -148,6 +148,7 @@ def main():
         ax_pers.fill_between(x, m - sd, m + sd, color=c, alpha=0.10, linewidth=0)
 
     ax_pers.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+    ax_pers.set_xlim(0, x[-1])
     ax_pers.set_ylabel("Trait value")
     ax_pers.set_ylim(-1.05, 1.05)
     ax_pers.set_title("Personality (OCEAN) — updated once per episode via CFR gradient",
@@ -173,6 +174,7 @@ def main():
         ax_mood.fill_between(x, m - sd, m + sd, color=c, alpha=0.15, linewidth=0)
 
     ax_mood.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+    ax_mood.set_xlim(0, x[-1])
     ax_mood.set_ylabel("Trait value")
     ax_mood.set_xlabel(r"CFR iteration  $t$")
     ax_mood.set_ylim(-1.05, 1.05)

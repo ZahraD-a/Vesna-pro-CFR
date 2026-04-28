@@ -131,6 +131,7 @@ def main():
                         color=color, alpha=0.10, linewidth=0)
 
     ax.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+    ax.set_xlim(0, t_grid[-1])
     ax.set_xlabel(rf"CFR iteration  $t$  (max {t_grid[-1]})")
     ax.set_ylabel("Cumulative regret  $R_t(a)$")
     ax.set_title("Carol vs Alice  (CFR)", fontsize=12)

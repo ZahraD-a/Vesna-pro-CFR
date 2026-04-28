@@ -155,6 +155,7 @@ def main():
             ax.fill_between(panel_grid, m - sd, m + sd,
                             color=color, alpha=0.10, linewidth=0)
         ax.axhline(0.0, color="grey", linewidth=0.5, linestyle="--")
+        ax.set_xlim(0, panel_grid[-1])
         ax.set_xlabel(rf"CFR iteration  $t$  (max {panel_grid[-1]})")
         ax.set_ylabel("Cumulative regret  $R_t(a)$")
         ax.set_title(title, fontsize=12)
