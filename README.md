@@ -223,6 +223,18 @@ python scripts/plot_reciprocity.py
 python scripts/plot_alpha_sweep.py
 ```
 
+**Per-agent OCEAN personality trajectories (Alice, Bob, Carol, Dave):**
+
+![OCEAN personality over time](results/ocean/agent_personality_plot_overtime.png)
+
+**Alice self-CFR cumulative regret across all three contexts:**
+
+![Alice regret per agent](results/regret/regret_per_agent.png)
+
+**Carol observational CFR cumulative regret:**
+
+![Carol vs Alice CFR](results/regret/carol_vs_alice_cfr.png)
+
 **Output CSVs per seed:**
 
 | File | Resolution | Contents |
