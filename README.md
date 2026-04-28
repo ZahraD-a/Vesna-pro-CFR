@@ -235,6 +235,10 @@ python scripts/plot_alpha_sweep.py
 
 ![Carol vs Alice CFR](results/regret/carol_vs_alice_cfr.png)
 
+**Personality (slow drift) vs Mood (fast fluctuation):**
+
+![Mood vs Personality](results/ocean/mood_vs_personality.png)
+
 **Output CSVs per seed:**
 
 | File | Resolution | Contents |
