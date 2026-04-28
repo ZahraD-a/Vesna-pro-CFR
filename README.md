@@ -37,7 +37,7 @@ A_t : \mathcal{P}r \longrightarrow [-1, +1]
 Plan selection uses the dot-product compatibility measure:
 
 ```math
-\text{Compat}_{\bullet}(A_t, A_p) = \frac{1}{2|\mathcal{P}r_p|} \left( \sum_{pr \in \mathcal{P}r_p} A_t(pr) \cdot A_p(pr) + |\mathcal{P}r_p| \right)
+\text{Compat}(A_t, A_p) = \frac{1}{2|\mathcal{P}r_p|} \left( \sum_{pr \in \mathcal{P}r_p} A_t(pr) \cdot A_p(pr) + |\mathcal{P}r_p| \right)
 ```
 
 Instantaneous counterfactual regret for each unchosen plan $`p'`$:
