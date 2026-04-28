@@ -28,29 +28,41 @@ Pro-AgentSpeak(L) equips BDI agents with personality traits that guide plan sele
 
 ## 1.1 Mathematical Notation
 
-The agent maintains an immutable personality vector and a mutable mood vector, both in $[-1, +1]^d$:
+The agent maintains an immutable personality vector and a mutable mood vector, both in $`[-1, +1]^d`$:
 
-$$A_t : \mathcal{P}r \longrightarrow [-1, +1]$$
+```math
+A_t : \mathcal{P}r \longrightarrow [-1, +1]
+```
 
 Plan selection uses the dot-product compatibility measure:
 
-$$\text{Compat}_{\bullet}(A_t, A_p) = \frac{1}{2|\mathcal{P}r_p|} \left( \sum_{pr \in \mathcal{P}r_p} A_t(pr) \cdot A_p(pr) + |\mathcal{P}r_p| \right)$$
+```math
+\text{Compat}_{\bullet}(A_t, A_p) = \frac{1}{2|\mathcal{P}r_p|} \left( \sum_{pr \in \mathcal{P}r_p} A_t(pr) \cdot A_p(pr) + |\mathcal{P}r_p| \right)
+```
 
-Instantaneous counterfactual regret for each unchosen plan $p'$:
+Instantaneous counterfactual regret for each unchosen plan $`p'`$:
 
-$$\text{reg}_t(I_\kappa, p') = \hat{v}(I_\kappa, p') - \hat{v}(I_\kappa, p)$$
+```math
+\text{reg}_t(I_\kappa, p') = \hat{v}(I_\kappa, p') - \hat{v}(I_\kappa, p)
+```
 
-Regret-matching weight expressing how strongly experience attests plan $p$ was the right choice:
+Regret-matching weight expressing how strongly experience attests plan $`p`$ was the right choice:
 
-$$\sigma_\kappa(p) = \frac{[R^T(I_\kappa, p)]^+}{\sum_{p' \in I_\kappa} [R^T(I_\kappa, p')]^+}$$
+```math
+\sigma_\kappa(p) = \frac{[R^T(I_\kappa, p)]^+}{\sum_{p' \in I_\kappa} [R^T(I_\kappa, p')]^+}
+```
 
 Personality gradient across all contexts and plans:
 
-$$\nabla_T(pr) = \sum_{\kappa \in \mathcal{K}} \sum_{p \in I_\kappa} \sigma_\kappa(p) \cdot \bigl(A_p(pr) - A_t(pr)\bigr)$$
+```math
+\nabla_T(pr) = \sum_{\kappa \in \mathcal{K}} \sum_{p \in I_\kappa} \sigma_\kappa(p) \cdot \bigl(A_p(pr) - A_t(pr)\bigr)
+```
 
 Personality update at episode boundary:
 
-$$A_{t+1}(pr) = \text{clip}\bigl(A_t(pr) + \eta \cdot \nabla_T(pr)\bigr), \quad pr \in \mathcal{P}r_{\text{immute}}$$
+```math
+A_{t+1}(pr) = \text{clip}\bigl(A_t(pr) + \eta \cdot \nabla_T(pr)\bigr), \quad pr \in \mathcal{P}r_{\text{immute}}
+```
 
 ## 1.2 Introduction
 
