@@ -58,3 +58,5 @@ papers/
 
 pyrightconfig.json
 .venv
+
+gradle/wrapper/
