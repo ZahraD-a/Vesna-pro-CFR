@@ -1,43 +1,30 @@
-// Help Scenario: CFR Personality Learning with OCEAN Traits
-/* ==========================================
-   WORKPLACE HELP-SEEKING: CFR Personality Learning
-
-   Agent: Alice — a mid-level developer
-   Learns which OCEAN personality traits lead to successful
-   social interactions via Counterfactual Regret Minimization.
- 
-   Characters:
-   - Bob:   Senior Developer — demanding but fair, moderate reciprocity
-   - Carol: Junior Developer — asks often, rarely reciprocates (exploitative)
-   - Dave:  Product Manager  — appreciative, vocal, highly reciprocal
-
-   Key design:
-   - Plans are OCEAN-annotated → Temper.select() does softmax selection
-   - Base rewards are uniform (+0.5 success, -0.3 failure)
-   - Behavioral memory creates reward divergence over time
-   - CFR updates personality toward traits of high-regret actions
-   ========================================== */
+// Alice learns which personality traits help her get along at work.
+// Every episode she deals with three colleagues, and CFR nudges her OCEAN
+// traits toward the responses that paid off.
+//
+// Bob    senior developer, demanding but fair, sometimes helps back
+// Carol  junior developer, asks a lot, reciprocates once Alice sets limits
+// Dave   product manager, appreciative and always reciprocates
+//
+// Each response plan carries an OCEAN annotation. Temper.select runs a softmax
+// over those annotations to pick what Alice does. Success pays +0.5, failure
+// -0.3, and behavioural memory shifts the rewards as the relationships settle.
 
 interactions_per_colleague(10).
 max_episodes(2000).
 
-// ==========================================
-// INITIALIZATION
-// ==========================================
+// setup
 
 +!start
-    <-  .print("=== WORKPLACE HELP-SEEKING: CFR PERSONALITY LEARNING ===");
-        .print("Agent: Alice | Colleagues: Bob (senior), Carol (junior), Dave (PM)");
-        .print("OCEAN traits guide plan selection. CFR learns optimal personality.");
+    <-  .print("Workplace help-seeking, CFR personality learning");
+        .print("Alice talks to Bob (senior), Carol (junior) and Dave (PM)");
         .print("");
         vesna.via.init_behavioral_memory;
         vesna.via.print_personality;
         +episode(0);
         !episode.
 
-// ==========================================
-// EPISODE LOOP
-// ==========================================
+// one episode: K interactions with each colleague, then a CFR update
 
 +!episode
     :   episode(N) & interactions_per_colleague(K)
@@ -53,7 +40,8 @@ max_episodes(2000).
 
 +!check_done
     :   episode(N) & max_episodes(M) & N >= M
-    <-  .print("\n=== TRAINING COMPLETE (", N, " episodes) ===");
+    <-  .print("");
+        .print("Training complete after ", N, " episodes");
         vesna.via.print_personality;
         vesna.via.print_cfr_stats;
         .stopMAS.
@@ -62,7 +50,6 @@ max_episodes(2000).
     :   episode(N)
     <-  !episode.
 
-// Multi-interaction dispatch — runs K interactions per colleague
 +!run_interactions(_, 0) <- true.
 
 +!run_interactions(bob, K)
@@ -83,26 +70,17 @@ max_episodes(2000).
         K1 = K - 1;
         !run_interactions(dave, K1).
 
-/* ==========================================
-   BOB'S REQUEST (Senior Developer)
-
-   Pattern: Demanding but fair. Moderate reciprocity.
-   Appreciates thorough work. Sometimes helps back.
-
-   Actions and their OCEAN profiles:
-   - alice_help_bob:    High A (helpful) + High C (thorough) + moderate E
-   - alice_decline_bob: High C (focus on own work) + Low A
-   - alice_delay_bob:   High O (flexible) + moderate A + moderate C
-   ========================================== */
+// Bob, senior developer.
+// Demanding but fair. Thorough work gets approved, and he helps back now and then.
 
 +!bob_request
     <-  -strategy(_); -outcome(_);
         vesna.via.set_decision_context(bob);
-        .print("[BOB] Can you help me review this PR? It is complex.");
+        .print("[Bob] Can you help me review this PR? It is complex.");
         !choose_bob_response;
         !execute_bob.
 
-// --- Bob plan options (OCEAN-annotated, selected by Temper.select) ------
+// Alice's options for Bob, picked by Temper.select over the OCEAN annotations
 
 @alice_help_bob[temper([agreeableness(0.6), conscientiousness(0.4), extraversion(0.0), openness(-0.2), neuroticism(-0.4)]), effects([satisfaction(+0.1)[mood]])]
 +!choose_bob_response
@@ -118,8 +96,6 @@ max_episodes(2000).
 +!choose_bob_response
     :   true
     <-  +strategy(alice_delay_bob).
-
-// --- Bob outcomes ---
 
 +!execute_bob
     :   strategy(alice_help_bob)
@@ -159,40 +135,15 @@ max_episodes(2000).
     <-  .print("  [Outcome] Bob: 'Tomorrow works, thanks.' (SUCCESS)");
         vesna.via.record_outcome(success, 0.5, alice_delay_bob, bob).
 
-/* ==========================================
-   CAROL'S REQUEST (Junior Developer — Exploitative)
-
-   Pattern: Asks frequently, rarely reciprocates.
-   Takes credit for your help. Never helps you back.
-   Over time, behavioral memory detects exploitation and then penalizes helping.
-
-   Actions and their OCEAN profiles (plan annotations live below):
-   - alice_help_carol:    High A (very helpful) + Low N (calm under pressure)
-   - alice_decline_carol: High C (focus) + Low A (boundary)
-   - alice_teach_carol:   High O (mentoring) + moderate C + neutral A
-   ========================================== */
-
-/* ==========================================
-   DAVE'S REQUEST (Product Manager — Reciprocal)
-
-   Pattern: Appreciative, vocal about help, always reciprocates.
-   Publicly praises helpers. High social capital.
-   Behavioral memory rewards helping Dave more over time.
-
-   Actions and their OCEAN profiles:
-   - alice_help_dave:    High E (social) + High A (helpful) + High O (opportunity)
-   - alice_decline_dave: High C (focus) + Low E + Low A
-   - alice_suggest_dave: High O (creative) + High C (efficient) + moderate A
-   ========================================== */
+// Dave, product manager.
+// Appreciative and vocal. Praises helpers publicly, always reciprocates.
 
 +!dave_request
     <-  -strategy(_); -outcome(_);
         vesna.via.set_decision_context(dave);
-        .print("[DAVE] 'Can you join my presentation prep? Need technical input.'");
+        .print("[Dave] 'Can you join my presentation prep? Need technical input.'");
         !choose_dave_response;
         !execute_dave.
-
-// --- Dave plan options ---
 
 @alice_help_dave[temper([openness(0.4), extraversion(0.2), conscientiousness(0.0), agreeableness(0.0), neuroticism(-0.8)]), effects([social_energy(+0.1)[mood], satisfaction(+0.1)[mood]])]
 +!choose_dave_response
@@ -208,8 +159,6 @@ max_episodes(2000).
 +!choose_dave_response
     :   true
     <-  +strategy(alice_suggest_dave).
-
-// --- Dave outcomes ---
 
 +!execute_dave
     :   strategy(alice_help_dave)
@@ -249,32 +198,19 @@ max_episodes(2000).
     <-  .print("  [Outcome] Dave: 'Great suggestion, thanks!' (SUCCESS)");
         vesna.via.record_outcome(success, 0.5, alice_suggest_dave, dave).
 
-/* ==========================================
-   CAROL'S REQUEST (Junior Developer — Learning via Reciprocity)
-
-   Pattern: Asks Alice for help. Whether she reciprocates depends on:
-   - Carol's adapted reciprocity (starts 0.10, rises as Alice declines)
-   - Carol's learned OCEAN personality (via CFR)
-
-   Alice's response options (OCEAN-annotated):
-   - alice_help_carol:    High A, high C (Alice helps Carol back)
-   - alice_decline_carol: Low A, high C (Alice sets boundary)
-   - alice_teach_carol:   High O, moderate A (Alice mentors Carol)
-
-   Carol's outcome reward shaping (symmetric):
-   - If Alice helps Carol back (alice_help_carol) → Carol gets +bonus (reciprocity recognized)
-   - If Alice declines (alice_decline_carol) → Carol gets -penalty (rejection)
-   - If Alice teaches (alice_teach_carol) → Carol gets neutral (growth opportunity)
-   ========================================== */
+// Carol, junior developer.
+// Asks Alice for help often. Whether she gives anything back depends on her
+// adapted reciprocity (starts at 0.10, climbs as Alice keeps declining) and on
+// the personality she learns through her own CFR. Carol's reward is shaped
+// symmetrically: helping her back earns a bonus, declining costs a penalty,
+// teaching is a neutral growth opportunity.
 
 +!carol_request
     <-  -strategy(_); -outcome(_);
         vesna.via.set_decision_context(carol);
-        .print("[CAROL] 'I have a problem with my code. Can you help me out?'");
+        .print("[Carol] 'I have a problem with my code. Can you help me out?'");
         !choose_alice_response_to_carol;
         !execute_alice_response_to_carol.
-
-// --- Alice's response options to Carol (OCEAN-annotated) ---
 
 @alice_help_carol[temper([agreeableness(0.8), conscientiousness(0.2), extraversion(0.0), openness(-0.2), neuroticism(-0.4)]), effects([satisfaction(+0.1)[mood]])]
 +!choose_alice_response_to_carol
@@ -290,8 +226,6 @@ max_episodes(2000).
 +!choose_alice_response_to_carol
     :   true
     <-  +strategy(alice_teach_carol).
-
-// --- Alice's responses ---
 
 +!execute_alice_response_to_carol
     :   strategy(alice_help_carol)
@@ -311,8 +245,6 @@ max_episodes(2000).
         .random(R);
         !alice_teach_carol_result(R).
 
-// --- Outcomes: Alice helps Carol ---
-
 +!alice_help_carol_result(R)
     :   R < 0.4
     <-  .print("  [Outcome] Problem was harder than expected, takes time. (PARTIAL)");
@@ -325,8 +257,6 @@ max_episodes(2000).
         vesna.via.record_outcome(success, 0.5, alice_help_carol, carol);
         vesna.via.record_carol_cfr(alice_help_carol, 0.5).
 
-// --- Outcomes: Alice declines Carol ---
-
 +!alice_decline_carol_result(R)
     :   R < 0.3
     <-  .print("  [Outcome] Carol can't solve it alone, frustrated. (FAILURE)");
@@ -338,8 +268,6 @@ max_episodes(2000).
     <-  .print("  [Outcome] Carol struggles but eventually figures it out. (SUCCESS - GROWTH)");
         vesna.via.record_outcome(success, 0.3, alice_decline_carol, carol);
         vesna.via.record_carol_cfr(alice_decline_carol, 0.1).
-
-// --- Outcomes: Alice teaches Carol ---
 
 +!alice_teach_carol_result(R)
     :   R < 0.35
